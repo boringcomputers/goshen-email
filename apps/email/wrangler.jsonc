@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bezalel-email-standalone",
+  "account_id": "c340deebb91d89c14d17239b7658dc81",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-06",
   "compatibility_flags": [
@@ -10,8 +11,8 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      // Replace with the ID of a PlanetScale primary connection with caching disabled.
-      "id": "00000000000000000000000000000000",
+      // PlanetScale bezalel-email/main in Northern Virginia. Keep query caching disabled.
+      "id": "d74b7d9147a348ae985ac889fb36232b",
       "localConnectionString": "postgres://postgres:postgres@127.0.0.1:5434/bezalel_email_dev"
     }
   ],
