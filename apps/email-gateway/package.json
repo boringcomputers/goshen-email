@@ -1,0 +1,21 @@
+{
+  "name": "@bezalel/email-gateway",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/check.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.mjs",
+    "start": "node src/start.mjs"
+  },
+  "dependencies": {
+    "nodemailer": "8.0.7",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "mailauth": "^5.0.3",
+    "smtp-server": "^3.19.9"
+  }
+}

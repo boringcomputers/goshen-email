@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bezalel Email</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <section id="login" class="login" hidden>
+    <form id="login-form" class="login-card">
+      <div class="brand"><span class="mark">b</span><span>Bezalel <span class="muted">Email</span></span></div>
+      <h1>Your mail, in one place.</h1>
+      <p>Sign in to manage your inboxes and email domains.</p>
+      <label>Dashboard password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="primary" type="submit">Sign in</button>
+      <p id="login-error" class="error" role="alert"></p>
+    </form>
+  </section>
+  <main id="app" hidden>
+    <aside class="sidebar">
+      <div class="brand"><span class="mark">b</span><span>Bezalel <span class="muted">Email</span></span></div>
+      <label class="mailbox-label">MAILBOX<select id="inboxes" aria-label="Mailbox"></select></label>
+      <button id="compose" class="primary">＋ Compose</button>
+      <nav aria-label="Email folders" id="folders">
+        <button data-folder="inbox" aria-current="page"><span>▣</span> Inbox</button>
+        <button data-folder="sent"><span>↗</span> Sent</button>
+        <button data-folder="all"><span>▤</span> All mail</button>
+        <button data-folder="quarantined"><span>◇</span> Quarantine</button>
+        <button data-folder="trash"><span>⌫</span> Trash</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button id="new-inbox">＋ New inbox</button>
+        <button id="domains">◎ Custom domains</button>
+        <button id="delete-inbox">Delete selected inbox</button>
+        <button id="logout">Sign out</button>
+      </div>
+    </aside>
+    <section class="mail-list" aria-label="Messages">
+      <header><div><span class="eyebrow">YOUR MAIL</span><h1 id="folder-title">Inbox</h1></div><button id="refresh" title="Refresh messages" aria-label="Refresh messages">↻</button></header>
+      <form id="search-form" class="search"><input id="query" aria-label="Search mail" placeholder="Search this mailbox…" type="search"><button type="submit">Search</button></form>
+      <div id="threads" class="threads"></div>
+      <button id="load-more" class="load-more" hidden>Load more</button>
+    </section>
+    <section class="reader" aria-label="Conversation"><div id="conversation" class="conversation"><div class="empty"><span class="empty-icon">✉</span><h2>A little room to focus.</h2><p>Select a conversation to read your mail.</p></div></div></section>
+  </main>
+  <div id="notice" role="status" hidden></div>
+  <dialog id="compose-dialog">
+    <form id="compose-form">
+      <div class="dialog-header"><h2 id="compose-title">New message</h2><button type="button" data-close="compose-dialog" aria-label="Close compose">×</button></div>
+      <p id="compose-from" class="muted"></p>
+      <label id="to-label">To<input name="to" placeholder="name@example.com" required></label>
+      <label id="subject-label">Subject<input name="subject" maxlength="998"></label>
+      <label>Message<textarea name="text" rows="10" required></textarea></label>
+      <label>Attachments, up to 2 MiB total<input name="attachments" type="file" multiple></label>
+      <p id="compose-error" role="alert" class="error"></p>
+      <footer><button id="discard-draft" type="button">Discard draft</button><button class="primary" type="submit">Send message</button></footer>
+    </form>
+  </dialog>
+  <dialog id="inbox-dialog">
+    <form id="inbox-form">
+      <div class="dialog-header"><h2>Create an inbox</h2><button type="button" data-close="inbox-dialog" aria-label="Close new inbox">×</button></div>
+      <label>Name<input name="displayName" maxlength="200" placeholder="Research assistant"></label>
+      <label>Username<input name="username" required maxlength="64" pattern="[a-zA-Z0-9][a-zA-Z0-9._-]*" placeholder="research"></label>
+      <label>Domain<input name="domain" placeholder="Leave blank for the default domain"></label>
+      <p id="inbox-error" class="error" role="alert"></p>
+      <footer><button class="primary" type="submit">Create inbox</button></footer>
+    </form>
+  </dialog>
+  <dialog id="domains-dialog" class="wide-dialog">
+    <div class="dialog-header"><h2>Custom domains</h2><button type="button" data-close="domains-dialog" aria-label="Close domains">×</button></div>
+    <p class="muted">Connect a domain by adding its DNS records. Custom domains require a configured SMTP gateway.</p>
+    <form id="domain-form" class="domain-form"><label>Domain<input name="domain" required placeholder="agents.example.com"></label><button class="primary" type="submit">Add domain</button></form>
+    <p id="domain-error" class="error" role="alert"></p>
+    <div id="domain-list"></div>
+  </dialog>
+</body>
+</html>

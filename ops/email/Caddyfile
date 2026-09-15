@@ -1,0 +1,8 @@
+{$MAIL_GATEWAY_HOSTNAME} {
+  tls {
+    issuer acme {
+      ca https://acme-v02.api.letsencrypt.org/directory
+    }
+  }
+  reverse_proxy gateway:8080
+}

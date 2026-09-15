@@ -1,0 +1,20 @@
+{
+  "name": "bezalel-email",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@10.15.1",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @bezalel/email-dashboard dev",
+    "start": "pnpm --filter @bezalel/email-dashboard start",
+    "build": "pnpm -r build",
+    "check": "pnpm -r check",
+    "test": "pnpm -r test",
+    "dev:worker": "pnpm --filter @bezalel/email dev",
+    "deploy:worker": "pnpm --filter @bezalel/email deploy",
+    "migrate": "pnpm --filter @bezalel/email migrate",
+    "source:check": "node scripts/verify-source.mjs"
+  }
+}

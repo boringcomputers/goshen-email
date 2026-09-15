@@ -1,0 +1,77 @@
+services:
+  gateway:
+    build:
+      context: ../..
+      dockerfile: apps/email-gateway/Dockerfile
+    init: true
+    restart: unless-stopped
+    environment:
+      MAIL_GATEWAY_HOSTNAME: ${MAIL_GATEWAY_HOSTNAME:?Set the gateway hostname}
+      MAIL_GATEWAY_TOKEN: ${MAIL_GATEWAY_TOKEN:?Set a shared gateway token}
+      MAIL_WORKER_URL: ${MAIL_WORKER_URL:?Set the email Worker URL}
+    ports:
+      - "25:25"
+    volumes:
+      - queue:/var/spool/postfix
+      - certificates:/certs:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+  https:
+    image: caddy:2.10.2
+    restart: unless-stopped
+    environment:
+      MAIL_GATEWAY_HOSTNAME: ${MAIL_GATEWAY_HOSTNAME:?Set the gateway hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy-config:/config
+  rspamd:
+    image: rspamd/rspamd:4.1
+    restart: unless-stopped
+    volumes:
+      - ./rspamd:/etc/rspamd/local.d:ro
+      - rspamd-data:/var/lib/rspamd
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/11333; printf \"GET /ping HTTP/1.0\\r\\n\\r\\n\" >&3; grep -q pong <&3'"]
+      interval: 30s
+      timeout: 5s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+  antivirus:
+    image: clamav/clamav:1.5
+    restart: unless-stopped
+    mem_limit: 4g
+    environment:
+      FRESHCLAM_CHECKS: "12"
+      CLAMD_CONF_ScanMail: "yes"
+      CLAMD_CONF_StreamMaxLength: "26M"
+      CLAMD_CONF_MaxFileSize: "26M"
+      CLAMD_CONF_MaxScanSize: "100M"
+      CLAMD_CONF_MaxScanTime: "30000"
+      CLAMD_CONF_MaxRecursion: "20"
+      CLAMD_CONF_MaxFiles: "1000"
+      CLAMD_CONF_AlertExceedsMax: "yes"
+      CLAMD_CONF_AlertEncrypted: "yes"
+      CLAMD_CONF_MaxThreads: "4"
+    volumes:
+      - virus-signatures:/var/lib/clamav
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  queue:
+  certificates:
+  caddy-config:
+  rspamd-data:
+  virus-signatures:
