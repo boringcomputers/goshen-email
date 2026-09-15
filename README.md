@@ -50,6 +50,11 @@ For remote access, put the dashboard behind an HTTPS reverse proxy, set
 `DASHBOARD_PUBLIC_URL` to its exact public origin, and preserve the incoming
 Host header. Set `HOST=0.0.0.0` when the proxy runs outside the dashboard container.
 The dashboard uses an HTTP-only, SameSite=Strict cookie and checks request origins.
+Set `DASHBOARD_TRUSTED_PROXY_IPS` to the comma-separated IP addresses from which
+your reverse proxy connects. Configure that proxy to overwrite `X-Real-IP` with
+the client's connection IP. Login throttles then apply per client. Direct
+connections use their socket address and ignore forwarded headers. Trusted
+proxy requests without a valid `X-Real-IP` cannot sign in.
 
 `pnpm dev` starts the dashboard with file watching. `pnpm dev:worker` starts
 Wrangler separately. Local Worker development still needs a dedicated Neon

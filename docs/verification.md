@@ -14,7 +14,7 @@ Environment: Linux, Node.js 24.19.0, pnpm 10.15.1, Chromium, temporary PGlite da
 | TypeScript and syntax checks | Passed |
 | Standalone email tests | 114 passed, including migrations, mailbox isolation, webhook configuration, and Workers runtime HTTP |
 | Gateway tests | 21 passed, including SMTP, scanner responses, TLS, and journal handling |
-| Dashboard tests | 6 passed, including session expiry/revocation, CSRF/host checks, rate limiting, and secret boundaries |
+| Dashboard tests | 9 passed, including session expiry/revocation, CSRF/host checks, per-client rate limiting, trusted proxies, concurrent attempts, and secret boundaries |
 | Source comparison | 57 copied files match the source; 8 declare intentional changes |
 | Bezalel source checkout | Clean; no source application changes |
 
@@ -39,6 +39,20 @@ Confirmed in Chromium:
 - Sign-in, first inbox creation, incoming message listing, and conversation reading.
 - Reply accepted by the simulated transport with the original In-Reply-To header.
 - New message accepted with an attachment whose decoded bytes match the fixture.
+- Quarantined mail stayed outside the inbox until owner release, then became readable there.
+- A 390px viewport had a 390px document width, with no horizontal overflow.
+
+## Review regression
+
+The initial shared login throttle blocked a valid owner after a different client
+made five failed attempts. The regression test against `c815769` reproduced
+HTTP 429 where HTTP 200 was expected. The updated code keeps budgets by connection
+IP, or by `X-Real-IP` only from an explicitly trusted proxy. The same test passes,
+as do tests for forged forwarding headers, cooldown expiry, and concurrent attempts.
+The full project has 144 tests.
+
+The SMTP gateway also packaged with `pnpm deploy --legacy --prod`, and its server
+module imported from that package without the Bezalel workspace.
 
 ## Limits
 

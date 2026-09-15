@@ -7,6 +7,7 @@ const publicUrl = process.env.DASHBOARD_PUBLIC_URL ?? `http://127.0.0.1:${port}`
 const server = dashboardServer({
   client: mailClient({ workerUrl: process.env.MAIL_WORKER_URL, apiToken: process.env.MAIL_API_TOKEN }),
   password: process.env.DASHBOARD_PASSWORD, publicUrl,
+  trustedProxyIps: (process.env.DASHBOARD_TRUSTED_PROXY_IPS ?? '').split(',').map((value) => value.trim()).filter(Boolean),
 })
 server.listen(port, process.env.HOST ?? '127.0.0.1', () => console.log(`Email dashboard: ${publicUrl}`))
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {

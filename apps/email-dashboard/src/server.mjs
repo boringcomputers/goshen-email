@@ -1,6 +1,7 @@
 import { createServer } from 'node:http'
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
+import { isIP } from 'node:net'
 import { DashboardError, operations } from './service.mjs'
 
 const assets = new Map([
@@ -29,13 +30,25 @@ async function readJson(request) {
   } catch { throw new DashboardError('Expected a JSON object') }
 }
 
-export function dashboardServer({ client, password, publicUrl, now = Date.now }) {
+export function dashboardServer({ client, password, publicUrl, trustedProxyIps = [], now = Date.now }) {
   if (!password || password.length < 32) throw new Error('DASHBOARD_PASSWORD must contain at least 32 characters')
   const origin = new URL(publicUrl)
   if (origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash ||
       (origin.protocol !== 'https:' && !(origin.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname))))
     throw new Error('DASHBOARD_PUBLIC_URL must be an HTTPS origin, or HTTP on loopback')
   const secure = origin.protocol === 'https:'
+  const normalizeIp = (value) => value?.startsWith('::ffff:') ? value.slice(7) : value
+  if (trustedProxyIps.some((address) => !isIP(address))) throw new Error('Trusted proxy addresses must be IP literals')
+  const proxies = new Set(trustedProxyIps.map(normalizeIp))
+  const clientIdentity = (request) => {
+    const peer = normalizeIp(request.socket.remoteAddress)
+    const forwarded = request.headers['x-real-ip']
+    if (proxies.has(peer)) {
+      if (typeof forwarded !== 'string' || !isIP(forwarded)) throw new DashboardError('The trusted proxy must set X-Real-IP', 400)
+      return normalizeIp(forwarded)
+    }
+    return peer
+  }
   const cookieName = secure ? '__Host-mail-session' : 'mail-session'
   const signingKey = randomBytes(32)
   const sessions = new Map()
@@ -50,7 +63,7 @@ export function dashboardServer({ client, password, publicUrl, now = Date.now })
     if (!expires || expires <= now()) { sessions.delete(id); return undefined }
     return id
   }
-  let failureCount = 0, retryAfter = 0
+  const attempts = new Map()
   return createServer({ requestTimeout: 60_000, headersTimeout: 15_000 }, async (request, response) => {
     response.setHeader('cache-control', 'no-store')
     response.setHeader('x-content-type-options', 'nosniff')
@@ -76,13 +89,19 @@ export function dashboardServer({ client, password, publicUrl, now = Date.now })
       if (request.headers.origin !== origin.origin) throw new DashboardError('Invalid request origin', 403)
       if (!(request.headers['content-type'] ?? '').toLowerCase().startsWith('application/json')) throw new DashboardError('Expected application/json', 415)
       if (path === '/api/login') {
-        if (now() < retryAfter) throw new DashboardError('Too many sign-in attempts. Try again in a minute.', 429)
+        const identity = clientIdentity(request)
+        for (const [key, attempt] of attempts) if (attempt.expires <= now()) attempts.delete(key)
+        const attempt = attempts.get(identity)
+        if (attempt?.failures >= 5) throw new DashboardError('Too many sign-in attempts. Try again in a minute.', 429)
         const body = await readJson(request)
+        const current = attempts.get(identity)
+        if (current?.failures >= 5 && current.expires > now()) throw new DashboardError('Too many sign-in attempts. Try again in a minute.', 429)
         if (typeof body.password !== 'string' || !equal(body.password, password)) {
-          if (++failureCount >= 5) { retryAfter = now() + 60_000; failureCount = 0 }
+          if (!current && attempts.size >= 10_000) attempts.delete(attempts.keys().next().value)
+          attempts.set(identity, { failures: (current && current.expires > now() ? current.failures : 0) + 1, expires: now() + 60_000 })
           throw new DashboardError('Incorrect dashboard password', 401)
         }
-        failureCount = 0
+        attempts.delete(identity)
         for (const [id, expires] of sessions) if (expires <= now()) sessions.delete(id)
         if (sessions.size >= 100) throw new DashboardError('Too many dashboard sessions', 429)
         const previous = sessionFor(request)

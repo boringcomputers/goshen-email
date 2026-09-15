@@ -7,17 +7,18 @@ import { mailClient } from '../src/service.mjs'
 
 const password = 'dashboard-test-password-'.repeat(3)
 const publicUrl = 'http://127.0.0.1:3031'
-async function fixture(t) {
+async function fixture(t, options = {}) {
   const calls = []
   let time = Date.now()
-  const server = dashboardServer({ password, publicUrl, now: () => time,
+  const server = dashboardServer({ password, publicUrl, now: () => time, ...options,
     client: { execute: async (...args) => { calls.push(args); return { inboxes: [] } } },
   })
   server.listen(0, '127.0.0.1'); await once(server, 'listening')
   t.after(() => new Promise((resolve) => { server.closeAllConnections(); server.close(resolve) }))
   const url = `http://127.0.0.1:${server.address().port}`
-  const request = (path, body, headers = {}) => new Promise((resolve, reject) => {
+  const request = (path, body, headers = {}, localAddress = '127.0.0.1') => new Promise((resolve, reject) => {
     const req = httpRequest(url + path, {
+      localAddress,
       method: body === undefined ? 'GET' : 'POST',
       headers: { host: '127.0.0.1:3031', origin: publicUrl, 'content-type': 'application/json', ...headers },
     }, (res) => {
@@ -70,6 +71,31 @@ test('bounds password attempts and requires a strong configuration', async (t) =
   await f.login()
   assert.throws(() => dashboardServer({ password: 'weak', publicUrl }), /32 characters/)
   assert.throws(() => dashboardServer({ password, publicUrl: 'http://public.example' }), /HTTPS/)
+})
+test('failed logins do not lock out another connection and forwarded headers cannot bypass the throttle', async (t) => {
+  const f = await fixture(t)
+  for (let index = 0; index < 5; index++) {
+    assert.equal((await f.request('/api/login', { password: 'wrong' }, { 'x-real-ip': `192.0.2.${index + 1}` }, '127.0.0.2')).status, 401)
+  }
+  assert.equal((await f.request('/api/login', { password }, { 'x-real-ip': '192.0.2.99' }, '127.0.0.2')).status, 429)
+  assert.equal((await f.request('/api/login', { password }, {}, '127.0.0.3')).status, 200)
+})
+test('only a configured proxy can supply independent client identities', async (t) => {
+  const f = await fixture(t, { trustedProxyIps: ['127.0.0.1'] })
+  assert.equal((await f.request('/api/login', { password })).status, 400)
+  assert.equal((await f.request('/api/login', { password }, { 'x-real-ip': 'not-an-ip' })).status, 400)
+  for (let index = 0; index < 5; index++) assert.equal((await f.request('/api/login', { password: 'wrong' }, { 'x-real-ip': '192.0.2.1' })).status, 401)
+  assert.equal((await f.request('/api/login', { password }, { 'x-real-ip': '192.0.2.1' })).status, 429)
+  assert.equal((await f.request('/api/login', { password }, { 'x-real-ip': '192.0.2.2' })).status, 200)
+  f.advance(60_000)
+  assert.equal((await f.request('/api/login', { password }, { 'x-real-ip': '192.0.2.1' })).status, 200)
+})
+test('concurrent attempts share the same per-client budget', async (t) => {
+  const f = await fixture(t)
+  const responses = await Promise.all(Array.from({ length: 12 }, () => f.request('/api/login', { password: 'wrong' }, {}, '127.0.0.2')))
+  assert.equal(responses.filter((response) => response.status === 401).length, 5)
+  assert.equal(responses.filter((response) => response.status === 429).length, 7)
+  assert.equal((await f.request('/api/login', { password }, {}, '127.0.0.3')).status, 200)
 })
 test('serves only fixed assets with an inert HTML policy and no configuration secrets', async (t) => {
   const f = await fixture(t)
