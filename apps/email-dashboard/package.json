@@ -1,0 +1,14 @@
+{
+  "name": "@bezalel/email-dashboard",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch src/main.mjs",
+    "start": "node --env-file-if-exists=.env src/main.mjs",
+    "build": "node scripts/check.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

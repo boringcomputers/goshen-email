@@ -1,0 +1,20 @@
+DATABASE_URL=postgres://user:password@your-neon-host/your-database?sslmode=require
+MAIL_API_TOKEN=replace-with-a-random-token-at-least-32-characters-long
+MAIL_WEBHOOK_SECRET=whsec_REPLACE_WITH_BASE64_RANDOM_BYTES
+CLOUDFLARE_ACCOUNT_ID=replace-with-your-32-character-account-id
+CLOUDFLARE_API_TOKEN=replace-with-your-scoped-cloudflare-api-token
+
+# Optional custom domains. Deploy the SMTP gateway with ops/email/README.md first.
+# MAIL_GATEWAY_URL=https://mx.example.com
+# MAIL_GATEWAY_HOSTNAME=mx.example.com
+# MAIL_GATEWAY_IPV4=your-gateway-public-ipv4
+# MAIL_GATEWAY_TOKEN=an-independent-random-token-at-least-32-characters-long
+# MAIL_DOMAIN_ENCRYPTION_KEY=64-hex-characters-from-32-random-bytes
+
+# Enable managed-domain scanning after the gateway scanners are healthy.
+# MAIL_INBOUND_SCAN_ENABLED=true
+# Optional: confirmed provider DKIM domains for enrolled complaint feedback loops.
+# MAIL_FEEDBACK_SIGNERS=feedback.your-provider.example
+
+# Optional shared webhook. Mailbox clients keep their own provisioned webhooks.
+# MAIL_EVENTS_URL=https://your-agent.example/email/inbound
