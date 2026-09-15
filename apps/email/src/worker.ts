@@ -9,7 +9,7 @@ import {
   type MailConfig,
   type Operation
 } from "./contracts.js"
-import { neonDatabase } from "./database.js"
+import { postgresDatabase } from "./database.js"
 import { MailService } from "./mail-service.js"
 import { MailboxStore } from "./mailbox-store.js"
 import { CustomDomains, type GatewayConfig } from "./custom-domains.js"
@@ -22,7 +22,7 @@ import {
 } from "./security.js"
 
 export interface Env {
-  DATABASE_URL: string
+  HYPERDRIVE: Hyperdrive
   MAIL_API_TOKEN: string
   MAIL_WEBHOOK_SECRET: string
   CLOUDFLARE_API_TOKEN: string
@@ -44,7 +44,7 @@ export interface Env {
 }
 
 const configuration = z.object({
-  DATABASE_URL: z.string().min(1),
+  HYPERDRIVE: z.object({ connectionString: z.string().min(1) }),
   MAIL_API_TOKEN: z.string().min(32),
   MAIL_WEBHOOK_SECRET: z.string().regex(/^whsec_[A-Za-z0-9+/]{32,}={0,2}$/),
   CLOUDFLARE_API_TOKEN: z.string().min(1),
@@ -88,7 +88,7 @@ export const serviceFor = (env: Env): MailService => {
     apiToken: env.MAIL_API_TOKEN,
     webhookSecret: env.MAIL_WEBHOOK_SECRET
   }
-  const store = new MailboxStore(neonDatabase(env.DATABASE_URL))
+  const store = new MailboxStore(postgresDatabase(env.HYPERDRIVE.connectionString))
   let gateway: GatewayConfig | undefined
   if (env.MAIL_GATEWAY_URL) {
     const result = z.object({

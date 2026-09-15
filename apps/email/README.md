@@ -3,7 +3,7 @@
 A Cloudflare Worker that implements Bezalel's mailbox provider. Cloudflare sends
 and receives mail for managed domains. An optional Bezalel SMTP gateway handles
 customer domains at any DNS provider. This app stores inboxes, message bodies, threads, labels,
-search indexes, send receipts, and event queues in Neon. R2 stores raw incoming
+search indexes, send receipts, and event queues in PlanetScale Postgres through Cloudflare Hyperdrive. R2 stores raw incoming
 messages and attachments.
 
 The standalone dashboard uses the Worker's platform token on the server only.
@@ -17,7 +17,8 @@ for the dashboard and [SOURCE.md](../../SOURCE.md) for extraction details.
 flowchart LR
   inbound[Cloudflare Email Routing] --> worker[Email Worker]
   worker --> objects[R2]
-  worker --> database[Neon mail schema]
+  worker --> hyperdrive[Hyperdrive, caching disabled]
+  hyperdrive --> database[PlanetScale Postgres, mail schema]
   database --> retry[Scheduled processing and delivery]
   retry --> ingress[Application webhook]
   agent[Application mailbox key] --> worker
@@ -52,11 +53,13 @@ flowchart LR
    ```
 
 7. Set each Worker secret with `pnpm --filter @bezalel/email exec wrangler secret put NAME`:
-   `DATABASE_URL`, `MAIL_API_TOKEN`, `MAIL_WEBHOOK_SECRET`,
+   `MAIL_API_TOKEN`, `MAIL_WEBHOOK_SECRET`,
    `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN`.
-8. Put the same Neon `DATABASE_URL` in a local `apps/email/.env` and run
-   `pnpm --filter @bezalel/email migrate`. This creates only the `mail` schema;
-   it does not modify other schemas. Use a dedicated Neon database with a role allowed to create that schema.
+8. Follow the [PlanetScale and Hyperdrive guide](../../docs/planetscale.md).
+   Create a dedicated PlanetScale Postgres database, connect its primary to
+   Hyperdrive with query caching disabled, and replace the `HYPERDRIVE` ID in
+   `wrangler.jsonc`. Run migrations with a direct PostgreSQL `DATABASE_URL`
+   from `apps/email/.env`. The Worker uses the binding and needs no database URL secret.
 9. Deploy with `pnpm --filter @bezalel/email deploy`. In Cloudflare Email
    Routing, send the domain's catch-all to this Worker. Remove any specific
    address rules that would override this route for agent addresses.
@@ -224,7 +227,7 @@ Those services are not required by this standalone project.
 
 - The Worker accepts mail only for an active inbox. Unknown recipients are
   rejected, even with a catch-all. It stores the raw message in R2 and an
-  incoming job in Neon before the email handler completes.
+  incoming job in PostgreSQL before the email handler completes.
 - A scheduled handler runs every minute. Incoming jobs and outbound webhooks
   use leased rows, retries with capped backoff, and stable IDs. Failed jobs
   remain queued; there is no automatic expiry that silently drops mail.
@@ -250,7 +253,7 @@ Those services are not required by this standalone project.
   the native gateway journal and update the same delivery snapshot.
 
 Cloudflare does not document a send idempotency key. The app reserves each send
-in Neon before dispatch. A successful replay returns the original receipt; a
+in PostgreSQL before dispatch. A successful replay returns the original receipt; a
 timeout or unreadable response keeps the reservation pending and refuses to
 dispatch it again. A 429 response permits another attempt with the same key
 and content after the provider limit clears. A database failure after Cloudflare
@@ -278,11 +281,19 @@ server tests cover adapter decoding, provider defaults, signed ingress, tenant
 attribution, and webhook startup. These checks do not prove live delivery or
 DNS configuration.
 
-For local Worker development, copy `.dev.vars.example` to `.dev.vars`, set a
-dedicated development Neon database, migrate it, and run
-`pnpm --filter @bezalel/email dev`. Wrangler uses local R2 storage. Its development
+For local Worker development, copy `.dev.vars.example` to `.dev.vars` and
+`.env.example` to `.env`. Start a dedicated local PostgreSQL database and match
+its URL to `hyperdrive.localConnectionString` in `wrangler.jsonc`, then migrate
+and run `pnpm --filter @bezalel/email dev`. Use the local-connection environment
+variable described in the [database guide](../../docs/planetscale.md#local-development)
+for private development credentials. Wrangler uses local R2 storage. Its development
 email handler can be exercised with Wrangler's email testing endpoint. Sending
 through the configured Cloudflare API remains a live operation.
+
+`pnpm test:postgres` repeats the mailbox tests through `pg` against a dedicated
+local PostgreSQL server and tests the Hyperdrive binding in workerd. Each fixture
+creates and removes its own database. The [database guide](../../docs/planetscale.md#verification)
+includes the test setup; no PlanetScale credentials are needed.
 
 ## Product mailbox access
 

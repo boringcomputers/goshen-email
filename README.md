@@ -15,7 +15,7 @@ See [SOURCE.md](SOURCE.md) for the source revision and how to carry fixes betwee
 - A Cloudflare Worker for mailbox storage, sending and receiving, threading,
   labels, signed webhooks, delivery tracking, and mailbox-scoped application keys.
 - An SMTP gateway using Postfix, Rspamd, and ClamAV for domains at any DNS provider.
-- Neon migrations, R2 attachment storage, local database tests, and deployment guides.
+- PostgreSQL migrations, R2 attachment storage, local database tests, and deployment guides.
 
 The dashboard supports one owner or a trusted team sharing access to the entire
 deployment. Applications and agents use mailbox-scoped credentials.
@@ -57,14 +57,14 @@ connections use their socket address and ignore forwarded headers. Trusted
 proxy requests without a valid `X-Real-IP` cannot sign in.
 
 `pnpm dev` starts the dashboard with file watching. `pnpm dev:worker` starts
-Wrangler separately. Local Worker development still needs a dedicated Neon
+Wrangler separately. Local Worker development still needs a dedicated PostgreSQL
 database. The root `build` command bundles the Worker without deploying it.
 
 ## Worker and SMTP deployment
 
 Follow the [Worker setup](apps/email/README.md) for Cloudflare Email Sending,
-Email Routing, Neon, R2, and delivery queues. Configuration uses placeholders
-and separate `bezalel-email-standalone` resource names. Set your own account,
+Email Routing, PlanetScale Postgres through Hyperdrive, R2, and delivery queues.
+Configuration uses placeholders and separate `bezalel-email-standalone` resource names. Set your own account,
 domain, zone, bucket, and queue values before deployment.
 
 ```sh
@@ -72,8 +72,11 @@ pnpm migrate
 pnpm deploy:worker
 ```
 
-Migration reads `apps/email/.env`. Worker development reads
-`apps/email/.dev.vars`; deployed secrets are set through Wrangler. Keep these
+Follow the [PlanetScale and Hyperdrive guide](docs/planetscale.md) to create the database
+connection and disable query caching. The checked-in binding ID is a placeholder.
+
+Migration reads a direct PostgreSQL URL from `apps/email/.env`. Worker development
+reads `apps/email/.dev.vars`; deployed secrets are set through Wrangler. Keep these
 files out of Git. Run migrations before each Worker upgrade.
 
 For customer-owned domains, follow the [SMTP gateway runbook](ops/email/README.md).
@@ -113,7 +116,11 @@ pnpm source:check
 
 Tests use PGlite's embedded PostgreSQL, isolated files, local SMTP fixtures,
 and simulated Cloudflare/R2 responses. They do not require Bezalel or a shared
-database. Live sending, public DNS, scanner deployment, and inbox placement
+database. Run `pnpm test:postgres` with a dedicated local `TEST_DATABASE_URL`
+to repeat the mailbox tests through the production PostgreSQL driver and exercise the
+Hyperdrive binding in the Workers runtime. See the [database guide](docs/planetscale.md#verification).
+
+Live sending, public DNS, scanner deployment, and inbox placement
 require the deployment canary in the SMTP runbook.
 
 To exercise the dashboard against temporary mail storage without provider credentials:

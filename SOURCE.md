@@ -16,6 +16,9 @@ Changes to the copied code:
   `BEZALEL_EVENTS_URL` remains an alias. Shared webhooks can be disabled without
   disabling product-mailbox webhooks or mailbox storage.
 - Worker configuration uses example values and separate resource names.
+- The standalone Worker uses PostgreSQL through a Hyperdrive binding. Migrations
+  use a direct PostgreSQL connection; the Neon driver is removed here.
+- Test fixtures can use dedicated local PostgreSQL databases through the production driver.
 - Documentation describes the standalone owner dashboard and deployment.
 
 There is no automatic synchronization. When taking a fix from Bezalel, inspect

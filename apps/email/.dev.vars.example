@@ -1,4 +1,5 @@
-DATABASE_URL=postgres://user:password@your-neon-host/your-database?sslmode=require
+# The database comes from the HYPERDRIVE binding in wrangler.jsonc.
+# Put the direct migration DATABASE_URL in .env, following .env.example.
 MAIL_API_TOKEN=replace-with-a-random-token-at-least-32-characters-long
 MAIL_WEBHOOK_SECRET=whsec_REPLACE_WITH_BASE64_RANDOM_BYTES
 CLOUDFLARE_ACCOUNT_ID=replace-with-your-32-character-account-id

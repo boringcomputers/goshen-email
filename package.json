@@ -12,6 +12,7 @@
     "build": "pnpm -r build",
     "check": "pnpm -r check",
     "test": "pnpm -r test",
+    "test:postgres": "pnpm --filter @bezalel/email test:postgres",
     "dev:worker": "pnpm --filter @bezalel/email dev",
     "deploy:worker": "pnpm --filter @bezalel/email deploy",
     "migrate": "pnpm --filter @bezalel/email migrate",
