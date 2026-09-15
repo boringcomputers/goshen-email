@@ -7,6 +7,14 @@
     "nodejs_compat"
   ],
   "workers_dev": true,
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      // Replace with the ID of a PlanetScale primary connection with caching disabled.
+      "id": "00000000000000000000000000000000",
+      "localConnectionString": "postgres://postgres:postgres@127.0.0.1:5434/bezalel_email_dev"
+    }
+  ],
   "vars": {
     "WORKER_NAME": "bezalel-email-standalone",
     "DEFAULT_EMAIL_DOMAIN": "example.com",

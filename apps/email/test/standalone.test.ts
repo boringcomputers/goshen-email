@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { serviceFor, type Env } from '../src/worker.js'
+import worker, { serviceFor, type Env } from '../src/worker.js'
 import { MailService } from '../src/mail-service.js'
 import { clientEventTarget } from '../src/mail-clients.js'
 import { config, fixture, rawMail } from './support.js'
 
 describe('standalone webhook configuration', () => {
   const environment = (): Env => ({
-    DATABASE_URL: 'postgres://test:test@db.example.com/mail',
+    HYPERDRIVE: { connectionString: 'postgres://test:test@db.example.com/mail' } as Hyperdrive,
     MAIL_API_TOKEN: config.apiToken, MAIL_WEBHOOK_SECRET: config.webhookSecret,
     CLOUDFLARE_API_TOKEN: 'test-token', CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32),
     EMAIL_DOMAINS: JSON.stringify(config.domains), DEFAULT_EMAIL_DOMAIN: config.defaultDomain,
@@ -17,6 +17,16 @@ describe('standalone webhook configuration', () => {
     expect(serviceFor({ ...environment(), MAIL_EVENTS_URL: 'https://agent.example.com/mail' }).config.eventsUrl).toBe('https://agent.example.com/mail')
     expect(serviceFor({ ...environment(), BEZALEL_EVENTS_URL: config.eventsUrl }).config.eventsUrl).toBe(config.eventsUrl)
     expect(() => serviceFor({ ...environment(), MAIL_EVENTS_URL: 'http://public.example.com/private' })).toThrow()
+  })
+  it('requires a Hyperdrive binding and redacts configuration errors', async () => {
+    const response = await worker.fetch(new Request('https://mail.example.com/healthz'), {
+      ...environment(), HYPERDRIVE: undefined,
+      DATABASE_URL: 'postgres://private:secret@db.example.com/mail',
+    } as unknown as Env)
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ error: {
+      message: 'Email Worker is not configured', code: 'not_configured', transient: false,
+    } })
   })
   let f: Awaited<ReturnType<typeof fixture>>
   beforeAll(async () => { f = await fixture() })

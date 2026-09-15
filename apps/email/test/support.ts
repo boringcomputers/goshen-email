@@ -1,8 +1,8 @@
-import { PGlite } from "@electric-sql/pglite"
 import { vi } from "vitest"
 import { MailService } from "../src/mail-service.js"
 import { MailboxStore } from "../src/mailbox-store.js"
-import { migrate, type Database } from "../src/database.js"
+import { migrate } from "../src/database.js"
+import { testDatabase } from "./database.js"
 import type { MailConfig, ObjectStore, Transport } from "../src/contracts.js"
 import type { MessageProtection } from "../src/protection.js"
 
@@ -23,11 +23,7 @@ export const config: MailConfig = {
 }
 
 export const fixture = async () => {
-  const pg = new PGlite()
-  const db: Database = {
-    query: async <T>(text: string, params: unknown[] = []) =>
-      (await pg.query<T>(text, params)).rows
-  }
+  const { pg, db } = await testDatabase()
   await migrate(db)
   const blobs = new Map<string, Uint8Array>()
   const objects: ObjectStore = {

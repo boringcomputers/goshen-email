@@ -1,6 +1,6 @@
 # Custom-domain SMTP gateway
 
-The native email Worker stores every custom-domain inbox in the email project's Neon
+The native email Worker stores every custom-domain inbox in the email project's PlanetScale Postgres
 and R2 storage. This gateway adds SMTP sending and receiving for domains at
 any DNS provider. Managed-domain inboxes keep Cloudflare transport.
 Customers add DNS records; they do not move their domain into our Cloudflare
@@ -104,7 +104,7 @@ Bezalel's multi-tenant domain limits are not part of this deployment.
 
 On an existing SMTP deployment, use this order:
 
-1. Back up Neon, R2, the domain encryption key, and the stopped gateway's queue
+1. Back up PostgreSQL, R2, the domain encryption key, and the stopped gateway's queue
    volume. Keep that volume attached throughout the upgrade.
 2. Run the mailbox migration, then deploy the Worker. The new Worker requires
    scan metadata on custom-domain receive requests. An old gateway temporarily
@@ -122,7 +122,7 @@ On an existing SMTP deployment, use this order:
    formats that omit an identifiable recipient cannot create a suppression.
 
 No new Cloudflare credentials are required for these features. The Worker uses
-its existing R2 binding, Neon credential, and shared gateway token. Feedback-loop
+its existing R2 and Hyperdrive bindings, and shared gateway token. Feedback-loop
 enrollment and managed-domain scanning are operator configuration steps.
 
 Custom-domain mail submitted before the journal upgrade keeps its existing queued
@@ -232,7 +232,7 @@ health, and ClamAV signature freshness. Restrict scanner logs as email metadata.
 
 Keep the `queue`, `certificates`, `rspamd-data`, and `virus-signatures` volumes when updating the image. Do not run
 `docker compose down -v` on a live gateway. Back up the queue while Postfix is
-stopped, along with Neon, R2, and the domain encryption key. Monitor queue age,
+stopped, along with PostgreSQL, R2, and the domain encryption key. Monitor queue age,
 disk usage, certificate expiry, health status, and the Worker's incoming jobs.
 
 To stop provisioning, restrict access to the dashboard and platform API.
