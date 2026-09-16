@@ -10,7 +10,9 @@ export const customerMigrations = [
     customer_id uuid not null references mail.customers(id),
     inbox_id uuid primary key references mail.inboxes(id)
   )`,
-  `alter table mail.customer_inboxes add column if not exists route_ready boolean not null default false`,
+  // Existing ownership was recorded only after routing succeeded. New reservations start pending.
+  `alter table mail.customer_inboxes add column if not exists route_ready boolean not null default true`,
+  `alter table mail.customer_inboxes alter column route_ready set default false`,
   `create index if not exists customer_inboxes_owner on mail.customer_inboxes(customer_id)`,
   `alter table mail.clients alter column webhook_url drop not null`,
   `drop function if exists mail.provision_customer_inbox(uuid, text, text, text)`,

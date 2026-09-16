@@ -33,6 +33,22 @@ describe("Customer dashboard authorization", () => {
   const customers = async () => { await invite("a@example.net"); await invite("b@example.net") }
   const inbox = (name: "a" | "b") => result("createInbox", { username: name }, tokens[name])
 
+  it("preserves existing routed inboxes and pending reservations when migrations rerun", async () => {
+    await customers(); const a = await inbox("a")
+    await f.pg.exec("alter table mail.customer_inboxes drop column route_ready")
+    await migrate(f.db)
+    expect((await result("listInboxes", {}, tokens.a)).inboxes[0]).toMatchObject({ inboxId: a.inboxId, deliveryStatus: "ready" })
+    const route = f.service.transport.ensureInboxRoute
+    f.service.transport.ensureInboxRoute = vi.fn().mockRejectedValue(new Error("routing unavailable"))
+    try {
+      expect((await request("createInbox", { username: "pending" }, tokens.a)).status).toBe(503)
+      await migrate(f.db)
+      const rows = (await result("listInboxes", {}, tokens.a)).inboxes
+      expect(rows.find((i: any) => i.inboxId === a.inboxId).deliveryStatus).toBe("ready")
+      expect(rows.find((i: any) => i.inboxId.startsWith("pending@")).deliveryStatus).toBe("pending")
+    } finally { f.service.transport.ensureInboxRoute = route }
+  })
+
   it("requires a verified invitation and derives the owner role only from server configuration", async () => {
     expect((await request("session", {}, tokens.a)).status).toBe(403)
     expect((await result("session")).customer.role).toBe("admin")
