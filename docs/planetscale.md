@@ -31,8 +31,10 @@ The database and Hyperdrive connection were created on September 15, 2026.
 The `mail` schema is initialized. The application role has schema usage, table
 read/write access, and function execution, including grants for future objects
 created by `postgres`. It has no `postgres` membership or schema creation privileges.
-Future migrations must use an owner connection and `SET ROLE postgres` so the
-existing default grants continue to apply.
+`pnpm migrate` uses one transaction and applies `SET LOCAL ROLE postgres` before
+running the schema statements. Its login must be allowed to assume `postgres`;
+the application role cannot run migrations. This keeps existing default grants
+in effect when operators use temporary migration credentials.
 
 The PS-5 plan has no standby replicas or automatic failover. Review capacity and
 availability needs before serving production mail. The Worker, dashboard, SMTP
