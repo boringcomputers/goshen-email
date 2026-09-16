@@ -102,6 +102,7 @@ export async function handleClientAdmin(
     const input = decode(provisionInput, raw)
     const url = validateUrl(input.webhookUrl)
     const domain = service.config.defaultDomain
+    if (!domain) throw new MailError("Configure a default email domain before provisioning clients", "domain_not_configured", 422)
     const inboxAddress = decode(
       address,
       `${input.username.toLowerCase()}@${domain}`

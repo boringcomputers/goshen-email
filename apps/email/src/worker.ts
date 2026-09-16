@@ -25,10 +25,10 @@ export interface Env {
   HYPERDRIVE: Hyperdrive
   MAIL_API_TOKEN: string
   MAIL_WEBHOOK_SECRET: string
-  CLOUDFLARE_API_TOKEN: string
+  CLOUDFLARE_API_TOKEN?: string
   CLOUDFLARE_ACCOUNT_ID: string
   EMAIL_DOMAINS: string
-  DEFAULT_EMAIL_DOMAIN: string
+  DEFAULT_EMAIL_DOMAIN?: string
   PUBLIC_EMAIL_URL: string
   MAIL_EVENTS_URL?: string
   BEZALEL_EVENTS_URL?: string
@@ -47,9 +47,9 @@ const configuration = z.object({
   HYPERDRIVE: z.object({ connectionString: z.string().min(1) }),
   MAIL_API_TOKEN: z.string().min(32),
   MAIL_WEBHOOK_SECRET: z.string().regex(/^whsec_[A-Za-z0-9+/]{32,}={0,2}$/),
-  CLOUDFLARE_API_TOKEN: z.string().min(1),
+  CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().regex(/^[a-f0-9]{32}$/),
-  DEFAULT_EMAIL_DOMAIN: domainName,
+  DEFAULT_EMAIL_DOMAIN: domainName.optional(),
   PUBLIC_EMAIL_URL: z.url(),
   MAIL_EVENTS_URL: z.url().optional(),
   BEZALEL_EVENTS_URL: z.url().optional(),
@@ -69,7 +69,8 @@ export const serviceFor = (env: Env): MailService => {
   if (
     !parsed.success ||
     !domains?.success ||
-    !domains.data[env.DEFAULT_EMAIL_DOMAIN]
+    (env.DEFAULT_EMAIL_DOMAIN && !domains.data[env.DEFAULT_EMAIL_DOMAIN]) ||
+    (domains?.success && Object.keys(domains.data).length > 0 && !env.CLOUDFLARE_API_TOKEN)
   )
     throw new MailError(
       "Email Worker configuration is incomplete",
@@ -108,7 +109,7 @@ export const serviceFor = (env: Env): MailService => {
   if (env.MAIL_INBOUND_SCAN_ENABLED === "true" && !gateway)
     throw new MailError("Incoming mail scanning requires the gateway", "not_configured", 503)
   const transport = cloudflareTransport({
-    token: env.CLOUDFLARE_API_TOKEN, accountId: env.CLOUDFLARE_ACCOUNT_ID,
+    token: env.CLOUDFLARE_API_TOKEN ?? "", accountId: env.CLOUDFLARE_ACCOUNT_ID,
     domains: domains.data, workerName: env.WORKER_NAME
   })
   return new MailService({

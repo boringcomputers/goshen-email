@@ -60,7 +60,7 @@ flowchart LR
    Hyperdrive with query caching disabled, and replace the `HYPERDRIVE` ID in
    `wrangler.jsonc`. Run migrations with a direct PostgreSQL `DATABASE_URL`
    from `apps/email/.env`. The Worker uses the binding and needs no database URL secret.
-9. Deploy with `pnpm --filter @bezalel/email deploy`. In Cloudflare Email
+9. Deploy with `pnpm --filter @bezalel/email run deploy`. In Cloudflare Email
    Routing, send the domain's catch-all to this Worker. Remove any specific
    address rules that would override this route for agent addresses.
 

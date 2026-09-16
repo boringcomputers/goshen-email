@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import worker, { serviceFor, type Env } from '../src/worker.js'
+import worker, { handleRequest, serviceFor, type Env } from '../src/worker.js'
 import { MailService } from '../src/mail-service.js'
 import { clientEventTarget } from '../src/mail-clients.js'
 import { config, fixture, rawMail } from './support.js'
@@ -28,9 +28,28 @@ describe('standalone webhook configuration', () => {
       message: 'Email Worker is not configured', code: 'not_configured', transient: false,
     } })
   })
+  it('allows deployment before mail onboarding and requires credentials for configured domains', () => {
+    const env = { ...environment(), EMAIL_DOMAINS: '{}', DEFAULT_EMAIL_DOMAIN: undefined, CLOUDFLARE_API_TOKEN: undefined }
+    expect(serviceFor(env).config.domains).toEqual({})
+    expect(serviceFor(env).config.defaultDomain).toBeUndefined()
+    expect(() => serviceFor({ ...environment(), CLOUDFLARE_API_TOKEN: undefined })).toThrow()
+    expect(() => serviceFor({ ...env, DEFAULT_EMAIL_DOMAIN: 'example.com' })).toThrow()
+  })
   let f: Awaited<ReturnType<typeof fixture>>
   beforeAll(async () => { f = await fixture() })
   afterAll(async () => { await f.pg.close() })
+  it('keeps reads authenticated and blocks provisioning before a mail domain is configured', async () => {
+    const service = new MailService({ ...f.service, config: { ...config, domains: {}, defaultDomain: undefined } })
+    const request = (path: string, input: unknown, authorized = true) => handleRequest(new Request(`https://mail.example.com${path}`, {
+      method: 'POST', headers: { authorization: authorized ? `Bearer ${config.apiToken}` : '' }, body: JSON.stringify(input),
+    }), service)
+    expect((await request('/rpc/listInboxes', {}, false)).status).toBe(401)
+    expect((await request('/rpc/listInboxes', {})).status).toBe(200)
+    expect((await request('/rpc/createInbox', { username: 'not-ready' })).status).toBe(422)
+    const provision = await request('/clients/provision', { clientId: 'pending-client', username: 'pending', webhookUrl: 'https://agent.example.com/events' })
+    expect(provision.status).toBe(422)
+    expect(await provision.json()).toMatchObject({ error: { code: 'domain_not_configured' } })
+  })
   it('stores incoming mail without queueing retries when the shared webhook is disabled', async () => {
     const service = new MailService({ ...f.service, config: { ...config, eventsUrl: undefined } })
     await service.execute('createInbox', { username: 'standalone' })

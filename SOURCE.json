@@ -73,6 +73,7 @@
     "apps/email/README.md",
     "apps/email/package.json",
     "apps/email/scripts/migrate.ts",
+    "apps/email/src/cloudflare.ts",
     "apps/email/src/contracts.ts",
     "apps/email/src/database.ts",
     "apps/email/src/mail-clients.ts",

@@ -255,7 +255,7 @@ export interface ObjectStore {
 }
 export interface MailConfig {
   accountId?: string
-  defaultDomain: string
+  defaultDomain?: string
   domains: Record<string, string>
   publicUrl: string
   eventsUrl?: string

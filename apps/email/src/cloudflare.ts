@@ -32,6 +32,7 @@ export const cloudflareTransport = (
   request: typeof fetch = fetch
 ): Transport => {
   const call = async (path: string, body?: unknown): Promise<unknown> => {
+    if (!config.token) throw new MailError("Cloudflare email access is not configured", "not_configured", 503)
     let response: Response
     try {
       response = await request(`https://api.cloudflare.com/client/v4${path}`, {
