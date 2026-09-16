@@ -76,10 +76,12 @@ export async function handleCustomerRequest(request: Request, service: MailServi
     const inbox = await service.store.inbox(input.inboxId)
     if (inbox.testing) throw new MailError("Inbox not found", "not_found", 404)
     await store.owns(customer, inbox.id)
+    if (operation === "inboxQuota" && customer.role !== "admin")
+      return { count: (await store.inboxes(customer)).length, limit: customer.inboxLimit }
     if (operation === "getCredentials" || operation === "rotateCredentials")
       return mailboxCredentials(service, inbox.id, operation === "rotateCredentials")
     return service.execute(operation as Operation, { ...input, inboxId: inbox.address,
-      ...(operation === "releaseQuarantine" ? { reviewedBy: customer.email } : {}) })
+      ...(operation === "releaseQuarantine" ? { reviewedBy: customer.id } : {}) })
   }
   return Response.json({ result: await result() }, { headers: { "cache-control": "no-store" } })
 }
