@@ -116,7 +116,15 @@ test('serves only fixed assets with an inert HTML policy and no configuration se
   assert.equal(page.status, 200)
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/)
   const body = await page.text()
-  assert.match(body, /Bezalel Email/)
+  assert.match(body, /The AI agent your customers actually talk to/)
+  for (const path of ['/app', '/app/']) {
+    const app = await f.request(path)
+    assert.equal(app.status, 200)
+    const html = await app.text()
+    assert.match(html, /Bezalel Email/)
+    assert.equal(html.includes(password), false)
+  }
+  assert.equal((await f.request('/dashboard.html')).status, 404)
   assert.equal(body.includes(password), false)
   assert.equal((await f.request('/.env')).status, 404)
   assert.equal((await f.request('/src/server.mjs')).status, 404)

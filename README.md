@@ -23,6 +23,19 @@ Applications and agents use mailbox-scoped credentials.
 Bezalel's multi-tenant accounts, billing, approval policies, analytics pages, and
 MCP server stay in Bezalel. The standalone API uses HTTP JSON operations.
 
+## Homepage
+
+The root page reproduces Fancy's **AI Startup Landing** artboard in
+[Paper](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/1-0), including
+its Solenne brand, copy, pricing, testimonial, and channel artwork. This is design
+reference content; it does not add AI agents, subscription billing, or a trial to
+the email service. Sign-in and start links open the existing dashboard at `/app`.
+Demo, sales, and unfinished footer destinations remain `#` placeholders.
+
+The page uses the shared Paper tokens and local Inter font. Its desktop layout
+matches the 1440px artboard; narrower screens reflow the cards, navigation, and
+product illustration. Artwork is served locally without contacting Paper.
+
 ## Run the local owner dashboard
 
 Install Node.js 24 and pnpm 10.15.1. Set up the email Worker using the
@@ -43,7 +56,8 @@ pnpm build
 pnpm start
 ```
 
-Open <http://127.0.0.1:3031> and sign in with the dashboard password. The Worker
+Open <http://127.0.0.1:3031> for the homepage, or
+<http://127.0.0.1:3031/app> to sign in with the dashboard password. The Worker
 token remains on the dashboard server. Sessions expire after eight hours,
 sign-out revokes them, and restarting the dashboard signs everyone out.
 
@@ -65,7 +79,7 @@ database. The root `build` command bundles the Worker without deploying it.
 
 The API and dashboard both run on Cloudflare Workers:
 
-- [Dashboard](https://bezalel-email-dashboard.michaelwasihun96.workers.dev)
+- [Dashboard](https://bezalel-email-dashboard.michaelwasihun96.workers.dev/app)
 - [API](https://bezalel-email-standalone.michaelwasihun96.workers.dev/healthz)
 
 The dashboard uses Cloudflare Access for sign-in, static assets for the interface,
@@ -158,7 +172,8 @@ To exercise the dashboard against temporary mail storage without provider creden
 pnpm --filter @bezalel/email exec tsx test/dashboard-fixture.ts
 ```
 
-Open <http://127.0.0.1:3038>. The fixture password is
+Open <http://127.0.0.1:3038> for the homepage or
+<http://127.0.0.1:3038/app> for the dashboard. The fixture password is
 `fixture-dashboard-password-fixture-dashboard-password-`. It runs only on
 loopback and never sends real email. Its test control endpoint on port 3039 can
 inject mail with `POST /receive` and a JSON `inboxId`. Do not deploy the fixture.

@@ -14,7 +14,7 @@ test('Cloudflare persists sessions, throttles and logout across process restarts
   await writeFile(config, JSON.stringify({
     name: 'email-dashboard-runtime-test', main: resolve('test/fixtures/worker.mjs'),
     compatibility_date: '2026-09-06', compatibility_flags: ['nodejs_compat'],
-    assets: { directory: resolve('public'), binding: 'ASSETS', run_worker_first: true },
+    assets: { directory: resolve('public'), binding: 'ASSETS', run_worker_first: true, html_handling: 'none' },
     durable_objects: { bindings: [{ name: 'DASHBOARD', class_name: 'Dashboard' }] },
     migrations: [{ tag: 'v1', new_sqlite_classes: ['Dashboard'] }],
     vars: { DASHBOARD_AUTH_MODE: 'password', DASHBOARD_PASSWORD: password, DASHBOARD_PUBLIC_URL: origin,
@@ -37,8 +37,14 @@ test('Cloudflare persists sessions, throttles and logout across process restarts
   await start()
   const page = await request('/')
   assert.equal(page.status, 200)
-  assert.match(await page.text(), /Bezalel Email/)
+  assert.match(await page.text(), /The AI agent your customers actually talk to/)
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/)
+  for (const path of ['/app', '/app/']) {
+    const app = await request(path)
+    assert.equal(app.status, 200)
+    assert.match(await app.text(), /Bezalel Email/)
+  }
+  assert.equal((await request('/dashboard.html')).status, 404)
   assert.equal((await request('/.env')).status, 404)
   assert.equal((await request('/api/rpc/listInboxes', {})).status, 401)
   const login = await request('/api/login', { password })
@@ -67,7 +73,7 @@ test('Cloudflare customer mode forwards Access assertions without password secre
   await writeFile(config, JSON.stringify({
     name: 'email-dashboard-access-test', main: resolve('test/fixtures/worker.mjs'),
     compatibility_date: '2026-09-06', compatibility_flags: ['nodejs_compat'],
-    assets: { directory: resolve('public'), binding: 'ASSETS', run_worker_first: true },
+    assets: { directory: resolve('public'), binding: 'ASSETS', run_worker_first: true, html_handling: 'none' },
     durable_objects: { bindings: [{ name: 'DASHBOARD', class_name: 'Dashboard' }] },
     migrations: [{ tag: 'v1', new_sqlite_classes: ['Dashboard'] }],
     vars: { DASHBOARD_AUTH_MODE: 'access', DASHBOARD_PUBLIC_URL: origin, MAIL_WORKER_URL: 'https://mail.example' },
@@ -77,7 +83,23 @@ test('Cloudflare customer mode forwards Access assertions without password secre
     experimental: { disableExperimentalWarning: true, disableDevRegistry: true },
   })
   t.after(async () => { await worker.stop(); await rm(directory, { recursive: true, force: true }) })
-  assert.equal((await worker.fetch(origin)).status, 200)
+  const homepage = await worker.fetch(origin)
+  assert.equal(homepage.status, 200)
+  assert.match(await homepage.text(), /The AI agent your customers actually talk to/)
+  for (const path of ['/app', '/app/']) {
+    const app = await worker.fetch(origin + path)
+    assert.equal(app.status, 200)
+    assert.match(await app.text(), /Bezalel Email/)
+  }
+  const css = await worker.fetch(origin + '/landing.css')
+  assert.equal(css.status, 200)
+  assert.match(css.headers.get('content-type'), /text\/css/)
+  for (const name of ['imessage', 'whatsapp', 'telegram', 'slack', 'teams', 'email']) {
+    const icon = await worker.fetch(origin + `/images/${name}.png`)
+    assert.equal(icon.status, 200)
+    assert.equal(icon.headers.get('content-type'), 'image/png')
+    assert.equal(Buffer.from(await icon.arrayBuffer()).subarray(1, 4).toString(), 'PNG')
+  }
   const tokens = await worker.fetch(origin + '/tokens.css')
   assert.equal(tokens.status, 200)
   assert.match(await tokens.text(), /--color-sand-50: #F3F2EF/)

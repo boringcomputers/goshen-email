@@ -16,7 +16,7 @@ export class Dashboard extends DurableObject {
         request: (url, init) => env.MAIL_API.fetch(url, init) }),
       asset: async (file, request) => {
         const url = new URL(request.url)
-        url.pathname = file === 'index.html' ? '/' : `/${file}`
+        url.pathname = `/${file}`
         const response = await env.ASSETS.fetch(url)
         if (!response.ok) throw new Error('Dashboard asset unavailable')
         return response.body
@@ -50,7 +50,7 @@ export default {
           request: (url, init) => env.MAIL_API.fetch(url, init) }),
         asset: async (file, request) => {
           const url = new URL(request.url)
-          url.pathname = file === 'index.html' ? '/' : `/${file}`
+          url.pathname = `/${file}`
           const response = await env.ASSETS.fetch(url)
           if (!response.ok) throw new Error('Dashboard asset unavailable')
           return response.body

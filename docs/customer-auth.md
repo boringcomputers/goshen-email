@@ -11,7 +11,11 @@ The dashboard never sends its platform credential for customer requests.
    Create a team if the account has none. Record its `*.cloudflareaccess.com` domain.
 2. Under Integrations > Identity providers, add **One-time PIN**.
 3. Add a **Self-hosted** Access application named **Bezalel Email** for
-   `bezalel-email-dashboard.michaelwasihun96.workers.dev`, with no path restriction.
+   `bezalel-email-dashboard.michaelwasihun96.workers.dev`. In that same application,
+   add public hostname entries for paths `/app` and `/api` (each also covers its
+   subpaths). Keep both entries under the same application audience. Leave the
+   root homepage and static assets outside Access; do not retain a hostname-wide
+   entry if the homepage should be public.
    Set an eight-hour session and enable only the One-time PIN identity provider.
 4. Add an **Allow** policy with **Include: Everyone** and **Require: Login
    Methods > One-time PIN**. Do not use a Bypass policy. Cloudflare verifies the
@@ -27,7 +31,8 @@ The normal Wrangler OAuth login may deploy Workers but lack those Access
 permissions. The email-sending runtime token does not need Access administration
 permissions. Keep setup credentials separate and out of Git and chat.
 
-See Cloudflare's [OTP instructions](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/)
+See Cloudflare's [application path rules](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/),
+[OTP instructions](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/)
 and [JWT verification instructions](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/).
 
 ## Configure and deploy
@@ -48,8 +53,9 @@ visible to owners; customers start with no mailboxes and cannot claim old ones.
    [database guide](planetscale.md). Confirm that the application role has DML
    access to the new customer tables and can execute the new functions.
 2. Deploy the API with all three Access variables.
-3. Confirm the Access application protects the dashboard hostname and uses the
-   intended identity provider. Deploy the dashboard with `DASHBOARD_AUTH_MODE=access`.
+3. Confirm Access protects `/app` and `/api` on the dashboard hostname and uses
+   the intended identity provider. Deploy the dashboard with
+   `DASHBOARD_AUTH_MODE=access`, then verify `/` loads without a sign-in prompt.
 4. Sign in as an owner. Confirm the Customers button and expected inboxes appear.
 5. Remove `DASHBOARD_PASSWORD` and `MAIL_API_TOKEN` from the dashboard Worker after
    successful verification. Customer mode ignores both. The old Durable Object
@@ -62,8 +68,8 @@ email API with Access, since agent keys and mail delivery use different credenti
 ## Manage customers
 
 Open **Customers**, add the customer's email and inbox limit, then share the
-dashboard link. Adding a customer does not send an invitation email. Cloudflare
-sends a sign-in code when the customer starts signing in.
+dashboard link ending in `/app`. Adding a customer does not send an invitation
+email. Cloudflare sends a sign-in code when the customer starts signing in.
 
 Each customer can create up to their assigned number of active inboxes on
 `agents.goshenemail.com`. Inbox creation assigns ownership and enforces the limit

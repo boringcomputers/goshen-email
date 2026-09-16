@@ -3,6 +3,16 @@ import { DashboardError, operations } from './service.mjs'
 
 export const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/app', ['dashboard.html', 'text/html; charset=utf-8']],
+  ['/app/', ['dashboard.html', 'text/html; charset=utf-8']],
+  ['/landing.css', ['landing.css', 'text/css; charset=utf-8']],
+  ['/images/solenne.svg', ['images/solenne.svg', 'image/svg+xml']],
+  ['/images/imessage.png', ['images/imessage.png', 'image/png']],
+  ['/images/whatsapp.png', ['images/whatsapp.png', 'image/png']],
+  ['/images/slack.png', ['images/slack.png', 'image/png']],
+  ['/images/email.png', ['images/email.png', 'image/png']],
+  ['/images/telegram.png', ['images/telegram.png', 'image/png']],
+  ['/images/teams.png', ['images/teams.png', 'image/png']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/tokens.css', ['tokens.css', 'text/css; charset=utf-8']],
