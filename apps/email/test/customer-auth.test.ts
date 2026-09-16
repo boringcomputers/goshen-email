@@ -86,7 +86,7 @@ describe("Customer dashboard authorization", () => {
     expect((await result("listInboxes")).inboxes).toHaveLength(2)
     expect(await result("inboxQuota", { inboxId: a.inboxId }, tokens.a)).toEqual({ count: 1, limit: 5 })
     for (const op of ["deleteInbox", "inboxQuota", "listMessages", "getMessage", "listThreads", "getThread", "reviewThread",
-      "searchMessages", "send", "reply", "updateMessageLabels", "updateThreadLabels", "getAttachment", "releaseQuarantine", "getCredentials", "rotateCredentials", "finishInboxSetup"])
+      "searchMessages", "send", "reply", "updateMessageLabels", "updateThreadLabels", "getAttachment", "releaseQuarantine", "getCredentials", "rotateCredentials", "finishInboxSetup", "setupStatus"])
       expect((await request(op, { inboxId: b.inboxId }, tokens.a)).status, op).toBe(404)
     expect(f.send).not.toHaveBeenCalled()
     const mail = await f.service.receive(b.inboxId, rawMail({ attachment: true }), cleanProtection())
@@ -101,6 +101,54 @@ describe("Customer dashboard authorization", () => {
     const credentials = await result("getCredentials", { inboxId: a.inboxId }, tokens.a)
     expect((await request("getInbox", {}, credentials.apiKey, "/inbox-rpc/")).status).toBe(200)
     expect((await request("getInbox", { inboxId: b.inboxId }, credentials.apiKey, "/inbox-rpc/")).status).toBe(403)
+  })
+
+  it("confirms only a successful mailbox-key connection and resets after rotation", async () => {
+    await customers(); const a = await inbox("a")
+    const status = () => result("setupStatus", { inboxId: a.inboxId }, tokens.a)
+    expect(a.setupAvailable).toBe(true)
+    expect(await status()).toEqual({ inboxId: a.inboxId, deliveryReady: true, connectedAt: null, receivedAt: null })
+    const first = await result("getCredentials", { inboxId: a.inboxId }, tokens.a)
+    await result("listThreads", { inboxId: a.inboxId }, tokens.a)
+    expect((await status()).connectedAt).toBeNull()
+    expect((await request("getInbox", {}, first.apiKey + "x", "/inbox-rpc/")).status).toBe(401)
+    expect((await request("getInbox", { inboxId: "wrong@example.com" }, first.apiKey, "/inbox-rpc/")).status).toBe(403)
+    expect((await status()).connectedAt).toBeNull()
+    expect((await request("getInbox", {}, first.apiKey, "/inbox-rpc/")).status).toBe(200)
+    const connected = await status()
+    expect(connected.connectedAt).toEqual(expect.any(String))
+    expect(JSON.stringify(connected)).not.toContain(first.apiKey)
+    expect((await request("getInbox", {}, first.apiKey, "/inbox-rpc/")).status).toBe(200)
+    expect((await status()).connectedAt).toBe(connected.connectedAt)
+    const next = await result("rotateCredentials", { inboxId: a.inboxId }, tokens.a)
+    expect((await status()).connectedAt).toBeNull()
+    expect((await request("getInbox", {}, first.apiKey, "/inbox-rpc/")).status).toBe(401)
+    expect((await status()).connectedAt).toBeNull()
+    expect((await request("getInbox", {}, next.apiKey, "/inbox-rpc/")).status).toBe(200)
+    expect((await status()).connectedAt).toEqual(expect.any(String))
+    await migrate(f.db)
+    expect((await status()).connectedAt).toEqual(expect.any(String))
+  })
+
+  it("resumes reserved addresses and confirms incoming mail without exposing quarantined messages", async () => {
+    await customers()
+    const route = f.service.transport.ensureInboxRoute
+    f.service.transport.ensureInboxRoute = vi.fn().mockRejectedValue(new Error("routing unavailable"))
+    let a: any
+    try {
+      expect((await request("createInbox", { username: "pending" }, tokens.a)).status).toBe(503)
+      a = (await result("listInboxes", {}, tokens.a)).inboxes[0]
+      expect(await result("setupStatus", { inboxId: a.inboxId }, tokens.a)).toMatchObject({ deliveryReady: false, connectedAt: null, receivedAt: null })
+    } finally { f.service.transport.ensureInboxRoute = route }
+    await result("finishInboxSetup", { inboxId: a.inboxId }, tokens.a)
+    expect((await result("listInboxes", {}, tokens.a)).inboxes).toHaveLength(1)
+    expect((await result("setupStatus", { inboxId: a.inboxId }, tokens.a)).deliveryReady).toBe(true)
+    await f.service.receive(a.inboxId, rawMail(), { ...cleanProtection(), status: "quarantined", reasons: ["spam"] })
+    expect((await result("setupStatus", { inboxId: a.inboxId }, tokens.a)).receivedAt).toBeNull()
+    await f.service.receive(a.inboxId, rawMail({ id: "<clean-setup@example.net>" }), cleanProtection())
+    const status = await result("setupStatus", { inboxId: a.inboxId }, tokens.a)
+    expect(status.receivedAt).toEqual(expect.any(String))
+    expect(Object.keys(status).sort()).toEqual(["connectedAt", "deliveryReady", "inboxId", "receivedAt"])
   })
 
   it("revokes dashboard access and keys, and re-enabling never restores old keys", async () => {

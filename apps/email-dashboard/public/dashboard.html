@@ -9,7 +9,8 @@
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/style.css">
-  <script src="/app.js" defer></script>
+  <link rel="stylesheet" href="/setup.css">
+  <script src="/app.js" type="module"></script>
 </head>
 <body>
   <section id="login" class="login" hidden>
@@ -38,6 +39,7 @@
       </nav>
       <div class="sidebar-bottom">
         <span class="section-label">Workspace</span>
+        <button id="get-started" hidden><span data-icon="arrow-right"></span><span>Get started</span></button>
         <button id="customers" hidden><span data-icon="users"></span><span>Customers</span></button>
         <button id="credentials" hidden><span data-icon="key"></span><span>Mailbox API key</span></button>
         <button id="finish-inbox" hidden><span data-icon="alert"></span><span>Finish inbox setup</span></button>
@@ -56,6 +58,37 @@
         </div>
       </header>
       <div class="workspace-content">
+        <section id="setup" class="setup" aria-labelledby="setup-title" hidden>
+          <header class="setup-intro"><span class="section-label">MAKE YOURSELF AT HOME</span><h2 id="setup-title" tabindex="-1">A home for your next conversation.</h2><p>Create an address for yourself or your agent. Your first inbox starts here.</p></header>
+          <div class="setup-layout">
+            <ol class="setup-steps" aria-label="Inbox setup progress">
+              <li id="setup-step-address" aria-current="step"><span class="step-number">1</span><div><strong>Choose your address</strong><p>A name and a place for your mail.</p><span class="step-state">Current step</span></div></li>
+              <li id="setup-step-delivery"><span class="step-number">2</span><div><strong>Get ready for mail</strong><p>We take care of delivery setup.</p><span class="step-state">Up next</span></div></li>
+              <li id="setup-step-connect"><span class="step-number">3</span><div><strong>Make it yours</strong><p>Try your address or connect an agent.</p><span class="step-state">Up next</span></div></li>
+            </ol>
+            <div class="setup-card">
+              <form id="setup-form">
+                <span class="setup-mark" data-icon="mail"></span><h3>Your first inbox</h3><p class="setup-description">Give it a name you will recognize. You can add more inboxes later.</p>
+                <label><span>Inbox name <span class="muted">Optional</span></span><input name="displayName" maxlength="200" placeholder="Research assistant" autocomplete="off"></label>
+                <label for="setup-username">Email username</label><div class="address-input"><input id="setup-username" name="username" required maxlength="64" pattern="[a-zA-Z0-9][a-zA-Z0-9._\-]*" placeholder="research" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="setup-address-preview"><span id="setup-domain"></span></div>
+                <p id="setup-address-preview" class="setup-caption" aria-live="polite"></p>
+                <button id="setup-create" class="primary" type="submit">Create inbox <span data-icon="arrow-right"></span></button>
+              </form>
+              <div id="setup-created" hidden>
+                <div class="setup-card-heading"><span class="setup-mark" data-icon="inbox"></span><span id="setup-delivery-badge" class="badge"></span></div>
+                <h3 id="setup-inbox-name"></h3><p id="setup-address" class="setup-address"></p>
+                <p id="setup-delivery-description" class="setup-description" role="status"></p>
+                <button id="setup-retry" class="primary" hidden>Retry delivery setup</button>
+                <div id="setup-try" hidden>
+                  <section class="setup-option"><div><h4>Try your new address</h4><p>Send an email here from another account, then check for it.</p></div><button id="setup-copy-address">Copy address</button><button id="setup-check-mail">Check for email</button><p id="setup-mail-status" class="setup-caption" role="status"></p></section>
+                  <section class="setup-option"><div><h4>Give your agent an inbox</h4><p>Use a mailbox API key to read mail and send replies from your agent.</p></div><button id="setup-connect">Connect an agent <span data-icon="arrow-right"></span></button><p id="setup-connection-status" class="setup-caption" role="status"></p></section>
+                </div>
+              </div>
+              <p id="setup-error" class="error" role="alert"></p>
+            </div>
+          </div>
+          <footer class="setup-footer"><span id="setup-footer-note">You can use your inbox in the browser or through the API.</span><button id="setup-dismiss">Set up later <span data-icon="arrow-right"></span></button></footer>
+        </section>
         <div class="mail-workspace">
           <section class="mail-list" aria-label="Messages">
             <header class="list-header"><div><h2>Conversations <span id="thread-count" class="count" hidden></span></h2><p id="mailbox-address">Choose a mailbox to get started</p></div><button id="refresh" class="icon-button" title="Refresh messages" aria-label="Refresh messages"><span data-icon="refresh"></span></button></header>
@@ -115,6 +148,12 @@
     <p id="credentials-inbox" class="dialog-description"></p>
     <p class="muted">This key gives an agent access to this mailbox. Keep it private.</p>
     <label>API key<input id="api-key" type="password" readonly autocomplete="off"></label>
+    <section id="connection-guide" class="connection-guide" hidden>
+      <h3>Connect your agent</h3><p>Save this key as <code>BEZALEL_MAILBOX_KEY</code> in your agent's environment. Run this command in that environment to check access.</p>
+      <pre id="connection-command" tabindex="0" aria-label="Mailbox connection command"></pre><button id="copy-command">Copy command</button>
+      <p class="setup-caption">A successful request returns this inbox's address. It does not send an email.</p>
+      <div class="connection-check"><button id="check-connection">Check connection</button><p id="connection-status" role="status"></p></div>
+    </section>
     <footer><button id="rotate-key">Replace key</button><button id="copy-key" class="primary">Copy key</button></footer>
   </dialog>
 </body>

@@ -213,7 +213,20 @@ export async function handleInboxRequest(
       "forbidden",
       403
     )
-  if (operation === "getInbox") return json(inboxView(client))
+  if (operation === "getInbox") {
+    // A successful key-authenticated request confirms this version of the key.
+    const connected = await service.store.db.query(
+      `update mail.clients c set connected_at = case
+         when connected_token_version = token_version then coalesce(connected_at, now()) else now() end,
+         connected_token_version = token_version
+       where inbox_id = $1 and token_version = $2
+         and exists(select 1 from mail.inboxes i where i.id = c.inbox_id and i.deleted_at is null)
+         and not exists(select 1 from mail.customer_inboxes ci join mail.customers cu on cu.id = ci.customer_id
+           where ci.inbox_id = c.inbox_id and cu.disabled_at is not null)
+       returning inbox_id`, [client.inbox_id, client.token_version])
+    if (!connected.length) throw new MailError("Unauthorized", "unauthorized", 401)
+    return json(inboxView(client))
+  }
   if (["getCustomDomain", "connectCustomDomain", "disconnectCustomDomain"].includes(operation))
     return json(await clientDomainRequest(service, client.client_id, operation, input))
   if (operation === "ensureWebhook" || operation === "webhookStatus") {

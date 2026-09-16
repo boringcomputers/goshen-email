@@ -1,3 +1,4 @@
+import { createInboxSetup, connectionCommand } from './setup.js'
 const $ = (selector) => document.querySelector(selector)
 const accountEvents = new BroadcastChannel('bezalel-account')
 accountEvents.addEventListener('message', (event) => { if (event.data === 'signed-out' && state.authMode === 'account') showLogin() })
@@ -126,6 +127,30 @@ async function request(path, value) {
   return body
 }
 const rpc = async (operation, value = {}) => (await request(`/api/rpc/${operation}`, value)).result
+const setup = createInboxSetup({ state, rpc, createInbox, loadInboxes, notify,
+  openCredentials: () => $('#credentials').click(),
+  onVisibilityChange(open) {
+    $('.mail-workspace').hidden = open
+    $('.topbar-actions').hidden = open
+    $('#folder-title').textContent = open ? 'Get started' : state.query ? 'Search results' : folderNames[state.folder]
+    if (open) $('#get-started').setAttribute('aria-current', 'page')
+    else $('#get-started').removeAttribute('aria-current')
+    for (const button of document.querySelectorAll('[data-folder]')) {
+      if (!open && !state.query && button.dataset.folder === state.folder) button.setAttribute('aria-current', 'page')
+      else button.removeAttribute('aria-current')
+    }
+  },
+})
+async function createInbox(input) {
+  try {
+    const result = await rpc('createInbox', input)
+    await loadInboxes(result.inboxId)
+    return result
+  } catch (error) {
+    await loadInboxes().catch(() => {})
+    throw error
+  }
+}
 const action = (element, task) => element.addEventListener('click', async () => {
   element.disabled = true
   try { await task() } catch (error) { notify(error.message) } finally { element.disabled = false }
@@ -134,6 +159,7 @@ function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
+  setup.reset()
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#customer-list').replaceChildren(); $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)
@@ -161,11 +187,15 @@ async function loadInboxes(preferred = state.inbox) {
     option.value = inbox.inboxId
     return option
   }))
-  state.inbox = inboxes.some((inbox) => inbox.inboxId === preferred) ? preferred : inboxes[0]?.inboxId ?? ''
+  await selectInbox(inboxes.some((inbox) => inbox.inboxId === preferred) ? preferred : inboxes[0]?.inboxId ?? '')
+}
+async function selectInbox(inboxId) {
+  state.inbox = inboxId
   $('#inboxes').value = state.inbox
   $('#inboxes').title = state.inbox
   $('#compose').disabled = !state.inbox
-  await loadThreads()
+  // Update the guide immediately, even when message loading is slow or fails.
+  await Promise.all([setup.sync(), loadThreads()])
 }
 async function loadThreads(append = false) {
   updateAccount()
@@ -436,8 +466,11 @@ action($('#logout'), async () => {
   showLogin()
   if (logoutUrl === '/cdn-cgi/access/logout') location.assign(logoutUrl)
 })
-$('#inboxes').addEventListener('change', () => { state.inbox = $('#inboxes').value; void loadThreads().catch((error) => notify(error.message)) })
+$('#inboxes').addEventListener('change', () => {
+  void selectInbox($('#inboxes').value).catch((error) => notify(error.message))
+})
 for (const button of document.querySelectorAll('[data-folder]')) action(button, async () => {
+  setup.close()
   state.folder = button.dataset.folder; state.query = ''; $('#query').value = ''
   $('#folder-title').textContent = folderNames[state.folder]
   for (const other of document.querySelectorAll('[data-folder]')) other.removeAttribute('aria-current')
@@ -450,7 +483,7 @@ $('#search-form').addEventListener('submit', (event) => {
   void loadThreads().catch((error) => notify(error.message))
 })
 for (const [formId, errorId, operation, after] of [
-  ['inbox-form', 'inbox-error', 'createInbox', async (result) => { $('#inbox-dialog').close(); $('#inbox-form').reset(); await loadInboxes(result.inboxId); notify('Inbox created') }],
+  ['inbox-form', 'inbox-error', 'createInbox', async () => { $('#inbox-dialog').close(); $('#inbox-form').reset(); notify('Inbox created') }],
   ['domain-form', 'domain-error', 'createDomain', async () => { $('#domain-form').reset(); await loadDomains() }],
 ]) $(`#${formId}`).addEventListener('submit', async (event) => {
   event.preventDefault()
@@ -458,10 +491,9 @@ for (const [formId, errorId, operation, after] of [
   button.disabled = true; $(`#${errorId}`).textContent = ''
   try {
     const input = Object.fromEntries([...new FormData(form)].map(([key, value]) => [key, value.trim()]).filter(([, value]) => value))
-    await after(await rpc(operation, input))
+    await after(await (operation === 'createInbox' ? createInbox(input) : rpc(operation, input)))
   } catch (error) {
     $(`#${errorId}`).textContent = error.message
-    if (operation === 'createInbox') await loadInboxes().catch(() => {})
   } finally { button.disabled = false }
 })
 $('#login-form').addEventListener('submit', async (event) => {
@@ -525,12 +557,27 @@ action($('#credentials'), async () => {
   if (!state.inbox) return notify('Create or choose an inbox first.')
   credentialsInbox = state.inbox
   $('#api-key').value = ''; $('#credentials-inbox').textContent = credentialsInbox
+  $('#connection-guide').hidden = !state.session?.apiUrl
+  $('#connection-command').textContent = state.session?.apiUrl ? connectionCommand(state.session.apiUrl) : ''
+  $('#connection-status').textContent = 'Run the command, then check the connection.'
   $('#credentials-dialog').showModal()
   await loadCredentials('getCredentials')
 })
-$('#credentials-dialog').addEventListener('close', () => { $('#api-key').value = ''; credentialsInbox = '' })
+$('#credentials-dialog').addEventListener('close', () => { $('#api-key').value = ''; credentialsInbox = ''; $('#connection-command').textContent = ''; $('#connection-status').textContent = '' })
+action($('#copy-command'), async () => {
+  await navigator.clipboard.writeText($('#connection-command').textContent); notify('Command copied')
+})
+action($('#check-connection'), async () => {
+  const inboxId = credentialsInbox
+  const status = await rpc('setupStatus', { inboxId })
+  if (!$('#credentials-dialog').open || inboxId !== credentialsInbox) return
+  $('#connection-status').textContent = status.connectedAt ? 'Connected. This API key can access your inbox.' : 'No connection yet. Run the command with the current API key, then check again.'
+  await setup.refresh()
+})
 action($('#copy-key'), async () => { if ($('#api-key').value) { await navigator.clipboard.writeText($('#api-key').value); notify('Key copied') } })
 action($('#rotate-key'), async () => {
   if (!confirm('Replace this mailbox key? Agents using the old key will lose access.')) return
-  await loadCredentials('rotateCredentials'); notify('Mailbox key replaced')
+  await loadCredentials('rotateCredentials')
+  $('#connection-status').textContent = 'Key replaced. Update your agent and run the command again.'
+  await setup.refresh(); notify('Mailbox key replaced')
 })

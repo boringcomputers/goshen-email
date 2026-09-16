@@ -14,6 +14,8 @@ export const assets = new Map([
   ['/images/telegram.png', ['images/telegram.png', 'image/png']],
   ['/images/teams.png', ['images/teams.png', 'image/png']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
+  ['/setup.js', ['setup.js', 'text/javascript; charset=utf-8']],
+  ['/setup.css', ['setup.css', 'text/css; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/tokens.css', ['tokens.css', 'text/css; charset=utf-8']],
   ['/fonts/InterVariable.woff2', ['fonts/InterVariable.woff2', 'font/woff2']],

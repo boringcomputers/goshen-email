@@ -38,6 +38,10 @@ the mailbox, and revokes access. A deleted address cannot be reused.
 
 ## Read and send
 
+A successful `POST /inbox-rpc/getInbox` also confirms the current mailbox key
+for the dashboard's [connection guide](inbox-setup.md). Replacing the key clears
+that confirmation until the replacement makes its own successful request.
+
 Mailbox clients call `/inbox-rpc/<operation>`. `inboxId` is optional; if supplied,
 it must match the credential. Common operations:
 

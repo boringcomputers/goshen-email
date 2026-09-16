@@ -22,6 +22,9 @@ six-digit email codes, and sign-out. See the [account guide](docs/accounts.md) f
 configuration and rollout.
 Customers see their own inboxes. Owners can manage customers and all inboxes.
 Applications and agents use mailbox-scoped credentials.
+New accounts get a guided inbox setup with routing retries, a copyable agent
+connection command, and checks for the first incoming email. See the
+[inbox setup guide](docs/inbox-setup.md).
 Bezalel's multi-tenant accounts, billing, approval policies, analytics pages, and
 MCP server stay in Bezalel. The standalone API uses HTTP JSON operations.
 
