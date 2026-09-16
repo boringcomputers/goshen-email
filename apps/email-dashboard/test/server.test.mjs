@@ -116,7 +116,7 @@ test('serves only fixed assets with an inert HTML policy and no configuration se
   assert.equal(page.status, 200)
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/)
   const body = await page.text()
-  assert.match(body, /The AI agent your customers actually talk to/)
+  assert.match(body, /<title>Bezalel Email \| Inboxes for people and agents<\/title>/)
   for (const path of ['/app', '/app/']) {
     const app = await f.request(path)
     assert.equal(app.status, 200)

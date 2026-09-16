@@ -264,3 +264,16 @@ section[id], div[id] { scroll-margin-top: 24px; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* Let the revised copy wrap without clipping cards or actions. */
+.hero-copy { width: 100%; }
+.hero-title { width: 100%; }
+.capability-icon { color: var(--color-text-secondary); flex-shrink: 0; }
+@media (max-width: 1439px) {
+  .features .feature-grid > article { height: auto; min-height: 360px; gap: 24px; }
+}
+@media (max-width: 600px) {
+  .hero-actions { flex-wrap: wrap; justify-content: center; }
+  .nav-actions { gap: 12px; }
+  .brand-name { font-size: 18px; }
+}

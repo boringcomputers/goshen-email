@@ -37,7 +37,7 @@ test('Cloudflare persists sessions, throttles and logout across process restarts
   await start()
   const page = await request('/')
   assert.equal(page.status, 200)
-  assert.match(await page.text(), /The AI agent your customers actually talk to/)
+  assert.match(await page.text(), /<title>Bezalel Email \| Inboxes for people and agents<\/title>/)
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/)
   for (const path of ['/app', '/app/']) {
     const app = await request(path)
@@ -85,7 +85,7 @@ test('Cloudflare customer mode forwards Access assertions without password secre
   t.after(async () => { await worker.stop(); await rm(directory, { recursive: true, force: true }) })
   const homepage = await worker.fetch(origin)
   assert.equal(homepage.status, 200)
-  assert.match(await homepage.text(), /The AI agent your customers actually talk to/)
+  assert.match(await homepage.text(), /<title>Bezalel Email \| Inboxes for people and agents<\/title>/)
   for (const path of ['/app', '/app/']) {
     const app = await worker.fetch(origin + path)
     assert.equal(app.status, 200)
