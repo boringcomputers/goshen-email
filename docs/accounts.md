@@ -23,8 +23,10 @@ Sessions last seven days and refresh with activity. Cookies are HTTP-only,
 SameSite=Lax, Secure on HTTPS, and scoped to the dashboard host. Session caching
 is disabled so revocation takes effect on the next request.
 
-Each verified account starts with five inbox slots. Existing customer records
-retain their limits and inboxes when their verified email matches. New users
+After the [developer API migration](developers.md#rollout-and-verification),
+verified accounts have no default inbox-count cap. One account key can create,
+use, and group multiple inboxes. Operators can set an optional account quota.
+Existing inbox ownership is retained when the verified email matches. New users
 cannot claim existing mailboxes. The API checks session validity, disabled status,
 and mailbox ownership on every request. Administrator emails come only from
 `DASHBOARD_ADMIN_EMAILS`. Administrators can manage customers and existing

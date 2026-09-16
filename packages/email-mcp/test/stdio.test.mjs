@@ -8,7 +8,7 @@ test('a real stdio client discovers the catalog and calls the API through the SD
   let requests = 0
   const api = createServer((request, response) => {
     requests++; assert.equal(request.headers.authorization, 'Bearer bze_test')
-    assert.equal(request.url, '/v1/inboxes')
+    assert.equal(request.url, '/v1/inboxes?limit=50')
     response.setHeader('content-type', 'application/json'); response.end(JSON.stringify({ inboxes: [] }))
   })
   await new Promise(resolve => api.listen(0, '127.0.0.1', resolve))
@@ -18,7 +18,7 @@ test('a real stdio client discovers the catalog and calls the API through the SD
   try {
     await client.connect(transport)
     const tools = (await client.listTools()).tools
-    assert.equal(tools.length, 15)
+    assert.equal(tools.length, 16)
     assert.equal(tools.find(tool => tool.name === 'send').annotations.readOnlyHint, false)
     assert.equal(tools.find(tool => tool.name === 'send').annotations.destructiveHint, true)
     assert.equal(tools.find(tool => tool.name === 'delete_inbox').annotations.destructiveHint, true)

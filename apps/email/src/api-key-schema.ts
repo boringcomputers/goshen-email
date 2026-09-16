@@ -1,4 +1,7 @@
+import { accountInboxMigrations } from "./account-inbox-schema.js"
+
 export const apiKeyMigrations = [
+  ...accountInboxMigrations,
   `create table if not exists mail.api_keys (
     id uuid primary key, customer_id uuid not null references mail.customers(id),
     name text not null, token_hash text not null unique, prefix text not null,

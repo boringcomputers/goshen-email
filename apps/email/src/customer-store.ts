@@ -2,12 +2,13 @@ import { z } from "zod"
 import type { AccessIdentity } from "./access-auth.js"
 import type { Database } from "./database.js"
 import { MailError, type InboxRow } from "./contracts.js"
+import { inboxGroup, listAccountInboxes } from "./account-inbox-contract.js"
 
 interface CustomerRow {
   id: string; email: string; display_name: string | null; access_subject: string | null;
-  created_at: string; signed_in_at: string | null; disabled_at: string | null; inbox_limit: number
+  created_at: string; signed_in_at: string | null; disabled_at: string | null; inbox_limit: number | null
 }
-export type CustomerInbox = InboxRow & { route_ready: boolean | null }
+export type CustomerInbox = InboxRow & { route_ready: boolean | null; group_name: string | null }
 export interface Customer { id: string; email: string; displayName?: string; role: "admin" | "customer"; inboxLimit: number | null }
 const view = (row: CustomerRow, adminEmails: string[]): Customer => ({
   id: row.id, email: row.email, displayName: row.display_name ?? undefined,
@@ -16,8 +17,10 @@ const view = (row: CustomerRow, adminEmails: string[]): Customer => ({
 export const inviteInput = z.object({
   email: z.email().max(254).transform((v) => v.toLowerCase()),
   displayName: z.string().trim().min(1).max(200).optional(),
-  inboxLimit: z.number().int().min(1).max(100).default(5),
+  inboxLimit: z.number().int().min(1).max(100).nullable().default(null),
 }).strict()
+const inboxCursor = z.object({ customer: z.uuid(), all: z.boolean(), group: inboxGroup.nullable(),
+  createdAt: z.iso.datetime({ precision: 6 }), id: z.uuid() }).strict()
 
 export class CustomerStore {
   constructor(readonly db: Database, readonly adminEmails: string[]) {}
@@ -71,10 +74,54 @@ export class CustomerStore {
     return { enabled }
   }
 
-  async inboxes(customer: Customer, all = false): Promise<CustomerInbox[]> {
-    return this.db.query<CustomerInbox>(
-      `select i.*, c.route_ready from mail.inboxes i left join mail.customer_inboxes c on c.inbox_id = i.id
-       where (c.customer_id = $1 or $2::boolean) and i.deleted_at is null and i.testing = false order by i.created_at, i.id`, [customer.id, all && customer.role === "admin"])
+  async inboxes(customer: Customer, input: z.infer<typeof listAccountInboxes>, all = false) {
+    const includeAll = all && customer.role === "admin", group = input.group ?? null
+    let cursor: z.infer<typeof inboxCursor> | undefined
+    if (input.pageToken) {
+      try { cursor = inboxCursor.parse(JSON.parse(Buffer.from(input.pageToken, "base64url").toString("utf8"))) }
+      catch { throw new MailError("Invalid inbox page token") }
+      if (cursor.customer !== customer.id || cursor.all !== includeAll || cursor.group !== group)
+        throw new MailError("Use the page token with the same account and group")
+    }
+    const rows = await this.db.query<CustomerInbox & { cursor_time: string }>(
+      `select i.*, c.route_ready, c.group_name,
+         to_char(i.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as cursor_time
+       from mail.inboxes i left join mail.customer_inboxes c on c.inbox_id = i.id
+       where (c.customer_id = $1 or $2::boolean) and i.deleted_at is null and i.testing = false
+         and ($3::text is null or c.group_name = $3)
+         and ($4::timestamptz is null or (i.created_at, i.id) > ($4::timestamptz, $5::uuid))
+       order by i.created_at, i.id limit $6`,
+      [customer.id, includeAll, group, cursor?.createdAt ?? null, cursor?.id ?? null, input.limit + 1])
+    const inboxes = rows.slice(0, input.limit), last = inboxes.at(-1)
+    const nextPageToken = rows.length > input.limit && last ? Buffer.from(JSON.stringify({
+      customer: customer.id, all: includeAll, group, createdAt: last.cursor_time, id: last.id,
+    })).toString("base64url") : undefined
+    return { inboxes, nextPageToken }
+  }
+
+  async inbox(customer: Customer, address: string): Promise<CustomerInbox> {
+    const [row] = await this.db.query<CustomerInbox>(
+      `select i.*, c.route_ready, c.group_name from mail.inboxes i left join mail.customer_inboxes c on c.inbox_id = i.id
+       where (c.customer_id = $1 or $2::boolean) and i.address = $3 and i.deleted_at is null and i.testing = false`,
+      [customer.id, customer.role === "admin", address])
+    if (!row) throw new MailError("Inbox not found", "not_found", 404)
+    return row
+  }
+
+  async setGroup(customer: Customer, address: string, group: string | null): Promise<CustomerInbox> {
+    const rows = await this.db.query(
+      `update mail.customer_inboxes c set group_name = $3 from mail.inboxes i
+       where c.inbox_id = i.id and c.customer_id = $1 and i.address = $2
+         and i.deleted_at is null and i.testing = false returning c.inbox_id`, [customer.id, address, group])
+    if (!rows.length) throw new MailError("Inbox not found", "not_found", 404)
+    return this.inbox(customer, address)
+  }
+
+  async inboxCount(customer: Customer): Promise<number> {
+    const [row] = await this.db.query<{ count: number }>(
+      `select count(*)::int as count from mail.customer_inboxes c join mail.inboxes i on i.id = c.inbox_id
+       where c.customer_id = $1 and i.deleted_at is null and i.testing = false`, [customer.id])
+    return row!.count
   }
 
   async markRouteReady(inboxId: string): Promise<void> {
@@ -92,9 +139,9 @@ export class CustomerStore {
     if (!row) throw new MailError("Inbox not found", "not_found", 404)
   }
 
-  async provision(customer: Customer, address: string, domain: string, displayName?: string): Promise<void> {
+  async provision(customer: Customer, address: string, domain: string, displayName?: string, group?: string): Promise<void> {
     try {
-      await this.db.query("select mail.provision_customer_inbox($1, $2, $3, $4, $5)", [customer.id, address, domain, displayName ?? null, customer.role === "admin"])
+      await this.db.query("select mail.provision_customer_inbox($1, $2, $3, $4, $5, $6)", [customer.id, address, domain, displayName ?? null, customer.role === "admin", group ?? null])
     } catch (error) {
       const message = error instanceof Error ? error.message : ""
       if (message.includes("CUSTOMER_INBOX_LIMIT")) throw new MailError("Your account has reached its inbox limit", "inbox_limit", 422)

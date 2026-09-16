@@ -54,7 +54,7 @@ class BezalelEmail:
             raise ValueError("timeout must be between 0 and 300 seconds")
         self._key, self._base, self._timeout = api_key, base_url.rstrip("/"), timeout
         self._opener = urllib.request.build_opener(_NoRedirect())
-        self.inboxes = _Resource(self, {"list": "listInboxes", "create": "createInbox", "get": "getInbox", "delete": "deleteInbox", "finish_setup": "finishInboxSetup"})
+        self.inboxes = _Resource(self, {"list": "listInboxes", "create": "createInbox", "get": "getInbox", "update": "updateInbox", "delete": "deleteInbox", "finish_setup": "finishInboxSetup"})
         self.messages = _Resource(self, {"list": "listMessages", "search": "searchMessages", "get": "getMessage", "send": "send", "reply": "reply", "update_labels": "updateMessageLabels", "get_attachment": "getAttachment"})
         self.threads = _Resource(self, {"list": "listThreads", "get": "getThread", "update_labels": "updateThreadLabels"})
 
@@ -105,7 +105,7 @@ class BezalelEmail:
             raise BezalelError("The API returned an unreadable response", code="invalid_response") from None
 
     def pages(self, operation: str, **parameters: Any) -> Iterator[dict[str, Any]]:
-        if operation not in ("listMessages", "searchMessages", "listThreads"):
+        if operation not in ("listInboxes", "listMessages", "searchMessages", "listThreads"):
             raise ValueError("This operation does not support pagination")
         data = _wire(parameters)
         seen = set()

@@ -2,6 +2,7 @@ import { BezalelEmail, BezalelError, manifest, prepareRequest, type Operation, t
 import { z } from "zod"
 export const commands = {
   "inboxes list": "listInboxes", "inboxes create": "createInbox", "inboxes get": "getInbox", "inboxes delete": "deleteInbox", "inboxes finish-setup": "finishInboxSetup",
+  "inboxes update": "updateInbox",
   "messages list": "listMessages", "messages search": "searchMessages", "messages get": "getMessage", "messages send": "send", "messages reply": "reply",
   "messages labels": "updateMessageLabels", "messages attachment": "getAttachment", "threads list": "listThreads", "threads get": "getThread", "threads labels": "updateThreadLabels",
 } as const
@@ -17,7 +18,7 @@ export async function run(argv: string[], io: { env: Record<string, string | und
     const operation = commands[name as keyof typeof commands], definition = manifest[operation]
     if (argv.includes("--schema")) { io.out(JSON.stringify(definition)); return 0 }
     const input: Record<string, unknown> = Object.create(null), options: Record<string, string | boolean> = {}
-    const properties = definition.inputSchema.properties as Record<string, { type?: string }>
+    const properties = definition.inputSchema.properties as Record<string, { type?: string | readonly string[]; anyOf?: readonly { type?: string }[] }>
     for (let i = 2; i < argv.length; i++) {
       const flag = argv[i]!
       if (["--dry-run"].includes(flag)) { options[flag] = true; continue }
@@ -35,7 +36,9 @@ export async function run(argv: string[], io: { env: Record<string, string | und
         }
         continue
       }
-      const key = flag.slice(2).replace(/-([a-z])/g, (_, char: string) => char.toUpperCase()), type = properties[key]?.type
+      const key = flag.slice(2).replace(/-([a-z])/g, (_, char: string) => char.toUpperCase())
+      const propertyType = properties[key]?.type ?? properties[key]?.anyOf?.find(value => value.type && value.type !== "null")?.type
+      const type = typeof propertyType === "string" ? propertyType : propertyType?.find(value => value !== "null")
       if (!type) throw new Error(`Unknown flag: ${flag}`)
       if (type === "array") {
         if (input[key] !== undefined && !Array.isArray(input[key])) throw new Error(`Invalid ${flag}`)

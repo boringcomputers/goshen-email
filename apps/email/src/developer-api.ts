@@ -66,6 +66,8 @@ export async function handleDeveloperRequest(request: Request, service: MailServ
     const input = parsed.data
     let result: unknown
     if (mailbox) {
+      if (id === "listInboxes" && ("group" in input || "pageToken" in input))
+        throw new MailError("Use an account key to filter or paginate inboxes", "forbidden", 403)
       const rpcId = id === "listInboxes" ? "getInbox" : id
       const response = await handleInboxRequest(new Request(new URL(`/inbox-rpc/${rpcId}`, url), {
         method: "POST", headers: { authorization, "content-type": "application/json" }, body: JSON.stringify(input),
@@ -74,15 +76,8 @@ export async function handleDeveloperRequest(request: Request, service: MailServ
       if (id === "listInboxes") result = { inboxes: [result] }
     } else {
       const store = new CustomerStore(service.store.db, [])
-      if (id === "getInbox") {
-        const response = await executeCustomerRequest(new Request(url, { method: "POST", body: "{}" }), service, store, identity!.customer, "listInboxes")
-        const body = await response.json() as { result: { inboxes: Array<{ inboxId: string }> } }
-        result = body.result.inboxes.find(row => row.inboxId === (input as Record<string, unknown>).inboxId)
-        if (!result) throw new MailError("Inbox not found", "not_found", 404)
-      } else {
-        const response = await executeCustomerRequest(new Request(url, { method: "POST", body: JSON.stringify(input) }), service, store, identity!.customer, id)
-        result = ((await response.json()) as { result: unknown }).result
-      }
+      const response = await executeCustomerRequest(new Request(url, { method: "POST", body: JSON.stringify(input) }), service, store, identity!.customer, id)
+      result = ((await response.json()) as { result: unknown }).result
     }
     if (id === "deleteInbox") result = { deleted: result }
     return json(result)

@@ -16,7 +16,7 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
   afterAll(async () => { await f?.pg.close() })
   const request: typeof fetch = async (input, init) => handleRequest(new Request(input, init), f.service)
   async function account(scopes: readonly string[] = apiScopes) {
-    const { customer } = await store.invite({ email: `${crypto.randomUUID()}@example.net`, inboxLimit: 5 })
+    const { customer } = await store.invite({ email: `${crypto.randomUUID()}@example.net`, inboxLimit: null })
     const key = await manageApiKeys(f.db, customer, "createApiKey", { name: "Agent", scopes }) as { apiKey: string; keyId: string }
     const client = new BezalelEmail({ apiKey: key.apiKey, baseUrl: f.service.config.publicUrl, fetch: request })
     return { customer, key, client }
@@ -28,8 +28,10 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
 
   it("stores only key hashes, returns secrets once, scopes lists and revocations to the owner", async () => {
     const a = await account(), b = await account()
-    const rows = await f.db.query<{ token_hash: string }>("select * from mail.api_keys where id=$1", [a.key.keyId])
+    const rows = await f.db.query<{ token_hash: string; expires_at: string }>("select * from mail.api_keys where id=$1", [a.key.keyId])
     expect(rows[0]!.token_hash).toMatch(/^[a-f0-9]{64}$/)
+    expect(new Date(rows[0]!.expires_at).getTime() - Date.now()).toBeGreaterThan(29 * 86400_000)
+    expect(new Date(rows[0]!.expires_at).getTime() - Date.now()).toBeLessThanOrEqual(30 * 86400_000)
     expect(JSON.stringify(rows)).not.toContain(a.key.apiKey)
     const listed = JSON.stringify(await manageApiKeys(f.db, a.customer, "listApiKeys", {}))
     expect(listed).toContain(a.key.keyId); expect(listed).not.toContain(a.key.apiKey); expect(listed).not.toContain("token_hash"); expect(listed).not.toContain(b.key.keyId)
@@ -66,6 +68,7 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
   it("enforces permissions, expiry, disabled accounts, and keeps platform keys out of the public API", async () => {
     const a = await account(["inboxes:read"])
     await expect(a.client.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 403, code: "insufficient_scope" })
+    await expect(a.client.inboxes.update({ inboxId: "anything@example.com", group: "research" })).rejects.toMatchObject({ status: 403, code: "insufficient_scope" })
     expect((await api(f.service.config.apiToken, "/v1/inboxes")).status).toBe(401)
     expect((await api(a.key.apiKey + "x", "/v1/inboxes")).status).toBe(401)
     await f.db.query("update mail.api_keys set expires_at = now() - interval '1 second' where id=$1", [a.key.keyId])
@@ -75,6 +78,53 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
     await expect(b.client.inboxes.list()).rejects.toMatchObject({ status: 401 })
     await store.setAccess(b.customer.id, true)
     await expect(b.client.inboxes.list()).rejects.toMatchObject({ status: 401 })
+  })
+
+  it("uses one account key beyond five inboxes and groups them across SDK, CLI, REST, and MCP", async () => {
+    const a = await account(), b = await account(), created = []
+    expect(a.customer.inboxLimit).toBeNull()
+    for (let i = 0; i < 7; i++) created.push(await a.client.inboxes.create({ username: name(), group: i < 4 ? "research" : "support" }))
+    const foreign = await b.client.inboxes.create({ username: name(), group: "research" })
+    const pages = []; for await (const page of a.client.pages("listInboxes", { limit: 2, group: "research" })) pages.push(page)
+    expect(pages).toHaveLength(2)
+    expect(pages.flatMap(page => page.inboxes.map(i => i.inboxId))).toEqual(created.slice(0, 4).map(i => i.inboxId))
+    const first = created[0]!, token = pages[0]!.nextPageToken!
+    expect(await a.client.inboxes.create({ username: first.inboxId.split("@")[0]!, group: "other" })).toMatchObject({ inboxId: first.inboxId, group: "research" })
+    await expect(b.client.inboxes.list({ group: "research", pageToken: token })).rejects.toMatchObject({ status: 400 })
+    await expect(a.client.inboxes.list({ group: "support", pageToken: token })).rejects.toMatchObject({ status: 400 })
+    await expect(a.client.inboxes.update({ inboxId: foreign.inboxId, group: "research" })).rejects.toMatchObject({ status: 404 })
+    const output: string[] = [], errors: string[] = []
+    const io = { env: { BEZALEL_API_KEY: a.key.apiKey, BEZALEL_BASE_URL: f.service.config.publicUrl }, readStdin: async () => "", out: (text: string) => output.push(text), error: (text: string) => errors.push(text), fetch: request }
+    expect(await run(["inboxes", "update", "--inbox-id", first.inboxId, "--group", "support"], io), errors.join()).toBe(0)
+    expect(JSON.parse(output.pop()!)).toMatchObject({ group: "support" })
+    expect(await run(["inboxes", "list", "--group", "support", "--limit", "2"], io)).toBe(0)
+    expect(JSON.parse(output.pop()!)).toMatchObject({ inboxes: [expect.objectContaining({ group: "support" }), expect.objectContaining({ group: "support" })], nextPageToken: expect.any(String) })
+    const client = new Client({ name: "account-groups", version: "1.0.0" })
+    try {
+      await client.connect(new StreamableHTTPClientTransport(new URL("/mcp", f.service.config.publicUrl), { fetch: request, requestInit: { headers: { authorization: `Bearer ${a.key.apiKey}` } } }))
+      expect(await client.callTool({ name: "update_inbox", arguments: { inboxId: first.inboxId, group: null } })).toMatchObject({ structuredContent: { result: { inboxId: first.inboxId, group: null } } })
+      expect(await client.callTool({ name: "list_inboxes", arguments: { group: "research", limit: 1 } })).toMatchObject({ structuredContent: { result: { inboxes: [expect.objectContaining({ group: "research" })], nextPageToken: expect.any(String) } } })
+    } finally { await client.close() }
+    expect((await a.client.inboxes.list()).inboxes).toHaveLength(7)
+    expect((await a.client.inboxes.get({ inboxId: first.inboxId })).group).toBeNull()
+    for (const query of ["limit=0", "limit=101", "group=", "group=Research", "pageToken=garbage"])
+      expect((await api(a.key.apiKey, `/v1/inboxes?${query}`)).status, query).toBe(400)
+  })
+
+  it("paginates equal timestamps without duplicates and gets inboxes beyond the first page", async () => {
+    const a = await account()
+    await f.service.store.saveDomain(await f.service.transport.verifyDomain("example.com"))
+    // Exercise the default page boundary without making 51 provider calls.
+    for (let i = 0; i < 51; i++) await store.provision(a.customer, `${name()}@example.com`, "example.com")
+    await f.db.query("update mail.inboxes set created_at = '2026-01-01T01:02:03.123456Z' where id in (select inbox_id from mail.customer_inboxes where customer_id=$1)", [a.customer.id])
+    const first = await a.client.inboxes.list()
+    expect(first.inboxes).toHaveLength(50)
+    const second = await a.client.inboxes.list({ pageToken: first.nextPageToken })
+    expect(second.inboxes).toHaveLength(1); expect(second.nextPageToken).toBeUndefined()
+    expect(new Set([...first.inboxes, ...second.inboxes].map(i => i.inboxId)).size).toBe(51)
+    expect(await a.client.inboxes.get({ inboxId: second.inboxes[0]!.inboxId })).toMatchObject(second.inboxes[0]!)
+    await a.client.inboxes.delete({ inboxId: first.inboxes.at(-1)!.inboxId })
+    expect(await a.client.inboxes.list({ pageToken: first.nextPageToken })).toEqual(second)
   })
 
   it("does not give an owner's API key platform-wide access", async () => {
@@ -151,6 +201,8 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
     await expect(scoped.messages.list({ inboxId: second.inboxId })).rejects.toMatchObject({ status: 403 })
     await expect(scoped.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 403 })
     await expect(scoped.inboxes.delete({ inboxId: first.inboxId })).rejects.toMatchObject({ status: 403 })
+    await expect(scoped.inboxes.update({ inboxId: first.inboxId, group: "research" })).rejects.toMatchObject({ status: 403 })
+    await expect(scoped.inboxes.list({ group: "research" })).rejects.toMatchObject({ status: 403 })
   })
 
   it("rejects malformed and conflicting parameters without sends", async () => {

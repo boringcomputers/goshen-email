@@ -15,7 +15,7 @@ test('dry run validates without contacting the API or exposing credentials', asy
 })
 test('schema is available without credentials or network', async () => {
   const result = await cli(['--schema']); assert.equal(result.code, 0); assert.equal(result.calls, 0)
-  assert.equal(Object.keys(JSON.parse(result.output[0])).length, 15)
+  assert.equal(Object.keys(JSON.parse(result.output[0])).length, 16)
 })
 test('invalid values, flags and missing idempotency keys fail locally', async () => {
   for (const args of [

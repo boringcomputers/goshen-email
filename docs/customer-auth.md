@@ -70,19 +70,22 @@ email API with Access, since agent keys and mail delivery use different credenti
 
 ## Manage customers
 
-Open **Customers**, add the customer's email and inbox limit, then share the
+Open **Customers**, add the customer's email and an optional inbox limit, then share the
 dashboard link ending in `/app`. Adding a customer does not send an invitation
 email. Cloudflare sends a sign-in code when the customer starts signing in.
 
-Each customer can create up to their assigned number of active inboxes on
-`agents.goshenemail.com`. Inbox creation assigns ownership and enforces the limit
+After the [developer API migration](developers.md#rollout-and-verification),
+customers have no inbox-count cap unless an operator assigns one. Customers
+create inboxes on `agents.goshenemail.com`. Inbox creation assigns ownership and enforces any limit
 in one database transaction before creating an external delivery route. Owners do
 not have a customer inbox limit. If route setup fails, the address stays reserved
 and counts toward the customer limit. It appears as **setup pending**; use
 **Finish inbox setup** or retry creating the same address to complete delivery.
 Deleted addresses cannot be reused. Customers can
 read, compose, reply, search, label, delete, review quarantine, and copy or replace
-their own mailbox API keys. Each mailbox initially has a 250-send daily limit.
+their own mailbox API keys. The Developers panel creates account keys for
+managing multiple inboxes and groups through the API, SDKs, CLI, and MCP.
+Each mailbox initially has a 250-send daily limit.
 Custom-domain administration remains an owner operation in the dashboard.
 
 **Disable access** blocks future dashboard requests and invalidates the customer's

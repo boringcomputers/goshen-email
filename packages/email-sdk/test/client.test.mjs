@@ -32,3 +32,19 @@ test('pagination rejects a repeated cursor instead of looping forever', async ()
   await assert.rejects(async () => { for await (const page of client.pages('listMessages', { inboxId: 'me@example.com' })) pages++ }, /repeated/)
   assert.equal(pages, 2)
 })
+test('caller cancellation is non-retryable before dispatch and while a request is running', async () => {
+  const controller = new AbortController()
+  let calls = 0
+  const client = new BezalelEmail({ apiKey, fetch: async (_url, { signal }) => {
+    calls++
+    return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }))
+  } })
+  const cancelled = error => error.code === 'request_cancelled' && error.transient === false && !error.message.includes('Retry')
+  controller.abort()
+  await assert.rejects(client.request('listInboxes', {}, { signal: controller.signal }), cancelled)
+  assert.equal(calls, 0)
+  const active = new AbortController(), request = client.request('listInboxes', {}, { signal: active.signal })
+  active.abort()
+  await assert.rejects(request, cancelled)
+  assert.equal(calls, 1)
+})

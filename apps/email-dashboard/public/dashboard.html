@@ -83,7 +83,7 @@
                 <button id="setup-retry" class="primary" hidden>Retry delivery setup</button>
                 <div id="setup-try" hidden>
                   <section class="setup-option"><div><h4>Try your new address</h4><p>Send an email here from another account, then check for it.</p></div><button id="setup-copy-address">Copy address</button><button id="setup-check-mail">Check for email</button><p id="setup-mail-status" class="setup-caption" role="status"></p></section>
-                  <section class="setup-option"><div><h4>Give your agent an inbox</h4><p>Use a mailbox API key to read mail and send replies from your agent.</p></div><button id="setup-connect">Connect an agent <span data-icon="arrow-right"></span></button><p id="setup-connection-status" class="setup-caption" role="status"></p></section>
+                  <section class="setup-option"><div><h4>Connect your agent</h4><p>Open Developers for one account key across all your inboxes. A mailbox key can optionally limit an agent to this inbox.</p></div><button id="setup-connect">Get a mailbox key <span data-icon="arrow-right"></span></button><p id="setup-connection-status" class="setup-caption" role="status"></p></section>
                 </div>
               </div>
               <p id="setup-error" class="error" role="alert"></p>
@@ -139,7 +139,7 @@
     <form id="customer-form">
       <label>Email<input name="email" type="email" placeholder="alex@company.com" required maxlength="254" autocomplete="off"></label>
       <label>Name<input name="displayName" placeholder="Alex Morgan" maxlength="200"></label>
-      <label>Inbox limit<input name="inboxLimit" type="number" min="1" max="100" value="5" required></label>
+      <label>Inbox limit (optional)<input name="inboxLimit" type="number" min="1" max="100" placeholder="No limit"></label>
       <button class="primary" type="submit">Add customer</button>
     </form>
     <p id="customer-error" class="error" role="alert"></p>
@@ -162,12 +162,12 @@
     <header class="dialog-header"><div><h2>Developers</h2><p>Connect your apps and agents to your inboxes.</p></div><button class="icon-button" data-close="developer-dialog" aria-label="Close developers"><span data-icon="close"></span></button></header>
     <p>API: <code id="developer-base-url"></code></p><p>MCP: <code id="developer-mcp-url"></code></p>
     <p><a id="developer-api-docs" target="_blank" rel="noopener">Open API specification</a></p>
-    <h3>Create an account API key</h3><p>Account keys can access your own inboxes. Use a mailbox key when an agent only needs one inbox.</p>
+    <h3>Create an account API key</h3><p>One key connects your account to the API, SDKs, CLI, and MCP. Create multiple inboxes and organize them into groups with the same key.</p>
     <form id="developer-form">
       <label>Key name<input name="name" required maxlength="100" placeholder="Research agent" autocomplete="off"></label>
       <fieldset><legend>Permissions</legend>
         <label><input type="checkbox" name="scope" value="inboxes:read" checked>Read inboxes</label>
-        <label><input type="checkbox" name="scope" value="inboxes:write">Create and delete inboxes</label>
+        <label><input type="checkbox" name="scope" value="inboxes:write">Create, group, and delete inboxes</label>
         <label><input type="checkbox" name="scope" value="messages:read" checked>Read messages and attachments</label>
         <label><input type="checkbox" name="scope" value="messages:write">Update labels</label>
         <label><input type="checkbox" name="scope" value="messages:send">Send and reply to email</label>

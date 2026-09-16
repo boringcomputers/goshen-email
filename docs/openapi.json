@@ -14,14 +14,47 @@
     "/v1/inboxes": {
       "get": {
         "operationId": "listInboxes",
-        "summary": "List inboxes owned by this account, or the inbox assigned to a mailbox key.",
+        "summary": "List a page of account inboxes, optionally filtered by group. Pass nextPageToken as pageToken. Mailbox keys list only their assigned inbox and cannot filter groups or use page tokens.",
         "security": [
           {
             "bearerAuth": []
           }
         ],
         "x-required-scope": "inboxes:read",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -48,6 +81,19 @@
                           "createdAt": {
                             "type": "string"
                           },
+                          "group": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "deliveryStatus": {
                             "type": "string",
                             "enum": [
@@ -65,6 +111,9 @@
                           "createdAt"
                         ]
                       }
+                    },
+                    "nextPageToken": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -112,7 +161,7 @@
       },
       "post": {
         "operationId": "createInbox",
-        "summary": "Create an inbox. Reuse the same username to retry setup without creating another address.",
+        "summary": "Create an inbox, optionally in a named group. Reuse the same username to retry setup. Retries preserve the existing group; use updateInbox to move it.",
         "security": [
           {
             "bearerAuth": []
@@ -140,6 +189,12 @@
                   "displayName": {
                     "type": "string",
                     "maxLength": 200
+                  },
+                  "group": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9][a-z0-9_-]*$"
                   }
                 },
                 "required": [
@@ -170,6 +225,19 @@
                     },
                     "createdAt": {
                       "type": "string"
+                    },
+                    "group": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "deliveryStatus": {
                       "type": "string",
@@ -271,6 +339,160 @@
                     },
                     "createdAt": {
                       "type": "string"
+                    },
+                    "group": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "deliveryStatus": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "ready"
+                      ]
+                    },
+                    "setupAvailable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "inboxId",
+                    "address",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "transient"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "transient": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateInbox",
+        "summary": "Move an inbox to a named group, or set group to null to remove it. Groups organize inboxes within one account and do not restrict key permissions.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scope": "inboxes:write",
+        "parameters": [
+          {
+            "name": "inboxId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 254,
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "group": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "group"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "inboxId": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "group": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "deliveryStatus": {
                       "type": "string",
@@ -463,6 +685,19 @@
                     },
                     "createdAt": {
                       "type": "string"
+                    },
+                    "group": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "deliveryStatus": {
                       "type": "string",

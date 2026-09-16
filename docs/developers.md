@@ -1,7 +1,7 @@
 # Developer tools
 
 Bezalel Email has an account API, TypeScript and Python clients, a JSON CLI, and
-MCP over Streamable HTTP or stdio. All use the same 15-operation contract.
+MCP over Streamable HTTP or stdio. All use the same 16-operation contract.
 
 This release needs the migration and Worker/dashboard rollout below. The npm
 and Python packages are built from this repository; they have not been published
@@ -13,17 +13,20 @@ Sign in to the dashboard and open **Developers**. Name a key, select its
 permissions, and choose its expiration. Copy the key immediately: it is shown
 once and only its SHA-256 hash is stored. **Revoke** stops future requests.
 Disabling a customer also revokes their keys; re-enabling them does not restore
-old keys. An account can have up to 20 active keys.
+old keys. An account can have up to 20 active keys for rotation or different
+applications. One key is enough to manage all its inboxes through any client.
+Keys default to 30 days and can expire after 1 to 365 days.
 
 Use `BEZALEL_API_KEY` for SDKs, CLI, and MCP. Account keys start with `bze_` and
 can access only inboxes owned by that account. Even a dashboard administrator's
-key cannot access other customers or legacy platform inboxes. The regular
-account inbox limit applies. Keys cannot create other keys or release quarantine.
+key cannot access other customers or legacy platform inboxes. Accounts have no
+inbox-count cap by default. An operator can set an explicit account quota;
+send limits still apply. Keys cannot create other keys or release quarantine.
 
 | Scope | Access |
 | --- | --- |
 | `inboxes:read` | List and inspect inboxes |
-| `inboxes:write` | Create, finish setup, and permanently delete inboxes |
+| `inboxes:write` | Create, group, finish setup, and permanently delete inboxes |
 | `messages:read` | Read/search messages, threads, and attachment download URLs |
 | `messages:write` | Update message and thread labels |
 | `messages:send` | Send and reply |
@@ -55,12 +58,24 @@ Errors use `{error: {code, message, transient}}` with an HTTP error status.
 Identifiers in paths must be URL encoded. `inboxId` is the canonical inbox email
 address, not a UUID; use the returned value even when a custom address exists.
 List responses include `nextPageToken` when another page exists. Pass it back as
-`pageToken`, unchanged. Inboxes are bounded by the account limit; their list is
-not paginated. Array query parameters repeat: `labels=received&labels=unread`.
+`pageToken`, unchanged. Inbox lists default to 50 items, allow up to 100, and
+sort by creation time and ID. Keep the same account and group filter between
+pages. Lists reflect current data, so changes during traversal can affect the
+results. Array query parameters repeat: `labels=received&labels=unread`.
 
 Creating an inbox requires a username. Retry the same username if the response
 is lost. If routing fails, the address stays reserved; call `finishInboxSetup`
 or retry its creation. A different username means a different inbox.
+
+Add `group: "research"` when creating an inbox to organize it under that account.
+Groups use 1–64 lowercase letters, digits, underscores, or hyphens, starting with
+a letter or digit. They need no separate creation step. Filter with
+`GET /v1/inboxes?group=research`, move an inbox with
+`PATCH /v1/inboxes/{inboxId}` and `{"group":"support"}`, or clear its group with
+`{"group":null}`. Retrying inbox creation preserves its current group.
+Groups are organizational labels; the account key can access all groups allowed
+by its operation scopes. They are not isolated tenants or permission boundaries.
+Mailbox keys cannot filter groups, paginate inboxes, or change groups.
 
 Sends and replies require an explicit `idempotencyKey`. Keep the same key **and
 contents** after a timeout or uncertain result. A new intended email needs a new
@@ -91,7 +106,12 @@ const email = new BezalelEmail({
   apiKey: process.env.BEZALEL_API_KEY!,
   baseUrl: process.env.BEZALEL_BASE_URL,
 })
-const inbox = await email.inboxes.create({ username: 'research' })
+const inbox = await email.inboxes.create({ username: 'research', group: 'agents' })
+const agents = await email.inboxes.list({ group: 'agents' })
+await email.inboxes.update({ inboxId: inbox.inboxId, group: 'research' })
+for await (const page of email.pages('listInboxes', { group: 'research' })) {
+  for (const inbox of page.inboxes) console.log(inbox.inboxId)
+}
 const page = await email.messages.list({ inboxId: inbox.inboxId, limit: 20 })
 
 // Only send after the user authorizes the message. Save this key for retries.
@@ -109,6 +129,8 @@ for await (const page of email.pages('listMessages', { inboxId: inbox.inboxId })
 `BezalelError` exposes `status`, `code`, and `transient`. A `network_error` means
 that the outcome may be unknown, not that a send failed. The default timeout is
 30 seconds; configure `timeoutMs` or pass a signal to `client.request`.
+Caller cancellation returns non-transient `request_cancelled`. Cancellation
+does not undo a send that the server has already accepted.
 
 ## Python
 
@@ -123,7 +145,11 @@ import os
 from bezalel_email import BezalelEmail
 
 email = BezalelEmail(api_key=os.environ['BEZALEL_API_KEY'])
-inbox = email.inboxes.create(username='research')
+inbox = email.inboxes.create(username='research', group='agents')
+email.inboxes.update(inbox_id=inbox['inboxId'], group='research')
+for page in email.pages('listInboxes', group='research'):
+    for item in page['inboxes']:
+        print(item['inboxId'])
 messages = email.messages.list(inbox_id=inbox['inboxId'], limit=20)
 for page in email.pages('listMessages', inbox_id=inbox['inboxId']):
     for message in page['messages']:
@@ -140,7 +166,10 @@ From the built checkout:
 
 ```sh
 node packages/email-cli/dist/main.js inboxes list
-node packages/email-cli/dist/main.js inboxes create --username research
+node packages/email-cli/dist/main.js inboxes create --username research --group agents
+node packages/email-cli/dist/main.js inboxes list --group agents --limit 10
+node packages/email-cli/dist/main.js inboxes update --inbox-id research@example.com --group research
+node packages/email-cli/dist/main.js inboxes update --json '{"inboxId":"research@example.com","group":null}'
 node packages/email-cli/dist/main.js messages list --inbox-id research@example.com
 node packages/email-cli/dist/main.js messages send --dry-run \
   --inbox-id research@example.com --to recipient@example.net \
@@ -176,6 +205,8 @@ The exact configuration syntax depends on the MCP host. This release uses
 header authentication, not OAuth. Each HTTP request rechecks the key, its
 expiration, and account status. Discovery includes only tools allowed by the
 key's scopes. Tools enforce authorization again when called.
+`create_inbox`, `update_inbox`, and `list_inboxes` accept the same group and
+pagination fields as the REST API.
 
 For stdio, configure `node` with the absolute path to
 `packages/email-mcp/dist/main.js` and pass `BEZALEL_API_KEY` and optionally
@@ -194,6 +225,12 @@ using the schema owner and explicit production migration approval. Verify that
 the application role has SELECT/INSERT/UPDATE/DELETE on `mail.api_keys` and
 EXECUTE on `mail.create_api_key` and `mail.set_customer_access`. Existing default
 grants should cover these; verify them before deploying.
+Also verify EXECUTE on the replacement six-argument
+`mail.provision_customer_inbox` function. The migration adds inbox groups and
+changes the default inbox quota to unlimited. On the first upgrade it converts
+existing quotas of five to unlimited, because the old schema cannot distinguish
+the automatic default from a manually assigned five-inbox quota. Other explicit
+quotas remain. Subsequent migration runs preserve all assigned quotas.
 
 Deploy the API before the dashboard. No new secrets, SMTP changes, or DNS changes
 are needed. Package publishing is a separate release step. Rollback can restore
@@ -201,7 +238,8 @@ the old Workers while retaining the additive key table; retain key revocation in
 the customer-disable routine.
 
 Run `pnpm api:generate` after changing the contract and `pnpm api:check` to detect
-drift. The same generator writes the reviewed migration from `api-key-schema.ts`.
+drift. The same generator writes the reviewed migration from `api-key-schema.ts`
+and `account-inbox-schema.ts`.
 Run `pnpm build`, `pnpm check`, `pnpm test`, `pnpm test:postgres`, and
 `pnpm source:check` with isolated local databases.
 

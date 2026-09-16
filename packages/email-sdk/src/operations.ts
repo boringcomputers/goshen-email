@@ -7,10 +7,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List inboxes owned by this account, or the inbox assigned to a mailbox key. */
+        /** List a page of account inboxes, optionally filtered by group. Pass nextPageToken as pageToken. Mailbox keys list only their assigned inbox and cannot filter groups or use page tokens. */
         get: operations["listInboxes"];
         put?: never;
-        /** Create an inbox. Reuse the same username to retry setup without creating another address. */
+        /** Create an inbox, optionally in a named group. Reuse the same username to retry setup. Retries preserve the existing group; use updateInbox to move it. */
         post: operations["createInbox"];
         delete?: never;
         options?: never;
@@ -33,7 +33,8 @@ export interface paths {
         delete: operations["deleteInbox"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Move an inbox to a named group, or set group to null to remove it. Groups organize inboxes within one account and do not restrict key permissions. */
+        patch: operations["updateInbox"];
         trace?: never;
     };
     "/v1/inboxes/{inboxId}/setup": {
@@ -237,7 +238,11 @@ export type $defs = Record<string, never>;
 export interface operations {
     listInboxes: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                pageToken?: string;
+                group?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -256,10 +261,12 @@ export interface operations {
                             address: string;
                             displayName?: string;
                             createdAt: string;
+                            group?: string | null;
                             /** @enum {string} */
                             deliveryStatus?: "pending" | "ready";
                             setupAvailable?: boolean;
                         }[];
+                        nextPageToken?: string;
                     };
                 };
             };
@@ -293,6 +300,7 @@ export interface operations {
                     username: string;
                     domain?: string;
                     displayName?: string;
+                    group?: string;
                 };
             };
         };
@@ -308,6 +316,7 @@ export interface operations {
                         address: string;
                         displayName?: string;
                         createdAt: string;
+                        group?: string | null;
                         /** @enum {string} */
                         deliveryStatus?: "pending" | "ready";
                         setupAvailable?: boolean;
@@ -353,6 +362,7 @@ export interface operations {
                         address: string;
                         displayName?: string;
                         createdAt: string;
+                        group?: string | null;
                         /** @enum {string} */
                         deliveryStatus?: "pending" | "ready";
                         setupAvailable?: boolean;
@@ -415,6 +425,58 @@ export interface operations {
             };
         };
     };
+    updateInbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inboxId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    group: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        inboxId: string;
+                        address: string;
+                        displayName?: string;
+                        createdAt: string;
+                        group?: string | null;
+                        /** @enum {string} */
+                        deliveryStatus?: "pending" | "ready";
+                        setupAvailable?: boolean;
+                    };
+                };
+            };
+            /** @description Request failed */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            transient: boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
     finishInboxSetup: {
         parameters: {
             query?: never;
@@ -441,6 +503,7 @@ export interface operations {
                         address: string;
                         displayName?: string;
                         createdAt: string;
+                        group?: string | null;
                         /** @enum {string} */
                         deliveryStatus?: "pending" | "ready";
                         setupAvailable?: boolean;

@@ -2,8 +2,10 @@ import { z } from "zod"
 import { address, inputs } from "./contracts.js"
 import type { ApiScope } from "./api-keys.js"
 import { messageProtection } from "./protection.js"
+import { createAccountInbox, inboxGroup, listAccountInboxes, updateAccountInbox } from "./account-inbox-contract.js"
 
 const inbox = z.object({ inboxId: z.string(), address: z.string(), displayName: z.string().optional(), createdAt: z.string(),
+  group: inboxGroup.nullable().optional(),
   deliveryStatus: z.enum(["pending", "ready"]).optional(), setupAvailable: z.boolean().optional() })
 const attachment = z.object({ attachmentId: z.string(), filename: z.string(), contentType: z.string(), size: z.number() })
 const message = z.object({ messageId: z.string(), threadId: z.string(), inboxId: z.string(), from: z.string(), to: z.array(z.string()),
@@ -20,9 +22,10 @@ const thread = z.object({ threadId: z.string(), inboxId: z.string(), subject: z.
 const sent = z.object({ messageId: z.string(), threadId: z.string(), deduplicated: z.boolean().optional() })
 const nextPageToken = z.string().optional()
 export const developerOperations = {
-  listInboxes: { method: "GET", path: "/v1/inboxes", scope: "inboxes:read", input: z.object({}), output: z.object({ inboxes: z.array(inbox) }), description: "List inboxes owned by this account, or the inbox assigned to a mailbox key." },
-  createInbox: { method: "POST", path: "/v1/inboxes", scope: "inboxes:write", input: inputs.createInbox.extend({ username: inputs.createInbox.shape.username.unwrap() }), output: inbox, description: "Create an inbox. Reuse the same username to retry setup without creating another address." },
+  listInboxes: { method: "GET", path: "/v1/inboxes", scope: "inboxes:read", input: listAccountInboxes, output: z.object({ inboxes: z.array(inbox), nextPageToken }), description: "List a page of account inboxes, optionally filtered by group. Pass nextPageToken as pageToken. Mailbox keys list only their assigned inbox and cannot filter groups or use page tokens." },
+  createInbox: { method: "POST", path: "/v1/inboxes", scope: "inboxes:write", input: createAccountInbox.extend({ username: inputs.createInbox.shape.username.unwrap() }), output: inbox, description: "Create an inbox, optionally in a named group. Reuse the same username to retry setup. Retries preserve the existing group; use updateInbox to move it." },
   getInbox: { method: "GET", path: "/v1/inboxes/{inboxId}", scope: "inboxes:read", input: z.object({ inboxId: address }), output: inbox, description: "Get an inbox by its canonical email address." },
+  updateInbox: { method: "PATCH", path: "/v1/inboxes/{inboxId}", scope: "inboxes:write", input: updateAccountInbox, output: inbox, description: "Move an inbox to a named group, or set group to null to remove it. Groups organize inboxes within one account and do not restrict key permissions." },
   deleteInbox: { method: "DELETE", path: "/v1/inboxes/{inboxId}", scope: "inboxes:write", input: inputs.deleteInbox, output: z.object({ deleted: z.boolean() }), description: "Permanently retire an inbox and delete its mail. The address cannot be reused." },
   finishInboxSetup: { method: "POST", path: "/v1/inboxes/{inboxId}/setup", scope: "inboxes:write", input: z.object({ inboxId: address }), output: inbox, description: "Retry delivery routing for a reserved inbox." },
   listMessages: { method: "GET", path: "/v1/inboxes/{inboxId}/messages", scope: "messages:read", input: inputs.listMessages, output: z.object({ messages: z.array(message), nextPageToken }), description: "List one page of messages. Pass nextPageToken as pageToken for the next page." },

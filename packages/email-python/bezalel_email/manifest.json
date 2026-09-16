@@ -3,11 +3,29 @@
     "method": "GET",
     "path": "/v1/inboxes",
     "scope": "inboxes:read",
-    "description": "List inboxes owned by this account, or the inbox assigned to a mailbox key.",
+    "description": "List a page of account inboxes, optionally filtered by group. Pass nextPageToken as pageToken. Mailbox keys list only their assigned inbox and cannot filter groups or use page tokens.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
-      "properties": {},
+      "properties": {
+        "limit": {
+          "default": 50,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "pageToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        }
+      },
       "additionalProperties": false
     }
   },
@@ -15,7 +33,7 @@
     "method": "POST",
     "path": "/v1/inboxes",
     "scope": "inboxes:write",
-    "description": "Create an inbox. Reuse the same username to retry setup without creating another address.",
+    "description": "Create an inbox, optionally in a named group. Reuse the same username to retry setup. Retries preserve the existing group; use updateInbox to move it.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -33,6 +51,12 @@
         "displayName": {
           "type": "string",
           "maxLength": 200
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
         }
       },
       "required": [
@@ -59,6 +83,42 @@
       },
       "required": [
         "inboxId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "updateInbox": {
+    "method": "PATCH",
+    "path": "/v1/inboxes/{inboxId}",
+    "scope": "inboxes:write",
+    "description": "Move an inbox to a named group, or set group to null to remove it. Groups organize inboxes within one account and do not restrict key permissions.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "inboxId": {
+          "type": "string",
+          "maxLength": 254,
+          "format": "email",
+          "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "inboxId",
+        "group"
       ],
       "additionalProperties": false
     }

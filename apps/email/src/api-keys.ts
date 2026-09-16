@@ -11,7 +11,7 @@ const hash = (value: string) => createHash("sha256").update(value).digest("hex")
 const createInput = z.object({
   name: z.string().trim().min(1).max(100),
   scopes: z.array(z.enum(apiScopes)).min(1).max(apiScopes.length),
-  expiresInDays: z.number().int().min(1).max(365).optional(),
+  expiresInDays: z.number().int().min(1).max(365).default(30),
 }).strict()
 interface KeyRow {
   id: string; name: string; prefix: string; scopes: ApiScope[];
@@ -36,7 +36,7 @@ export async function manageApiKeys(db: Database, customer: Customer, operation:
   const input = createInput.safeParse(raw)
   if (!input.success) throw new MailError("Enter a key name, permissions, and a valid expiration")
   const id = randomUUID(), token = `bze_${id}.${Buffer.from(randomBytes(32)).toString("base64url")}`
-  const expires = input.data.expiresInDays ? new Date(Date.now() + input.data.expiresInDays * 86400_000).toISOString() : null
+  const expires = new Date(Date.now() + input.data.expiresInDays * 86400_000).toISOString()
   const [created] = await db.query<{ created: boolean }>("select mail.create_api_key($1, $2, $3, $4, $5, $6, $7) as created",
     [customer.id, id, input.data.name, hash(token), token.slice(0, 12), [...new Set(input.data.scopes)], expires])
   if (!created?.created) throw new MailError("Revoke an unused key before creating another", "key_limit", 422)
@@ -48,7 +48,7 @@ export async function manageApiKeys(db: Database, customer: Customer, operation:
 export async function authenticateApiKey(db: Database, authorization: string) {
   const token = /^Bearer (bze_([a-f0-9-]{36})\.[A-Za-z0-9_-]{43})$/.exec(authorization)
   if (!token || !z.uuid().safeParse(token[2]).success) throw new MailError("Unauthorized", "unauthorized", 401)
-  const [row] = await db.query<KeyRow & { token_hash: string; customer_id: string; email: string; inbox_limit: number }>(
+  const [row] = await db.query<KeyRow & { token_hash: string; customer_id: string; email: string; inbox_limit: number | null }>(
     `select k.*, c.email, c.inbox_limit from mail.api_keys k join mail.customers c on c.id = k.customer_id
      where k.id = $1 and k.revoked_at is null and (k.expires_at is null or k.expires_at > now()) and c.disabled_at is null`, [token[2]])
   if (!row || !equalSecret(hash(token[1]!), row.token_hash)) throw new MailError("Unauthorized", "unauthorized", 401)

@@ -50,17 +50,25 @@ export class BezalelEmail {
   }
   async request<K extends Operation>(operation: K, input: Input<K>, options: { signal?: AbortSignal } = {}): Promise<Result<K>> {
     const prepared = prepareRequest(operation, input, this.#base)
+    const timeout = AbortSignal.timeout(this.#timeout)
+    const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout
+    const cancellation = () => {
+      if (options.signal?.aborted && signal.reason === options.signal.reason)
+        throw new BezalelError("The request was canceled. An in-flight send may already have been accepted.", 0, "request_cancelled")
+    }
     let response: Response
     try {
+      signal.throwIfAborted()
       response = await this.#fetch(prepared.url, { method: prepared.method, body: prepared.body,
         headers: { authorization: `Bearer ${this.#key}`, "content-type": "application/json", accept: "application/json" },
-        redirect: "manual", signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(this.#timeout)]) : AbortSignal.timeout(this.#timeout) })
+        redirect: "manual", signal })
     } catch {
+      cancellation()
       throw new BezalelError("The request did not complete. Retry a send with the same idempotencyKey and contents.", 0, "network_error", true)
     }
     let body: unknown
     try { body = await response.json() }
-    catch { throw new BezalelError("The API returned an unreadable response", response.status, "invalid_response") }
+    catch { cancellation(); throw new BezalelError("The API returned an unreadable response", response.status, "invalid_response") }
     if (!response.ok) {
       const error = (body as { error?: { message?: unknown; code?: unknown; transient?: unknown } } | null)?.error
       throw new BezalelError(typeof error?.message === "string" ? error.message.replaceAll(this.#key, "[redacted]") : "Email request failed",
@@ -69,8 +77,9 @@ export class BezalelEmail {
     return body as Result<K>
   }
   readonly inboxes = {
-    list: () => this.request("listInboxes", {}), create: (input: Input<"createInbox">) => this.request("createInbox", input),
+    list: (input: Input<"listInboxes"> = {}) => this.request("listInboxes", input), create: (input: Input<"createInbox">) => this.request("createInbox", input),
     get: (input: Input<"getInbox">) => this.request("getInbox", input), delete: (input: Input<"deleteInbox">) => this.request("deleteInbox", input),
+    update: (input: Input<"updateInbox">) => this.request("updateInbox", input),
     finishSetup: (input: Input<"finishInboxSetup">) => this.request("finishInboxSetup", input),
   }
   readonly messages = {
@@ -83,7 +92,7 @@ export class BezalelEmail {
     list: (input: Input<"listThreads">) => this.request("listThreads", input), get: (input: Input<"getThread">) => this.request("getThread", input),
     updateLabels: (input: Input<"updateThreadLabels">) => this.request("updateThreadLabels", input),
   }
-  async *pages<K extends "listMessages" | "searchMessages" | "listThreads">(operation: K, input: Input<K>): AsyncGenerator<Result<K>> {
+  async *pages<K extends "listInboxes" | "listMessages" | "searchMessages" | "listThreads">(operation: K, input: Input<K>): AsyncGenerator<Result<K>> {
     const seen = new Set<string>()
     let pageToken = (input as { pageToken?: string }).pageToken
     do {

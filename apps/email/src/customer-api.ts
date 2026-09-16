@@ -2,7 +2,8 @@ import { manageApiKeys } from "./api-keys.js"
 import type { JWTVerifyGetKey } from "jose"
 import { z } from "zod"
 import { accessIdentity, type AccessConfig } from "./access-auth.js"
-import { address, inputs, MailError, type Operation, type InboxRow } from "./contracts.js"
+import { address, MailError, type Operation, type InboxRow } from "./contracts.js"
+import { createAccountInbox, listAccountInboxes, updateAccountInbox } from "./account-inbox-contract.js"
 import { CustomerStore, inviteInput, type CustomerInbox, type Customer } from "./customer-store.js"
 import { mailboxCredentials } from "./mail-clients.js"
 import type { MailService } from "./mail-service.js"
@@ -14,6 +15,7 @@ const mailboxOperations = new Set<Operation>([
 ])
 const domainOperations = new Set<Operation>(["listDomains", "createDomain", "verifyDomain", "deleteDomain"])
 const inboxView = (row: InboxRow & Partial<CustomerInbox>) => ({ inboxId: row.address, address: row.custom_address ?? row.address,
+  group: row.group_name ?? null,
   deliveryStatus: row.route_ready === false ? "pending" : "ready",
   setupAvailable: typeof row.route_ready === "boolean",
   displayName: row.display_name ?? undefined, createdAt: new Date(row.created_at).toISOString() })
@@ -25,7 +27,7 @@ async function verifyCustomerDomain(service: MailService, domain: string) {
   await service.store.saveDomain(info)
 }
 
-async function finishRouting(service: MailService, store: CustomerStore, inbox: InboxRow) {
+async function finishRouting(service: MailService, store: CustomerStore, inbox: CustomerInbox) {
   try {
     await service.transport.ensureInboxRoute?.(inbox.address)
   } catch {
@@ -67,9 +69,24 @@ export async function executeCustomerRequest(request: Request, service: MailServ
       if (!input.success) throw new MailError("Invalid customer access request")
       return store.setAccess(input.data.customerId, input.data.enabled)
     }
-    if (operation === "listInboxes") return { inboxes: (await store.inboxes(customer, customer.role === "admin")).map(inboxView) }
+    if (operation === "listInboxes") {
+      const input = listAccountInboxes.safeParse(raw)
+      if (!input.success) throw new MailError("Invalid inbox list parameters")
+      const page = await store.inboxes(customer, input.data, customer.role === "admin")
+      return { ...page, inboxes: page.inboxes.map(inboxView) }
+    }
+    if (operation === "getInbox") {
+      const input = z.object({ inboxId: address }).strict().safeParse(raw)
+      if (!input.success) throw new MailError("Choose an inbox")
+      return inboxView(await store.inbox(customer, input.data.inboxId))
+    }
+    if (operation === "updateInbox") {
+      const input = updateAccountInbox.safeParse(raw)
+      if (!input.success) throw new MailError("Choose an inbox and a valid group, or null to clear it")
+      return inboxView(await store.setGroup(customer, input.data.inboxId, input.data.group))
+    }
     if (operation === "createInbox") {
-      const input = inputs.createInbox.strict().safeParse(raw)
+      const input = createAccountInbox.safeParse(raw)
       if (!input.success) throw new MailError("Invalid inbox details")
       const domain = service.config.defaultDomain
       if (!domain) throw new MailError("The email domain is not configured", "not_configured", 503)
@@ -77,12 +94,9 @@ export async function executeCustomerRequest(request: Request, service: MailServ
       const name = input.data.username?.toLowerCase() ?? `agent-${crypto.randomUUID().slice(0, 12)}`
       const inbox = `${name}@${domain}`
       if (!address.safeParse(inbox).success) throw new MailError("Choose a shorter username")
-      const existing = await store.inboxes(customer)
-      if (customer.inboxLimit !== null && existing.length >= customer.inboxLimit && !existing.some((i) => i.address === inbox))
-        throw new MailError("Your account has reached its inbox limit", "inbox_limit", 422)
       await verifyCustomerDomain(service, domain)
-      await store.provision(customer, inbox, domain, input.data.displayName)
-      return finishRouting(service, store, await service.store.inbox(inbox))
+      await store.provision(customer, inbox, domain, input.data.displayName, input.data.group)
+      return finishRouting(service, store, await store.inbox(customer, inbox))
     }
     if (domainOperations.has(operation as Operation)) {
       if (customer.role !== "admin") throw new MailError("Administrator access required", "forbidden", 403)
@@ -112,10 +126,10 @@ export async function executeCustomerRequest(request: Request, service: MailServ
     if (operation === "finishInboxSetup") {
       await store.requireCustomerInbox(inbox.id)
       await verifyCustomerDomain(service, inbox.address.slice(inbox.address.lastIndexOf("@") + 1))
-      return finishRouting(service, store, inbox)
+      return finishRouting(service, store, await store.inbox(customer, inbox.address))
     }
     if (operation === "inboxQuota" && customer.role !== "admin")
-      return { count: (await store.inboxes(customer)).length, limit: customer.inboxLimit }
+      return { count: await store.inboxCount(customer), limit: customer.inboxLimit }
     if (operation === "getCredentials" || operation === "rotateCredentials")
       return mailboxCredentials(service, inbox.id, operation === "rotateCredentials")
     return service.execute(operation as Operation, { ...input, inboxId: inbox.address,
