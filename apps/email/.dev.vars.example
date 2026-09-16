@@ -19,3 +19,10 @@ CLOUDFLARE_API_TOKEN=replace-with-your-scoped-cloudflare-api-token
 
 # Optional shared webhook. Mailbox clients keep their own provisioned webhooks.
 # MAIL_EVENTS_URL=https://your-agent.example/email/inbound
+
+# Public email/password accounts. Match the dashboard origin exactly (no slash).
+# AUTH_PUBLIC_URL=http://127.0.0.1:3031
+# AUTH_FROM=accounts@your-verified-domain.example
+# AUTH_SECRET=replace-with-an-independent-random-value-at-least-32-characters
+# AUTH_PROXY_SECRET=match-the-dashboard-proxy-secret
+# DASHBOARD_ADMIN_EMAILS=owner@example.com

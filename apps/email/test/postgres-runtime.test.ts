@@ -41,7 +41,7 @@ it("the migration command preserves postgres ownership and application grants fo
           and has_table_privilege($1,c.oid,'DELETE') as writable
         from pg_class c join pg_namespace n on n.oid=c.relnamespace
         where n.nspname='mail' and c.relkind='r'`, [application])
-    expect(tables).toHaveLength(12)
+    expect(tables).toHaveLength(17)
     for (const table of tables) expect(table).toEqual({ owner: "postgres", readable: true, writable: true })
     const functions = await database.db.query<{ owner: string; executable: boolean }>(
       `select pg_get_userbyid(p.proowner) as owner, has_function_privilege($1,p.oid,'EXECUTE') as executable
@@ -72,6 +72,9 @@ describe("Hyperdrive in the Workers runtime with PostgreSQL", () => {
       hyperdrive: [{ binding: "HYPERDRIVE", id: "0".repeat(32), localConnectionString: database.connectionString }],
       r2_buckets: [{ binding: "MAIL_OBJECTS", bucket_name: "postgres-runtime-test" }],
       vars: {
+        AUTH_PUBLIC_URL: 'https://accounts.example.com', AUTH_SECRET: 'runtime-account-secret-'.repeat(3),
+        AUTH_PROXY_SECRET: 'runtime-proxy-secret-'.repeat(3), AUTH_FROM: 'accounts@example.com',
+        DASHBOARD_ADMIN_EMAILS: 'owner@example.net',
         MAIL_API_TOKEN: config.apiToken, MAIL_WEBHOOK_SECRET: config.webhookSecret,
         CLOUDFLARE_API_TOKEN: "test-token", CLOUDFLARE_ACCOUNT_ID: config.accountId,
         EMAIL_DOMAINS: JSON.stringify(config.domains), DEFAULT_EMAIL_DOMAIN: config.defaultDomain,
@@ -96,6 +99,38 @@ describe("Hyperdrive in the Workers runtime with PostgreSQL", () => {
     expect(response.status, JSON.stringify(body)).toBe(200)
     return body.result
   }
+  it("runs passwordless links, codes, sessions, and revocation inside workerd", async () => {
+    const headers = { authorization: 'Bearer ' + 'runtime-proxy-secret-'.repeat(3), origin: 'https://accounts.example.com',
+      'content-type': 'application/json', 'x-bezalel-client-ip': '192.0.2.1' }
+    expect((await worker.fetch('http://localhost/healthz', { signal: AbortSignal.timeout(5000) })).status).toBe(200)
+    const signup = await worker.fetch('http://localhost/api/auth/sign-in/magic-link', { method: 'POST', headers,
+      body: JSON.stringify({ email: 'runtime@example.net', name: 'Runtime', callbackURL: 'https://accounts.example.com/app' }) })
+    expect(signup.status, await signup.clone().text()).toBe(200)
+    const sent = await (await worker.fetch('http://localhost/__test/auth-email')).json() as { text: string }
+    const verification = new URL(sent.text.match(/https:\/\/\S+/)![0])
+    const fragment = new URLSearchParams(verification.hash.slice(1))
+    const verified = await worker.fetch('http://localhost/api/auth/magic-link/verify', { method: 'POST', headers,
+      body: JSON.stringify({ token: fragment.get('token'), email: fragment.get('email') }) })
+    expect(verified.status, await verified.clone().text()).toBe(200)
+    const cookie = verified.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ')
+    expect(cookie).toContain('session_token=')
+    const session = await worker.fetch('http://localhost/account-rpc/session', { method: 'POST', headers: { ...headers, cookie }, body: '{}' })
+    expect(session.status, await session.clone().text()).toBe(200)
+    const signedOut = await worker.fetch('http://localhost/api/auth/sign-out', { method: 'POST', headers: { ...headers, cookie }, body: '{}' })
+    expect(signedOut.status).toBe(200)
+    const denied = await worker.fetch('http://localhost/account-rpc/session', { method: 'POST', headers: { ...headers, cookie }, body: '{}' })
+    expect(denied.status).toBe(401)
+    const sendCode = await worker.fetch('http://localhost/api/auth/email-otp/send-verification-otp', { method: 'POST', headers,
+      body: JSON.stringify({ email: 'runtime@example.net', type: 'sign-in' }) })
+    expect(sendCode.status).toBe(200)
+    const email = await (await worker.fetch('http://localhost/__test/auth-email')).json() as { text: string }
+    const code = email.text.match(/\b\d{6}\b/)![0]
+    const codeSignIn = await worker.fetch('http://localhost/api/auth/sign-in/email-otp', { method: 'POST', headers,
+      body: JSON.stringify({ email: 'runtime@example.net', otp: code }) })
+    expect(codeSignIn.status, await codeSignIn.clone().text()).toBe(200)
+    expect(codeSignIn.headers.get('set-cookie')).toContain('session_token=')
+
+  })
   it("creates an inbox and reads it from independent concurrent requests", async () => {
     const created = await rpc("createInbox", { username: "runtime" })
     expect(created).toMatchObject({ inboxId: "runtime@example.com", createdAt: expect.any(String) })

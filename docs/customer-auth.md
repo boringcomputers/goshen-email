@@ -1,4 +1,7 @@
-# Customer sign-in on Cloudflare
+# Optional Cloudflare Access sign-in
+
+Public sign-up uses [passwordless accounts](accounts.md). This guide describes
+the optional `DASHBOARD_AUTH_MODE=access` integration for invited customers.
 
 Customers sign in with an email code through Cloudflare Access. The email API
 verifies the signed assertion, checks the invitation, and looks up mailbox

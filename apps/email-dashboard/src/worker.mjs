@@ -1,3 +1,4 @@
+import { accountDashboardHandler } from './account-handler.mjs'
 import { DurableObject } from 'cloudflare:workers'
 import { isIP } from 'node:net'
 import { dashboardHandler, readBody } from './handler.mjs'
@@ -42,6 +43,21 @@ export default {
         status: error instanceof DashboardError ? error.status : 400,
         headers: { 'cache-control': 'no-store' },
       })
+    }
+    if (env.DASHBOARD_AUTH_MODE === 'account') {
+      return accountDashboardHandler({
+        publicUrl: env.DASHBOARD_PUBLIC_URL, workerUrl: env.MAIL_WORKER_URL, proxySecret: env.AUTH_PROXY_SECRET,
+        request: (url, init) => env.MAIL_API.fetch(url, init),
+        asset: async (file, request) => {
+          const url = new URL(request.url); url.pathname = `/${file}`
+          const response = await env.ASSETS.fetch(url)
+          if (!response.ok) throw new Error('Dashboard asset unavailable')
+          return response.body
+        },
+      })(request, { clientIdentity: () => {
+        const ip = request.headers.get('cf-connecting-ip')
+        return ip && isIP(ip) ? ip : undefined
+      } })
     }
     if (env.DASHBOARD_AUTH_MODE === 'access') {
       return accessDashboardHandler({

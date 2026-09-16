@@ -32,6 +32,7 @@
   --color-danger-soft: #FBE9E7;
   --color-info: #1F6FD6;
   --color-info-soft: #E8F0FC;
+  --color-landing-background: var(--color-white);
   --font-sans: Inter;
   --text-xs: 12px;
   --text-sm: 13px;
@@ -56,6 +57,7 @@
   --breakpoint-xl: 1440px;
   --container-content: 1080px;
   --container-page: 1200px;
+  --container-landing: 1280px;
   --spacing-1: 4px;
   --spacing-2: 8px;
   --spacing-3: 12px;

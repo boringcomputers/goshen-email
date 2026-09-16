@@ -23,7 +23,7 @@ export const config: MailConfig = {
 }
 
 export const fixture = async () => {
-  const { pg, db } = await testDatabase()
+  const { pg, db, connectionString } = await testDatabase()
   await migrate(db)
   const blobs = new Map<string, Uint8Array>()
   const objects: ObjectStore = {
@@ -76,7 +76,7 @@ export const fixture = async () => {
     config,
     request
   })
-  return { pg, db, blobs, objects, send, verifyDomain, request, service }
+  return { pg, db, connectionString, blobs, objects, send, verifyDomain, request, service }
 }
 
 export const rawMail = (

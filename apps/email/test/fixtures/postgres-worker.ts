@@ -1,10 +1,16 @@
 import worker, { type Env } from "../../src/worker.js"
 
+let authEmail: unknown
+
 // Only the provider API is simulated. Requests use the production handlers,
 // a real local Hyperdrive binding, PostgreSQL sockets, and Wrangler's local R2.
 globalThis.fetch = async (input, init) => {
   const url = new URL(String(input))
   if (url.hostname !== "api.cloudflare.com") throw new Error("Unexpected external request in test")
+  if (url.pathname.endsWith('/send')) {
+    const input = JSON.parse(String(init?.body))
+    if (input.to?.includes('runtime@example.net')) authEmail = input
+  }
   const result = url.pathname.endsWith("/subdomains")
     ? [{ name: "example.com", enabled: true }]
     : url.pathname.endsWith("/catch_all")
@@ -19,6 +25,7 @@ globalThis.fetch = async (input, init) => {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url)
+    if (url.pathname === "/__test/auth-email") return Response.json(authEmail)
     if (url.pathname === "/__test/receive") {
       let rejection: string | undefined
       const raw = new Uint8Array(await request.arrayBuffer())

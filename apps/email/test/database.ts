@@ -43,6 +43,7 @@ export async function postgresFixture() {
 
 export async function testDatabase(): Promise<{
   db: Database
+  connectionString?: string
   pg: { exec(text: string): Promise<unknown>; close(): Promise<void> }
 }> {
   if (process.env.TEST_DATABASE_URL) return postgresFixture()
