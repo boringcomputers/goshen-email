@@ -1,3 +1,4 @@
+import { accountConfig, postgresAccountAuth, handleAccountRequest, collectAccountGarbage } from "./account-auth.js"
 import { handleClientAdmin, handleInboxRequest } from "./mail-clients.js"
 import { handleCustomerRequest } from "./customer-api.js"
 import { accessConfig, type AccessConfig } from "./access-auth.js"
@@ -45,6 +46,10 @@ export interface Env {
   MAIL_DOMAIN_ENCRYPTION_KEY?: string
   MAIL_INBOUND_SCAN_ENABLED?: string
   MAIL_FEEDBACK_SIGNERS?: string
+  AUTH_PUBLIC_URL?: string
+  AUTH_SECRET?: string
+  AUTH_PROXY_SECRET?: string
+  AUTH_FROM?: string
   ACCESS_TEAM_DOMAIN?: string
   ACCESS_AUD?: string
   DASHBOARD_ADMIN_EMAILS?: string
@@ -277,7 +282,15 @@ export async function consumeDeliveryBatch(
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
-      return await handleRequest(request, serviceFor(env), accessConfig(env))
+      const service = serviceFor(env)
+      const path = new URL(request.url).pathname
+      if (path.startsWith("/api/auth/") || path.startsWith("/account-rpc/")) {
+        const config = accountConfig(env)
+        const accounts = postgresAccountAuth(config, env.HYPERDRIVE.connectionString, service)
+        try { return await handleAccountRequest(request, service, config, accounts.auth) }
+        finally { await accounts.close().catch(() => {}) }
+      }
+      return await handleRequest(request, service, accessConfig(env))
     } catch {
       return json(
         {
@@ -324,5 +337,6 @@ export default {
     const service = serviceFor(env)
     ctx.waitUntil(service.processIncoming().then(() => service.flushEvents()))
     ctx.waitUntil(service.collectGarbage())
+    if (env.AUTH_PUBLIC_URL) ctx.waitUntil(collectAccountGarbage(service))
   }
 } satisfies ExportedHandler<Env>

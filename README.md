@@ -17,7 +17,9 @@ See [SOURCE.md](SOURCE.md) for the source revision and how to carry fixes betwee
 - An SMTP gateway using Postfix, Rspamd, and ClamAV for domains at any DNS provider.
 - PostgreSQL migrations, R2 attachment storage, local database tests, and deployment guides.
 
-The Cloudflare dashboard uses email-code sign-in and invite-only customer accounts.
+The Cloudflare dashboard supports public email/password accounts with verification,
+password recovery, and sign-out. See the [account guide](docs/accounts.md) for
+configuration and rollout.
 Customers see their own inboxes. Owners can manage customers and all inboxes.
 Applications and agents use mailbox-scoped credentials.
 Bezalel's multi-tenant accounts, billing, approval policies, analytics pages, and
@@ -82,10 +84,11 @@ The API and dashboard both run on Cloudflare Workers:
 - [Dashboard](https://bezalel-email-dashboard.michaelwasihun96.workers.dev/app)
 - [API](https://bezalel-email-standalone.michaelwasihun96.workers.dev/healthz)
 
-The dashboard uses Cloudflare Access for sign-in, static assets for the interface,
-and a service binding to the API. The API verifies the Access JWT and mailbox
-ownership on every request. Set up the Access application and API configuration
-before deploying the dashboard. Follow the [customer sign-in guide](docs/customer-auth.md).
+The dashboard uses Better Auth accounts, static assets for the interface, and a
+service binding to the API. The API validates the session and mailbox ownership
+on every request. Complete the approved schema migration and account configuration
+before deploying account mode. Follow the [account guide](docs/accounts.md).
+Cloudflare Access remains an optional invitation-based mode.
 
 The Node dashboard remains available for local or VPS hosting with a shared owner
 password. Its access includes every inbox, so use Cloudflare customer mode for
@@ -100,9 +103,8 @@ pnpm deploy:dashboard
 ```
 
 Both commands run Wrangler deployment scripts. Set `MAIL_API_TOKEN` and
-`MAIL_WEBHOOK_SECRET` as API Worker secrets. Customer mode does not use a dashboard
-password or a copy of the platform token. It forwards the customer's signed Access
-assertion to the API through the service binding.
+`MAIL_WEBHOOK_SECRET` as API Worker secrets. Account mode also requires independent `AUTH_SECRET` and `AUTH_PROXY_SECRET`
+values. Follow the account guide to configure both Workers before switching modes.
 
 The API uses `agents.goshenemail.com` for standalone inboxes. Cloudflare shares
 one catch-all across a zone, so this deployment creates an exact address rule

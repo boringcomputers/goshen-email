@@ -17,6 +17,8 @@
     }
   ],
   "vars": {
+    "AUTH_PUBLIC_URL": "https://bezalel-email-dashboard.michaelwasihun96.workers.dev",
+    "AUTH_FROM": "accounts@agents.goshenemail.com",
     "WORKER_NAME": "bezalel-email-standalone",
     "CLOUDFLARE_ACCOUNT_ID": "c340deebb91d89c14d17239b7658dc81",
     "EMAIL_DOMAINS": "{\"agents.goshenemail.com\":\"35ea2f533f87f566600d95300aba1475\"}",

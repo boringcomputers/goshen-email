@@ -1,3 +1,4 @@
+import { accountMigrations } from "./account-schema.js"
 import { clientDomainMigrations } from "./client-domains-schema.js"
 import { customerMigrations } from "./customer-schema.js"
 
@@ -205,4 +206,5 @@ export const migrations = [
       return 'deleted';
     end $$`,
   ...customerMigrations,
+  ...accountMigrations,
 ]

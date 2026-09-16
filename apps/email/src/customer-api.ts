@@ -2,7 +2,7 @@ import type { JWTVerifyGetKey } from "jose"
 import { z } from "zod"
 import { accessIdentity, type AccessConfig } from "./access-auth.js"
 import { address, inputs, MailError, type Operation, type InboxRow } from "./contracts.js"
-import { CustomerStore, inviteInput, type CustomerInbox } from "./customer-store.js"
+import { CustomerStore, inviteInput, type CustomerInbox, type Customer } from "./customer-store.js"
 import { mailboxCredentials } from "./mail-clients.js"
 import type { MailService } from "./mail-service.js"
 import { readBytes } from "./security.js"
@@ -40,12 +40,15 @@ export async function handleCustomerRequest(request: Request, service: MailServi
   const identity = await accessIdentity(token, config, key)
   const store = new CustomerStore(service.store.db, config.adminEmails)
   const customer = await store.resolve(identity)
+  return executeCustomerRequest(request, service, store, customer, new URL(request.url).pathname.slice("/dashboard-rpc/".length))
+}
+
+export async function executeCustomerRequest(request: Request, service: MailService, store: CustomerStore, customer: Customer, operation: string): Promise<Response> {
   let raw: unknown
   try { raw = JSON.parse(new TextDecoder().decode(await readBytes(request.body, 5 * 1024 * 1024))) }
   catch (error) { if (error instanceof MailError) throw error; throw new MailError("Invalid JSON") }
   const object = z.record(z.string(), z.unknown()).safeParse(raw)
   if (!object.success) throw new MailError("Invalid email request")
-  const operation = new URL(request.url).pathname.slice("/dashboard-rpc/".length)
   const result = async (): Promise<unknown> => {
     if (operation === "session") return { customer, defaultDomain: service.config.defaultDomain,
       customDomainsEnabled: customer.role === "admin" && Boolean(service.customDomains) }

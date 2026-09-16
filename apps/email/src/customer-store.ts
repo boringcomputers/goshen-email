@@ -34,6 +34,18 @@ export class CustomerStore {
     return view(row, this.adminEmails)
   }
 
+  async resolveAccount(user: { id: string; email: string; name: string; emailVerified: boolean }): Promise<Customer> {
+    if (!user.emailVerified) throw new MailError("Verify your email to continue", "unauthorized", 401)
+    const [row] = await this.db.query<CustomerRow>(
+      `insert into mail.customers(email, display_name, auth_user_id, signed_in_at) values ($1, $2, $3, now())
+       on conflict (email) do update set auth_user_id = coalesce(mail.customers.auth_user_id, excluded.auth_user_id),
+         signed_in_at = coalesce(mail.customers.signed_in_at, now())
+       where mail.customers.disabled_at is null and (mail.customers.auth_user_id is null or mail.customers.auth_user_id = excluded.auth_user_id)
+       returning *`, [user.email.toLowerCase(), user.name, user.id])
+    if (!row) throw new MailError("Your dashboard access has been disabled. Contact the owner.", "access_denied", 403)
+    return view(row, this.adminEmails)
+  }
+
   async invite(input: z.infer<typeof inviteInput>): Promise<{ customer: Customer }> {
     const [row] = await this.db.query<CustomerRow>(
       `insert into mail.customers(email, display_name, inbox_limit) values ($1, $2, $3)

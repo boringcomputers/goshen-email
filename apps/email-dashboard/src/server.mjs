@@ -5,11 +5,11 @@ import { Readable } from 'node:stream'
 import { dashboardHandler } from './handler.mjs'
 import { DashboardError } from './service.mjs'
 
-export function dashboardServer({ trustedProxyIps = [], ...options }) {
+export function dashboardServer({ trustedProxyIps = [], handler = dashboardHandler, ...options }) {
   const normalizeIp = (value) => value?.startsWith('::ffff:') ? value.slice(7) : value
   if (trustedProxyIps.some((address) => !isIP(address))) throw new Error('Trusted proxy addresses must be IP literals')
   const proxies = new Set(trustedProxyIps.map(normalizeIp))
-  const handle = dashboardHandler({ ...options, asset: (file) => readFile(new URL(`../public/${file}`, import.meta.url)) })
+  const handle = handler({ ...options, asset: (file) => readFile(new URL(`../public/${file}`, import.meta.url)) })
   return createServer({ requestTimeout: 60_000, headersTimeout: 15_000 }, async (incoming, outgoing) => {
     try {
       const headers = new Headers()
@@ -31,7 +31,7 @@ export function dashboardServer({ trustedProxyIps = [], ...options }) {
         }
         return peer
       } })
-      outgoing.writeHead(response.status, Object.fromEntries(response.headers))
+      outgoing.writeHead(response.status, { ...Object.fromEntries(response.headers), ...(response.headers.has('set-cookie') ? { 'set-cookie': response.headers.getSetCookie() } : {}) })
       outgoing.end(Buffer.from(await response.arrayBuffer()))
     } catch (error) {
       if (!outgoing.headersSent) outgoing.writeHead(error instanceof DashboardError ? error.status : 500, {

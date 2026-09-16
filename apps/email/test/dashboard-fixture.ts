@@ -1,3 +1,5 @@
+import { KyselyPGlite } from "kysely-pglite"
+import { createAccountAuth, handleAccountRequest } from "../src/account-auth.js"
 import { PGlite } from '@electric-sql/pglite'
 import { createServer } from 'node:http'
 import { migrate, type Database } from '../src/database.js'
@@ -8,6 +10,7 @@ import type { ObjectStore } from '../src/contracts.js'
 
 // This fixture binds only to loopback and never contacts email providers.
 const { dashboardServer } = await import(new URL('../../email-dashboard/src/server.mjs', import.meta.url).href)
+const { accountDashboardHandler } = await import(new URL('../../email-dashboard/src/account-handler.mjs', import.meta.url).href)
 const { mailClient } = await import(new URL('../../email-dashboard/src/service.mjs', import.meta.url).href)
 const pg = new PGlite()
 const db: Database = { query: async <T>(sql: string, params: unknown[] = []) => (await pg.query<T>(sql, params)).rows }
@@ -28,7 +31,13 @@ const service = new MailService({ store: new MailboxStore(db), objects,
   },
 })
 const port = Number(process.env.FIXTURE_PORT ?? 3038)
-const server = dashboardServer({ password: 'fixture-dashboard-password-'.repeat(2), publicUrl: `http://127.0.0.1:${port}`,
+const accountMode = process.env.FIXTURE_AUTH_MODE === 'account'
+const accountConfig = { publicUrl: `http://127.0.0.1:${port}`, secret: 'fixture-account-secret-'.repeat(3), proxySecret: 'fixture-proxy-secret-'.repeat(3), from: 'accounts@example.com', adminEmails: ['owner@example.net'] }
+const auth = accountMode ? createAccountAuth(accountConfig, new KyselyPGlite(pg).dialect, service) : undefined
+const server = dashboardServer({ ...(accountMode ? {
+  handler: accountDashboardHandler, workerUrl: service.config.publicUrl, proxySecret: accountConfig.proxySecret,
+  request: async (url: URL, init: RequestInit) => handleAccountRequest(new Request(url, init), service, accountConfig, auth!),
+} : {}), password: 'fixture-dashboard-password-'.repeat(2), publicUrl: `http://127.0.0.1:${port}`,
   client: mailClient({ workerUrl: service.config.publicUrl, apiToken: service.config.apiToken,
     request: async (url: URL, init: RequestInit) => handleRequest(new Request(url, init), service),
   }),

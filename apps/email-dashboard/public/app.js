@@ -1,4 +1,7 @@
 const $ = (selector) => document.querySelector(selector)
+const accountEvents = new BroadcastChannel('bezalel-account')
+accountEvents.addEventListener('message', (event) => { if (event.data === 'signed-out' && state.authMode === 'account') showLogin() })
+window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload() })
 const state = { session: null, epoch: 0, inboxes: [], inbox: '', folder: 'inbox', query: '', page: undefined, threads: [], selected: '', listVersion: 0, readVersion: 0, draft: null }
 const folderNames = { inbox: 'Inbox', sent: 'Sent', all: 'All mail', quarantined: 'Quarantine', trash: 'Trash' }
 let noticeTimer
@@ -108,14 +111,14 @@ async function request(path, value) {
   })
   let body
   try { body = await response.json() } catch {
-    showLogin('access')
+    showLogin(state.authMode ?? 'access')
     throw new Error('Your session ended. Reload this page to sign in.')
   }
   if (epoch !== state.epoch) throw new Error('Session changed. Sign in again.')
   if (body.authMode) state.authMode = body.authMode
   if (!response.ok) {
     if ([401, 403].includes(response.status) && path !== '/api/login') {
-      showLogin()
+      showLogin(state.authMode, response.status === 403 ? 'access_denied' : '')
       $('#login-error').textContent = body.error ?? 'Sign in to continue'
     }
     throw new Error(body.error ?? 'Email request failed')
@@ -127,7 +130,8 @@ const action = (element, task) => element.addEventListener('click', async () => 
   element.disabled = true
   try { await task() } catch (error) { notify(error.message) } finally { element.disabled = false }
 })
-function showLogin(mode = state.authMode) {
+function showLogin(mode = state.authMode, reason = '') {
+  if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
@@ -135,12 +139,13 @@ function showLogin(mode = state.authMode) {
   setMenu(false, false)
   $('#account-name').textContent = 'Your workspace'; $('#account-avatar').textContent = 'B'
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
+  for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close()
+  if (mode === 'account') { state.redirecting = true; $('#app').hidden = true; location.replace(reason ? `/sign-in?reason=${encodeURIComponent(reason)}` : '/sign-in'); return }
   $('#password-login').hidden = mode === 'access'
   $('#access-login').hidden = mode !== 'access'
   $('#login-form').elements.password.required = mode !== 'access'
   $('#app').hidden = true
   $('#login').hidden = false
-  for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close()
 }
 function emptyReader() {
   $('.mail-workspace').classList.remove('reading')
@@ -414,7 +419,7 @@ action($('#finish-inbox'), async () => {
 })
 action($('#new-inbox'), () => {
   const domain = $('#inbox-form').elements.domain
-  domain.readOnly = state.authMode === 'access'
+  domain.readOnly = ['access', 'account'].includes(state.authMode)
   if (domain.readOnly) domain.value = state.session.defaultDomain
   $('#inbox-error').textContent = ''; $('#inbox-dialog').showModal() })
 action($('#domains'), async () => { $('#domains-dialog').showModal(); await loadDomains() })
@@ -427,6 +432,7 @@ action($('#delete-inbox'), async () => {
 })
 action($('#logout'), async () => {
   const { logoutUrl } = await request('/api/logout', {})
+  if (state.authMode === 'account') accountEvents.postMessage('signed-out')
   showLogin()
   if (logoutUrl === '/cdn-cgi/access/logout') location.assign(logoutUrl)
 })
@@ -473,8 +479,8 @@ void request('/api/session').then(async (session) => {
   state.session = session
   updateAccount()
   $('#customers').hidden = session.customer?.role !== 'admin'
-  $('#credentials').hidden = session.authMode !== 'access'
-  $('#domains').hidden = session.authMode === 'access' && !session.customDomainsEnabled
+  $('#credentials').hidden = !['access', 'account'].includes(session.authMode)
+  $('#domains').hidden = ['access', 'account'].includes(session.authMode) && !session.customDomainsEnabled
   $('#app').hidden = false
   await loadInboxes()
 }).catch((error) => { notify(error.message); if ($('#app').hidden) showLogin() })

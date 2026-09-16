@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in — Bezalel Email</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/auth.css">
+  <script src="/auth.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header><a class="brand" href="/" aria-label="Bezalel Email home"><img src="/images/solenne.svg" alt="" width="28" height="28">Bezalel Email</a><a href="/" class="back">Back to home <span aria-hidden="true">↗</span></a></header>
+  <main id="main">
+    <div class="eyebrow">YOUR EMAIL, CONNECTED</div>
+    <h1 id="title">Welcome back.</h1>
+    <p id="description" class="description">Sign in to your email workspace.</p>
+    <form id="auth-form">
+      <div id="name-field" hidden><label for="name">Name</label><input id="name" name="name" autocomplete="name" maxlength="200"></div>
+      <div id="email-field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" required></div>
+      <div id="password-field"><div class="label-row"><label for="password">Password</label><a id="forgot-link" href="/forgot-password">Forgot password?</a></div><input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required><p id="password-hint" class="hint" hidden>Use at least 12 characters.</p></div>
+      <p id="error" class="error" role="alert"></p>
+      <button id="submit" type="submit">Sign in <span aria-hidden="true">↗</span></button>
+    </form>
+    <div id="message" class="message" role="status" hidden></div>
+    <button id="resend" class="secondary" type="button" hidden>Resend verification email</button>
+    <p id="alternate" class="alternate">New to Bezalel? <a href="/sign-up">Create an account</a></p>
+    <p class="footnote">One place for your inboxes, conversations, and email API.</p>
+  </main>
+  <footer><span>© Bezalel Email</span><span>A home for your email.</span></footer>
+</body>
+</html>
