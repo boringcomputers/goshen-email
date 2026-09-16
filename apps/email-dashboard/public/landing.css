@@ -14,7 +14,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--color-info); ou
 main { display: contents; }
 section[id], div[id] { scroll-margin-top: 24px; }
 .landing { background-color: var(--color-surface); display: flex; flex-direction: column; font-synthesis: none; -moz-osx-font-smoothing: grayscale; overflow: clip; overflow-wrap: anywhere; -webkit-font-smoothing: antialiased; }
-.sheet { align-items: center; background-color: var(--color-surface); display: flex; flex-direction: column; overflow: clip; padding-inline: clamp(20px, 4.45vw, 64px); padding-top: 24px; width: 100%; }
+.sheet { align-items: center; background-color: var(--color-surface); display: flex; flex-direction: column; overflow: clip; padding-inline: clamp(20px, 4.45vw, 64px); padding-top: 24px; width: 100%; max-width: 1280px; }
 .site-header { align-items: center; display: flex; flex-shrink: 0; height: 48px; justify-content: space-between; width: 100%; }
 .brand { align-items: center; display: flex; flex-shrink: 0; gap: 10px; }
 .brand-icon { flex-shrink: 0; }
@@ -162,7 +162,7 @@ section[id], div[id] { scroll-margin-top: 24px; }
 .footer-bottom { border-top-color: var(--color-border); border-top-style: solid; border-top-width: 1px; display: flex; justify-content: space-between; padding-top: 24px; }
 .legal-links { display: flex; gap: 24px; }
 
-/* Fill the viewport while keeping text blocks readable. */
+/* Center the page and keep text blocks readable on smaller screens. */
 .landing { align-items: center; min-height: 100vh; }
 .hero-description, .closing-title, .customer-logos { max-width: 100%; }
 .skip-link { position: fixed; top: -100px; left: 24px; z-index: 1; padding: 12px 20px; border-radius: var(--radius-full); background: var(--color-ink); color: white; }
@@ -263,9 +263,7 @@ section[id], div[id] { scroll-margin-top: 24px; }
 .hero-copy { width: 100%; }
 .hero-title { width: 100%; }
 .capability-icon { color: var(--color-text-secondary); flex-shrink: 0; }
-@media (max-width: 1439px) {
-  .features .feature-grid > article { height: auto; min-height: 360px; gap: 24px; }
-}
+.features .feature-grid > article { height: auto; min-height: 360px; gap: 24px; }
 @media (max-width: 600px) {
   .hero-actions { flex-wrap: wrap; justify-content: center; }
   .nav-actions { gap: 12px; }
