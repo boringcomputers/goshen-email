@@ -13,8 +13,8 @@ a:hover, button:hover { opacity: .78; }
 a:focus-visible, button:focus-visible { outline: 2px solid var(--color-info); outline-offset: 4px; }
 main { display: contents; }
 section[id], div[id] { scroll-margin-top: 24px; }
-.landing { background-color: var(--color-surface); display: flex; flex-direction: column; font-synthesis: none; -moz-osx-font-smoothing: grayscale; overflow: clip; overflow-wrap: anywhere; -webkit-font-smoothing: antialiased; }
-.sheet { align-items: center; background-color: var(--color-surface); display: flex; flex-direction: column; overflow: clip; padding-inline: clamp(20px, 4.45vw, 64px); padding-top: 24px; width: 100%; max-width: 1280px; }
+.landing { background-color: var(--color-landing-background); display: flex; flex-direction: column; font-synthesis: none; -moz-osx-font-smoothing: grayscale; overflow: clip; overflow-wrap: anywhere; -webkit-font-smoothing: antialiased; }
+.sheet { align-items: center; background-color: var(--color-surface); display: flex; flex-direction: column; overflow: clip; padding-inline: clamp(20px, 4.45vw, 64px); padding-top: 24px; width: 100%; max-width: var(--container-landing); }
 .site-header { align-items: center; display: flex; flex-shrink: 0; height: 48px; justify-content: space-between; width: 100%; }
 .brand { align-items: center; display: flex; flex-shrink: 0; gap: 10px; }
 .brand-icon { flex-shrink: 0; }

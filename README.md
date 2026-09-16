@@ -25,7 +25,7 @@ MCP server stay in Bezalel. The standalone API uses HTTP JSON operations.
 
 ## Homepage
 
-The root page uses Fancy's **AI Startup Landing** layout from
+The root page uses Fancy's **Bezalel Email Landing** layout from
 [Paper](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/1-0), with copy
 about Bezalel Email's inboxes, mailbox API keys, attachments, and quarantine
 review. The feature strip and setup cards describe existing capabilities.
