@@ -48,6 +48,15 @@ server.listen(port, '127.0.0.1', () => console.log(`Fixture dashboard http://127
 const control = createServer(async (req, res) => {
   try {
     if (req.url === '/sends') { res.end(JSON.stringify(sends)); return }
+    if (req.url?.startsWith('/v1/') || req.url === '/mcp' || req.url === '/openapi.json') {
+      const chunks = []
+      for await (const chunk of req) chunks.push(chunk)
+      const response = await handleRequest(new Request(service.config.publicUrl + req.url, {
+        method: req.method, headers: { authorization: req.headers.authorization ?? '', 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+        ...(!['GET', 'HEAD'].includes(req.method ?? 'GET') ? { body: Buffer.concat(chunks).toString() } : {}),
+      }), service)
+      res.writeHead(response.status, Object.fromEntries(response.headers.entries())).end(await response.text()); return
+    }
     if (req.method !== 'POST') { res.writeHead(404).end(); return }
     const chunks = []
     for await (const chunk of req) chunks.push(chunk)

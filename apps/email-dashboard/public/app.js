@@ -1,3 +1,4 @@
+import { createDeveloperPanel } from "./developer.js"
 import { createInboxSetup, connectionCommand } from './setup.js'
 const $ = (selector) => document.querySelector(selector)
 const accountEvents = new BroadcastChannel('bezalel-account')
@@ -155,11 +156,12 @@ const action = (element, task) => element.addEventListener('click', async () => 
   element.disabled = true
   try { await task() } catch (error) { notify(error.message) } finally { element.disabled = false }
 })
+const developers = createDeveloperPanel({ rpc, notify, getSession: () => state.session })
 function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
-  setup.reset()
+  setup.reset(); developers.reset()
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#customer-list').replaceChildren(); $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)
@@ -511,6 +513,7 @@ void request('/api/session').then(async (session) => {
   state.session = session
   updateAccount()
   $('#customers').hidden = session.customer?.role !== 'admin'
+  $('#developers').hidden = !['access', 'account'].includes(session.authMode)
   $('#credentials').hidden = !['access', 'account'].includes(session.authMode)
   $('#domains').hidden = ['access', 'account'].includes(session.authMode) && !session.customDomainsEnabled
   $('#app').hidden = false

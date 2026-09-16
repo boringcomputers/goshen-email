@@ -25,8 +25,12 @@ Applications and agents use mailbox-scoped credentials.
 New accounts get a guided inbox setup with routing retries, a copyable agent
 connection command, and checks for the first incoming email. See the
 [inbox setup guide](docs/inbox-setup.md).
-Bezalel's multi-tenant accounts, billing, approval policies, analytics pages, and
-MCP server stay in Bezalel. The standalone API uses HTTP JSON operations.
+The [developer tools](docs/developers.md) add account API keys, a versioned HTTP
+API with OpenAPI, TypeScript and Python SDKs, a JSON CLI, and hosted/stdio MCP.
+See the [AgentMail comparison](docs/agentmail-comparison.md) for this release's
+scope and remaining gaps. These additions require the documented migration and
+deployment; packages are not yet published to registries.
+Bezalel's billing, approval policies, and analytics stay in Bezalel.
 
 ## Homepage
 

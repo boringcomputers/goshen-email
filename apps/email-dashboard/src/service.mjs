@@ -13,7 +13,7 @@ export class DashboardError extends Error {
 }
 
 export const customerOperations = new Set([...operations, 'session', 'listCustomers', 'inviteCustomer',
-  'setCustomerAccess', 'getCredentials', 'rotateCredentials', 'finishInboxSetup', 'setupStatus'])
+  'setCustomerAccess', 'getCredentials', 'rotateCredentials', 'finishInboxSetup', 'setupStatus', 'createApiKey', 'listApiKeys', 'revokeApiKey'])
 
 function rpcClient({ workerUrl, request = fetch, endpoint, allowed, authorize, transform = (_, input) => input }) {
   const base = new URL(workerUrl)

@@ -1,0 +1,15 @@
+#developer-dialog { width: min(680px, calc(100vw - 32px)); }
+#developer-dialog code, #developer-dialog small { overflow-wrap: anywhere; }
+#developer-dialog h3 { margin: 24px 0 12px; }
+#developer-dialog fieldset { border: 1px solid var(--color-border); border-radius: 10px; padding: 12px 16px; margin: 16px 0; }
+#developer-dialog fieldset label { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; margin: 10px 0; font-weight: 400; }
+#developer-dialog input[type=checkbox] { width: 16px; height: 16px; margin: 0; flex: 0 0 auto; accent-color: var(--color-text); }
+.developer-key-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.developer-key-row > div { min-width: 0; }
+.developer-key-row p { margin: 6px 0; }
+.developer-key-row small { color: var(--color-text-muted); }
+#developer-created { margin: 20px 0; padding: 16px; background: var(--color-surface-hover, #f8f8f7); border-radius: 10px; }
+#developer-created p { margin-top: 0; }
+
+#developer-dialog .dialog-header p { color: var(--color-text-muted); margin-top: 6px; }
+#developer-dialog > p { font-size: 13px; line-height: 1.6; margin: 8px 0; }

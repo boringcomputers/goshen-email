@@ -1,0 +1,10 @@
+{
+  "name": "@bezalel/email-python",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "python3 -m compileall -q bezalel_email",
+    "check": "python3 -m compileall -q bezalel_email",
+    "test": "python3 -m unittest discover -s tests -v"
+  }
+}

@@ -1,3 +1,4 @@
+import { manageApiKeys } from "./api-keys.js"
 import type { JWTVerifyGetKey } from "jose"
 import { z } from "zod"
 import { accessIdentity, type AccessConfig } from "./access-auth.js"
@@ -51,6 +52,7 @@ export async function executeCustomerRequest(request: Request, service: MailServ
   const object = z.record(z.string(), z.unknown()).safeParse(raw)
   if (!object.success) throw new MailError("Invalid email request")
   const result = async (): Promise<unknown> => {
+    if (["createApiKey", "listApiKeys", "revokeApiKey"].includes(operation)) return manageApiKeys(service.store.db, customer, operation, raw)
     if (operation === "session") return { customer, defaultDomain: service.config.defaultDomain, apiUrl: service.config.publicUrl,
       customDomainsEnabled: customer.role === "admin" && Boolean(service.customDomains) }
     if (["listCustomers", "inviteCustomer", "setCustomerAccess"].includes(operation)) {

@@ -10,13 +10,15 @@
     "dev": "pnpm --filter @bezalel/email-dashboard dev",
     "start": "pnpm --filter @bezalel/email-dashboard start",
     "build": "pnpm -r build",
-    "check": "pnpm -r check",
+    "check": "pnpm -r check && pnpm api:check",
     "test": "pnpm -r test",
     "test:postgres": "pnpm --filter @bezalel/email test:postgres",
     "dev:worker": "pnpm --filter @bezalel/email dev",
     "deploy:worker": "pnpm --filter @bezalel/email run deploy",
     "migrate": "pnpm --filter @bezalel/email migrate",
     "source:check": "node scripts/verify-source.mjs",
-    "deploy:dashboard": "pnpm --filter @bezalel/email-dashboard run deploy"
+    "deploy:dashboard": "pnpm --filter @bezalel/email-dashboard run deploy",
+    "api:generate": "pnpm --filter @bezalel/email api:generate",
+    "api:check": "pnpm --filter @bezalel/email api:check"
   }
 }

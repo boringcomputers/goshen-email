@@ -13,6 +13,8 @@ export const assets = new Map([
   ['/images/email.png', ['images/email.png', 'image/png']],
   ['/images/telegram.png', ['images/telegram.png', 'image/png']],
   ['/images/teams.png', ['images/teams.png', 'image/png']],
+  ['/developer.js', ['developer.js', 'text/javascript; charset=utf-8']],
+  ['/developer.css', ['developer.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/setup.js', ['setup.js', 'text/javascript; charset=utf-8']],
   ['/setup.css', ['setup.css', 'text/css; charset=utf-8']],

@@ -11,3 +11,7 @@ dist/
 .artifacts/
 *.log
 .DS_Store
+
+__pycache__/
+*.egg-info/
+packages/email-python/build/
