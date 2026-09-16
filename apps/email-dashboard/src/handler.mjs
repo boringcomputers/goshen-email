@@ -95,8 +95,8 @@ export function dashboardHandler({ client, password, publicUrl, asset, state = {
         }
         attempts.delete(identity)
         for (const [id, expires] of sessions) if (expires <= now()) sessions.delete(id)
-        if (sessions.size >= 100) throw new DashboardError('Too many dashboard sessions', 429)
         const previous = sessionFor(request)
+        if (sessions.size >= 100 && !previous) throw new DashboardError('Too many dashboard sessions', 429)
         if (previous) sessions.delete(previous)
         const id = randomBytes(32).toString('base64url')
         sessions.set(id, now() + lifetime)

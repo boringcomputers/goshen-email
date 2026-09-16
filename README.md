@@ -87,15 +87,17 @@ Both commands run Wrangler deployment scripts. Set `MAIL_API_TOKEN` and
 `wrangler secret put` or `wrangler secret bulk` from the corresponding app directory.
 Use the same platform token for both Workers. Never put it in public assets.
 
-The deployed API starts with `EMAIL_DOMAINS={}`. The dashboard can sign in and
-read the empty mailbox database, but inbox creation and client provisioning
-remain disabled until mail is configured. To enable managed mail, follow the
-[Worker setup](apps/email/README.md), add a scoped `CLOUDFLARE_API_TOKEN` secret,
-and set `DEFAULT_EMAIL_DOMAIN` and `EMAIL_DOMAINS` before redeploying the API.
-Cloudflare Email Sending and incoming routing must target the standalone Worker.
-Do not move an existing service's catch-all without planning where its mail goes.
-The current provider adapter supports zone apex domains; subdomains need separate
-provider onboarding and adapter support before they can be enabled.
+The API uses `agents.goshenemail.com` for standalone inboxes. Cloudflare shares
+one catch-all across a zone, so this deployment creates an exact address rule
+for each new inbox. The `goshenemail.com` catch-all continues to target the
+original Bezalel Worker. The API verifies sending and public MX records before
+provisioning an inbox, and refuses to overwrite a conflicting address rule.
+
+Set a scoped `CLOUDFLARE_API_TOKEN` secret with Email Sending access, Email
+Routing settings read access, and Email Routing Rules Write for this zone.
+Until it is present, dashboard reads work but mailbox creation and sending fail
+with a configuration error. Never deploy a short-lived Wrangler login token as
+this secret. See the [Worker setup](apps/email/README.md).
 
 Merging a PR runs CI only. These deployments are manual; no automatic deployment
 workflow is configured. No SMTP gateway is included in the Workers deployment.

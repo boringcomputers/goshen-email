@@ -17,6 +17,7 @@ export function dashboardServer({ trustedProxyIps = [], ...options }) {
         if (value !== undefined) headers.set(key, Array.isArray(value) ? value.join(', ') : value)
       }
       const origin = new URL(options.publicUrl)
+      if (incoming.headers.host !== origin.host) throw new DashboardError('Invalid host', 403)
       const request = new Request(`${origin.protocol}//${incoming.headers.host}${incoming.url}`, {
         method: incoming.method, headers,
         ...(!['GET', 'HEAD'].includes(incoming.method) ? { body: Readable.toWeb(incoming), duplex: 'half' } : {}),
@@ -32,8 +33,10 @@ export function dashboardServer({ trustedProxyIps = [], ...options }) {
       } })
       outgoing.writeHead(response.status, Object.fromEntries(response.headers))
       outgoing.end(Buffer.from(await response.arrayBuffer()))
-    } catch {
-      if (!outgoing.headersSent) outgoing.writeHead(500, { 'cache-control': 'no-store' }).end('Dashboard request failed')
+    } catch (error) {
+      if (!outgoing.headersSent) outgoing.writeHead(error instanceof DashboardError ? error.status : 500, {
+        'cache-control': 'no-store', 'content-type': 'application/json; charset=utf-8',
+      }).end(JSON.stringify({ error: error instanceof DashboardError ? error.message : 'Dashboard request failed' }))
       else outgoing.destroy()
     }
   })

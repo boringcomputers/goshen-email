@@ -111,6 +111,7 @@ export async function handleClientAdmin(
     if (info.status !== "VERIFIED")
       throw new MailError("Email domain is not ready", "domain_not_ready", 422)
     await service.store.saveDomain(info)
+    await service.transport.ensureInboxRoute?.(inboxAddress)
     try {
       await service.store.db.query(
         "select mail.provision_client($1, $2, $3, $4, $5, $6)",

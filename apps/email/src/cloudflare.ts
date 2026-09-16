@@ -21,6 +21,9 @@ const catchAll = z.object({
     z.object({ type: z.string(), value: z.array(z.string()).optional() })
   )
 })
+const addressRule = catchAll.extend({
+  matchers: z.array(z.object({ type: z.string(), field: z.string().optional(), value: z.string().optional() }))
+})
 
 export const cloudflareTransport = (
   config: {
@@ -28,6 +31,7 @@ export const cloudflareTransport = (
     accountId: string
     domains: Record<string, string>
     workerName: string
+    addressRoutingDomains?: string[]
   },
   request: typeof fetch = fetch
 ): Transport => {
@@ -75,6 +79,34 @@ export const cloudflareTransport = (
     return parsed.data.result
   }
   return {
+    async ensureInboxRoute(address): Promise<void> {
+      const domain = address.split("@")[1] ?? ""
+      if (!config.addressRoutingDomains?.includes(domain)) return
+      const zone = config.domains[domain]
+      if (!zone) throw new MailError("Email domain is not configured", "domain_not_configured", 422)
+      const base = `/zones/${encodeURIComponent(zone)}/email/routing/rules`
+      let found = false
+      for (let page = 1; page <= 20; page++) {
+        const parsed = z.array(addressRule).safeParse(await call(`${base}?per_page=50&page=${page}`))
+        if (!parsed.success) throw new MailError("Cloudflare returned unreadable routing rules", "provider_response", 502)
+        const existing = parsed.data.filter((rule) => rule.matchers.some((matcher) =>
+          matcher.type === "literal" && matcher.field === "to" && matcher.value?.toLowerCase() === address.toLowerCase()))
+        if (existing.length) {
+          if (!existing.every((rule) => rule.enabled && rule.matchers.length === 1 && rule.actions.length === 1 &&
+            rule.actions[0]?.type === "worker" && rule.actions[0].value?.length === 1 && rule.actions[0].value[0] === config.workerName))
+            throw new MailError("This email address already has a different routing rule", "routing_conflict", 409)
+          found = true
+        }
+        if (parsed.data.length < 50) {
+          if (found) return
+          await call(base, { name: `Bezalel Email: ${address}`, enabled: true, priority: 0,
+            matchers: [{ type: "literal", field: "to", value: address }],
+            actions: [{ type: "worker", value: [config.workerName] }] })
+          return
+        }
+      }
+      throw new MailError("Cloudflare routing rule limit reached", "provider_error", 502)
+    },
     async send(input): Promise<DeliveryResult> {
       const { trackingId: _, ...message } = input
       const parsed = delivery.safeParse(
@@ -109,10 +141,11 @@ export const cloudflareTransport = (
           422
         )
       const base = `/zones/${encodeURIComponent(zone)}`
+      const addressRouting = config.addressRoutingDomains?.includes(domain) ?? false
       const [sendValue, routeValue, ruleValue] = await Promise.all([
         call(`${base}/email/sending/subdomains`),
         call(`${base}/email/routing`),
-        call(`${base}/email/routing/rules/catch_all`)
+        addressRouting ? Promise.resolve({ enabled: false, actions: [] }) : call(`${base}/email/routing/rules/catch_all`)
       ])
       const send = z.array(sendingDomain).safeParse(sendValue)
       const route = routing.safeParse(routeValue)
@@ -123,14 +156,27 @@ export const cloudflareTransport = (
           "provider_response",
           502
         )
+      let receivingDomain = route.data.name === domain
+      if (addressRouting && domain.endsWith(`.${route.data.name}`)) {
+        let dns: Response
+        try {
+          dns = await request(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=MX`, {
+            headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(10_000), redirect: "manual"
+          })
+        } catch { throw new MailError("Email DNS verification did not complete", "provider_unavailable", 502) }
+        const records = z.object({ Status: z.literal(0), Answer: z.array(z.object({ type: z.number(), data: z.string() })).default([]) })
+          .safeParse(await dns.json().catch(() => null))
+        const mx = records.success ? records.data.Answer.filter((record) => record.type === 15) : []
+        receivingDomain = dns.ok && mx.length > 0 && mx.every((record) => /^\d+\s+route[123]\.mx\.cloudflare\.net\.?$/i.test(record.data))
+      }
       const ready =
         send.data.some((d) => d.name === domain && d.enabled) &&
         route.data.enabled &&
-        route.data.name === domain &&
-        rule.data.enabled &&
+        receivingDomain &&
+        (addressRouting || (rule.data.enabled &&
         rule.data.actions.some(
           (a) => a.type === "worker" && a.value?.includes(config.workerName)
-        )
+        )))
       return {
         domainId: domain,
         domain,

@@ -28,6 +28,7 @@ export interface Env {
   CLOUDFLARE_API_TOKEN?: string
   CLOUDFLARE_ACCOUNT_ID: string
   EMAIL_DOMAINS: string
+  EMAIL_ADDRESS_ROUTING_DOMAINS?: string
   DEFAULT_EMAIL_DOMAIN?: string
   PUBLIC_EMAIL_URL: string
   MAIL_EVENTS_URL?: string
@@ -59,6 +60,9 @@ const configuration = z.object({
 export const serviceFor = (env: Env): MailService => {
   const parsed = configuration.safeParse(env)
   let domains
+  const addressRoutingDomains = z.array(domainName).max(20).safeParse(
+    (env.EMAIL_ADDRESS_ROUTING_DOMAINS ?? "").split(",").map((domain) => domain.trim()).filter(Boolean)
+  )
   try {
     domains = z
       .record(domainName, z.string().regex(/^[a-f0-9]{32}$/))
@@ -70,7 +74,7 @@ export const serviceFor = (env: Env): MailService => {
     !parsed.success ||
     !domains?.success ||
     (env.DEFAULT_EMAIL_DOMAIN && !domains.data[env.DEFAULT_EMAIL_DOMAIN]) ||
-    (domains?.success && Object.keys(domains.data).length > 0 && !env.CLOUDFLARE_API_TOKEN)
+    !addressRoutingDomains.success || addressRoutingDomains.data.some((domain) => !domains.data[domain])
   )
     throw new MailError(
       "Email Worker configuration is incomplete",
@@ -110,7 +114,7 @@ export const serviceFor = (env: Env): MailService => {
     throw new MailError("Incoming mail scanning requires the gateway", "not_configured", 503)
   const transport = cloudflareTransport({
     token: env.CLOUDFLARE_API_TOKEN ?? "", accountId: env.CLOUDFLARE_ACCOUNT_ID,
-    domains: domains.data, workerName: env.WORKER_NAME
+    domains: domains.data, workerName: env.WORKER_NAME, addressRoutingDomains: addressRoutingDomains.data
   })
   return new MailService({
     config,

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import worker, { handleRequest, serviceFor, type Env } from '../src/worker.js'
 import { MailService } from '../src/mail-service.js'
+import { MailError } from '../src/contracts.js'
 import { clientEventTarget } from '../src/mail-clients.js'
 import { config, fixture, rawMail } from './support.js'
 
@@ -28,16 +29,31 @@ describe('standalone webhook configuration', () => {
       message: 'Email Worker is not configured', code: 'not_configured', transient: false,
     } })
   })
-  it('allows deployment before mail onboarding and requires credentials for configured domains', () => {
+  it('keeps reads available before mail onboarding and blocks provider calls without credentials', async () => {
     const env = { ...environment(), EMAIL_DOMAINS: '{}', DEFAULT_EMAIL_DOMAIN: undefined, CLOUDFLARE_API_TOKEN: undefined }
     expect(serviceFor(env).config.domains).toEqual({})
     expect(serviceFor(env).config.defaultDomain).toBeUndefined()
-    expect(() => serviceFor({ ...environment(), CLOUDFLARE_API_TOKEN: undefined })).toThrow()
+    await expect(serviceFor({ ...environment(), CLOUDFLARE_API_TOKEN: undefined }).transport.verifyDomain('example.com')).rejects.toMatchObject({ code: 'not_configured' })
     expect(() => serviceFor({ ...env, DEFAULT_EMAIL_DOMAIN: 'example.com' })).toThrow()
+    expect(() => serviceFor({ ...env, EMAIL_ADDRESS_ROUTING_DOMAINS: 'foreign.example' })).toThrow()
   })
   let f: Awaited<ReturnType<typeof fixture>>
   beforeAll(async () => { f = await fixture() })
   afterAll(async () => { await f.pg.close() })
+  it('does not save inboxes or provisioned clients when address routing fails', async () => {
+    const addresses: string[] = []
+    const service = new MailService({ ...f.service, transport: { ...f.service.transport,
+      ensureInboxRoute: async (address) => { addresses.push(address); throw new MailError('Routing failed', 'provider_error', 502) },
+    } })
+    await expect(service.execute('createInbox', { username: 'route-failed' })).rejects.toMatchObject({ code: 'provider_error' })
+    const response = await handleRequest(new Request('https://mail.example.com/clients/provision', {
+      method: 'POST', headers: { authorization: `Bearer ${config.apiToken}` },
+      body: JSON.stringify({ clientId: 'failed-client', username: 'client-route-failed', webhookUrl: 'https://agent.example.com/events' }),
+    }), service)
+    expect(response.status).toBe(502)
+    expect(addresses).toEqual(['route-failed@example.com', 'client-route-failed@example.com'])
+    expect(await f.db.query('select id from mail.inboxes where address = any($1::text[])', [addresses])).toHaveLength(0)
+  })
   it('keeps reads authenticated and blocks provisioning before a mail domain is configured', async () => {
     const service = new MailService({ ...f.service, config: { ...config, domains: {}, defaultDomain: undefined } })
     const request = (path: string, input: unknown, authorized = true) => handleRequest(new Request(`https://mail.example.com${path}`, {

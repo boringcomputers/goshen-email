@@ -160,6 +160,7 @@ export class MailService {
           `agent-${crypto.randomUUID().slice(0, 12)}`
         if (!emailAddress.safeParse(`${username}@${domain}`).success)
           throw new MailError("This address is too long. Choose a shorter username or domain.", "invalid_argument", 422)
+        await this.transport.ensureInboxRoute?.(`${username}@${domain}`)
         return inboxView(
           await this.store.createInbox(
             `${username}@${domain}`,

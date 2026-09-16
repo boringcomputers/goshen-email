@@ -58,6 +58,7 @@ test('rejects forged sessions, cross-origin requests, and host rebinding before 
   assert.equal((await f.request('/api/rpc/send', {}, { cookie: cookie + 'forged' })).status, 401)
   assert.equal((await f.request('/api/rpc/send', {}, { cookie, origin: 'https://attacker.example' })).status, 403)
   assert.equal((await f.request('/api/rpc/send', {}, { cookie, host: 'attacker.example' })).status, 403)
+  assert.equal((await f.request('/api/rpc/send', {}, { cookie, host: '[' })).status, 403)
   assert.equal((await f.request('/api/rpc/send', {}, { cookie, 'content-type': 'text/plain' })).status, 415)
   assert.equal((await f.request('/api/rpc/ensureWebhook', {}, { cookie })).status, 404)
   assert.equal((await f.request('/api/clients/provision', {}, { cookie })).status, 404)
@@ -71,6 +72,18 @@ test('bounds password attempts and requires a strong configuration', async (t) =
   await f.login()
   assert.throws(() => dashboardServer({ password: 'weak', publicUrl }), /32 characters/)
   assert.throws(() => dashboardServer({ password, publicUrl: 'http://public.example' }), /HTTPS/)
+})
+test('an existing session can renew when all session slots are occupied', async (t) => {
+  const f = await fixture(t)
+  const first = await f.login()
+  for (let index = 1; index < 100; index++) await f.login()
+  assert.equal((await f.request('/api/login', { password })).status, 429)
+  const renewed = await f.request('/api/login', { password }, { cookie: first })
+  assert.equal(renewed.status, 200)
+  const cookie = renewed.headers.get('set-cookie').split(';')[0]
+  assert.notEqual(cookie, first)
+  assert.deepEqual(await (await f.request('/api/session', undefined, { cookie: first })).json(), { authenticated: false })
+  assert.deepEqual(await (await f.request('/api/session', undefined, { cookie })).json(), { authenticated: true })
 })
 test('failed logins do not lock out another connection and forwarded headers cannot bypass the throttle', async (t) => {
   const f = await fixture(t)
