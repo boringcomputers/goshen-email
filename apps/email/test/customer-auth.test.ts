@@ -67,7 +67,7 @@ describe("Customer dashboard authorization", () => {
     expect((await result("listInboxes")).inboxes).toHaveLength(2)
     expect(await result("inboxQuota", { inboxId: a.inboxId }, tokens.a)).toEqual({ count: 1, limit: 5 })
     for (const op of ["deleteInbox", "inboxQuota", "listMessages", "getMessage", "listThreads", "getThread", "reviewThread",
-      "searchMessages", "send", "reply", "updateMessageLabels", "updateThreadLabels", "getAttachment", "releaseQuarantine", "getCredentials", "rotateCredentials"])
+      "searchMessages", "send", "reply", "updateMessageLabels", "updateThreadLabels", "getAttachment", "releaseQuarantine", "getCredentials", "rotateCredentials", "finishInboxSetup"])
       expect((await request(op, { inboxId: b.inboxId }, tokens.a)).status, op).toBe(404)
     expect(f.send).not.toHaveBeenCalled()
     const mail = await f.service.receive(b.inboxId, rawMail({ attachment: true }), cleanProtection())
@@ -114,14 +114,55 @@ describe("Customer dashboard authorization", () => {
     expect((await result("listInboxes", {}, tokens.a)).inboxes).toHaveLength(1)
   })
 
-  it("does not grant ownership when route creation fails", async () => {
-    await invite("a@example.net")
-    const route = vi.fn().mockRejectedValueOnce(new Error("provider unavailable")).mockResolvedValue(undefined)
+  it("reserves ownership before routing and lets the owner finish failed setup without using another slot", async () => {
+    await invite("a@example.net", 1)
+    const route = vi.fn().mockImplementation(async (address: string) => {
+      expect(await f.db.query("select 1 from mail.customer_inboxes c join mail.inboxes i on i.id=c.inbox_id where i.address=$1", [address])).toHaveLength(1)
+      throw new Error("provider unavailable")
+    })
     f.service.transport.ensureInboxRoute = route
     try {
-      expect((await request("createInbox", { username: "a" }, tokens.a)).status).toBe(500)
-      expect(await f.db.query("select * from mail.customer_inboxes")).toHaveLength(0)
-      expect((await inbox("a")).inboxId).toBe("a@example.com")
+      const response = await request("createInbox", { username: "a" }, tokens.a)
+      expect(response.status).toBe(503)
+      expect((await response.json() as any).error.message).toContain("reserved")
+      const pending = (await result("listInboxes", {}, tokens.a)).inboxes
+      expect(pending).toMatchObject([{ inboxId: "a@example.com", deliveryStatus: "pending" }])
+      expect((await request("createInbox", { username: "overflow" }, tokens.a)).status).toBe(422)
+      expect(route).toHaveBeenCalledTimes(1)
+      route.mockResolvedValue(undefined)
+      expect(await result("finishInboxSetup", { inboxId: "a@example.com" })).toMatchObject({ deliveryStatus: "ready" })
+      expect((await inbox("a")).deliveryStatus).toBe("ready")
+      expect(await f.db.query("select * from mail.customer_inboxes")).toHaveLength(1)
+      expect((await result("listInboxes", {}, tokens.a)).inboxes).toMatchObject([{ deliveryStatus: "ready" }])
     } finally { delete f.service.transport.ensureInboxRoute }
+  })
+
+  it("never creates a route for the loser of a capacity race or an address conflict", async () => {
+    await invite("a@example.net", 1); await invite("b@example.net", 1)
+    const routes: string[] = []
+    f.service.transport.ensureInboxRoute = async (address) => {
+      expect(await f.db.query("select 1 from mail.customer_inboxes c join mail.inboxes i on i.id=c.inbox_id where i.address=$1", [address])).toHaveLength(1)
+      routes.push(address)
+    }
+    try {
+      const responses = await Promise.all(["one", "two"].map((username) => request("createInbox", { username }, tokens.a)))
+      expect(responses.map((r) => r.status).sort()).toEqual([200, 422])
+      expect(routes).toHaveLength(1)
+      const winner = routes[0]!
+      expect((await request("createInbox", { username: winner.split("@")[0] }, tokens.b)).status).toBe(409)
+      expect(routes).toHaveLength(1)
+      expect((await result("listInboxes", {}, tokens.a)).inboxes).toMatchObject([{ inboxId: winner }])
+    } finally { delete f.service.transport.ensureInboxRoute }
+  })
+
+  it("lets configured owners create more than five inboxes while customers keep their limits", async () => {
+    expect((await result("session")).customer.inboxLimit).toBeNull()
+    for (let i = 0; i < 7; i++) await result("createInbox", { username: `owner-${i}` })
+    expect((await result("listInboxes")).inboxes).toHaveLength(7)
+    await invite("a@example.net", 1)
+    await inbox("a")
+    expect((await request("createInbox", { username: "a-extra", p_owner: true }, tokens.a)).status).toBe(400)
+    expect((await request("createInbox", { username: "a-extra" }, tokens.a)).status).toBe(422)
+    expect((await result("listInboxes", {}, tokens.a)).inboxes).toHaveLength(1)
   })
 })

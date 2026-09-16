@@ -7,10 +7,11 @@ interface CustomerRow {
   id: string; email: string; display_name: string | null; access_subject: string | null;
   created_at: string; signed_in_at: string | null; disabled_at: string | null; inbox_limit: number
 }
-export interface Customer { id: string; email: string; displayName?: string; role: "admin" | "customer"; inboxLimit: number }
+export type CustomerInbox = InboxRow & { route_ready: boolean | null }
+export interface Customer { id: string; email: string; displayName?: string; role: "admin" | "customer"; inboxLimit: number | null }
 const view = (row: CustomerRow, adminEmails: string[]): Customer => ({
   id: row.id, email: row.email, displayName: row.display_name ?? undefined,
-  role: adminEmails.includes(row.email) ? "admin" : "customer", inboxLimit: row.inbox_limit,
+  role: adminEmails.includes(row.email) ? "admin" : "customer", inboxLimit: adminEmails.includes(row.email) ? null : row.inbox_limit,
 })
 export const inviteInput = z.object({
   email: z.email().max(254).transform((v) => v.toLowerCase()),
@@ -58,10 +59,19 @@ export class CustomerStore {
     return { enabled }
   }
 
-  async inboxes(customer: Customer): Promise<InboxRow[]> {
-    return this.db.query<InboxRow>(
-      `select i.* from mail.inboxes i join mail.customer_inboxes c on c.inbox_id = i.id
-       where c.customer_id = $1 and i.deleted_at is null and i.testing = false order by i.created_at, i.id`, [customer.id])
+  async inboxes(customer: Customer, all = false): Promise<CustomerInbox[]> {
+    return this.db.query<CustomerInbox>(
+      `select i.*, c.route_ready from mail.inboxes i left join mail.customer_inboxes c on c.inbox_id = i.id
+       where (c.customer_id = $1 or $2::boolean) and i.deleted_at is null and i.testing = false order by i.created_at, i.id`, [customer.id, all && customer.role === "admin"])
+  }
+
+  async markRouteReady(inboxId: string): Promise<void> {
+    await this.db.query("update mail.customer_inboxes set route_ready = true where inbox_id = $1", [inboxId])
+  }
+
+  async requireCustomerInbox(inboxId: string): Promise<void> {
+    const [row] = await this.db.query("select 1 from mail.customer_inboxes where inbox_id = $1", [inboxId])
+    if (!row) throw new MailError("This inbox does not use customer setup", "not_found", 404)
   }
 
   async owns(customer: Customer, inboxId: string): Promise<void> {
@@ -72,7 +82,7 @@ export class CustomerStore {
 
   async provision(customer: Customer, address: string, domain: string, displayName?: string): Promise<void> {
     try {
-      await this.db.query("select mail.provision_customer_inbox($1, $2, $3, $4)", [customer.id, address, domain, displayName ?? null])
+      await this.db.query("select mail.provision_customer_inbox($1, $2, $3, $4, $5)", [customer.id, address, domain, displayName ?? null, customer.role === "admin"])
     } catch (error) {
       const message = error instanceof Error ? error.message : ""
       if (message.includes("CUSTOMER_INBOX_LIMIT")) throw new MailError("Your account has reached its inbox limit", "inbox_limit", 422)

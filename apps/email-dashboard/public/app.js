@@ -1,5 +1,5 @@
 const $ = (selector) => document.querySelector(selector)
-const state = { session: null, epoch: 0, inbox: '', folder: 'inbox', query: '', page: undefined, threads: [], selected: '', listVersion: 0, readVersion: 0, draft: null }
+const state = { session: null, epoch: 0, inboxes: [], inbox: '', folder: 'inbox', query: '', page: undefined, threads: [], selected: '', listVersion: 0, readVersion: 0, draft: null }
 const folderNames = { inbox: 'Inbox', sent: 'Sent', all: 'All mail', quarantined: 'Quarantine', trash: 'Trash' }
 let noticeTimer
 const node = (tag, text, className) => {
@@ -42,7 +42,7 @@ const action = (element, task) => element.addEventListener('click', async () => 
 })
 function showLogin(mode = state.authMode) {
   state.listVersion++; state.readVersion++; state.epoch++
-  state.draft = null; state.inbox = ''; state.threads = []; state.session = null
+  state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#customer-list').replaceChildren(); $('#domain-list').replaceChildren(); $('#api-key').value = ''
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
@@ -62,8 +62,9 @@ async function loadInboxes(preferred = state.inbox) {
   const epoch = state.epoch
   const { inboxes } = await rpc('listInboxes')
   if (epoch !== state.epoch) return
+  state.inboxes = inboxes
   $('#inboxes').replaceChildren(...inboxes.map((inbox) => {
-    const option = node('option', inbox.inboxId)
+    const option = node('option', `${inbox.inboxId}${inbox.deliveryStatus === 'pending' ? ' (setup pending)' : ''}`)
     option.value = inbox.inboxId
     return option
   }))
@@ -73,6 +74,7 @@ async function loadInboxes(preferred = state.inbox) {
   await loadThreads()
 }
 async function loadThreads(append = false) {
+  $('#finish-inbox').hidden = !state.inboxes.some((i) => i.inboxId === state.inbox && i.deliveryStatus === 'pending')
   const version = ++state.listVersion
   if (!append) { state.readVersion++; state.selected = ''; state.threads = []; state.page = undefined; emptyReader() }
   $('#load-more').hidden = true
@@ -293,6 +295,10 @@ action($('#discard-draft'), () => {
 })
 action($('#refresh'), () => loadThreads())
 action($('#load-more'), () => loadThreads(true))
+action($('#finish-inbox'), async () => {
+  await rpc('finishInboxSetup', { inboxId: state.inbox })
+  await loadInboxes(); notify('Inbox delivery is ready')
+})
 action($('#new-inbox'), () => {
   const domain = $('#inbox-form').elements.domain
   domain.readOnly = state.authMode === 'access'
@@ -334,7 +340,10 @@ for (const [formId, errorId, operation, after] of [
   try {
     const input = Object.fromEntries([...new FormData(form)].map(([key, value]) => [key, value.trim()]).filter(([, value]) => value))
     await after(await rpc(operation, input))
-  } catch (error) { $(`#${errorId}`).textContent = error.message } finally { button.disabled = false }
+  } catch (error) {
+    $(`#${errorId}`).textContent = error.message
+    if (operation === 'createInbox') await loadInboxes().catch(() => {})
+  } finally { button.disabled = false }
 })
 $('#login-form').addEventListener('submit', async (event) => {
   event.preventDefault()
@@ -361,7 +370,7 @@ async function loadCustomers() {
   const { customers } = await rpc('listCustomers')
   $('#customer-list').replaceChildren(...customers.map((customer) => {
     const card = node('section', undefined, 'domain-card')
-    card.append(node('strong', customer.email), node('p', `${customer.status} · ${customer.inboxCount} / ${customer.inboxLimit} inboxes`))
+    card.append(node('strong', customer.email), node('p', `${customer.status} · ${customer.inboxCount} inboxes${customer.role === 'admin' ? '' : ` / ${customer.inboxLimit} allowed`}`))
     if (customer.role !== 'admin') {
       const button = node('button', customer.status === 'disabled' ? 'Enable access' : 'Disable access')
       action(button, async () => {

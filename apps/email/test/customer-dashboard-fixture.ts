@@ -26,9 +26,13 @@ const objects: ObjectStore = {
   async list({ prefix }) { return { objects: [...blobs.keys()].filter((key) => key.startsWith(prefix)).map((key) => ({ key })), truncated: false } },
   async delete(keys) { for (const key of typeof keys === 'string' ? [keys] : keys) blobs.delete(key) },
 }
+let failRouteOnce = true
 const service = new MailService({ store: new MailboxStore(db), objects,
   config: { defaultDomain: 'agents.example.com', domains: { 'agents.example.com': 'a'.repeat(32) }, publicUrl: 'https://fixture.example.com', apiToken: 'fixture-worker-token-'.repeat(3), webhookSecret: `whsec_${Buffer.from('fixture-webhook-secret-'.repeat(3)).toString('base64')}` },
   transport: {
+    ensureInboxRoute: async (address) => {
+      if (address.startsWith('pending@') && failRouteOnce) { failRouteOnce = false; throw new Error('Fixture routing failure') }
+    },
     verifyDomain: async (domain) => ({ domainId: domain, domain, status: 'VERIFIED', records: [] }),
     send: async (input) => ({ messageId: `<${crypto.randomUUID()}@fixture.example.com>`, delivered: input.to, queued: [], bounced: [], suppressed: [] }),
   },

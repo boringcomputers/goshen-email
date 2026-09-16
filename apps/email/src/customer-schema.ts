@@ -10,10 +10,12 @@ export const customerMigrations = [
     customer_id uuid not null references mail.customers(id),
     inbox_id uuid primary key references mail.inboxes(id)
   )`,
+  `alter table mail.customer_inboxes add column if not exists route_ready boolean not null default false`,
   `create index if not exists customer_inboxes_owner on mail.customer_inboxes(customer_id)`,
   `alter table mail.clients alter column webhook_url drop not null`,
+  `drop function if exists mail.provision_customer_inbox(uuid, text, text, text)`,
   `create or replace function mail.provision_customer_inbox(p_customer uuid, p_address text,
-      p_domain text, p_name text) returns uuid language plpgsql as $$
+      p_domain text, p_name text, p_owner boolean) returns uuid language plpgsql as $$
     declare active uuid; capacity integer;
     begin
       select inbox_limit into capacity from mail.customers
@@ -22,7 +24,7 @@ export const customerMigrations = [
       select i.id into active from mail.customer_inboxes c join mail.inboxes i on i.id = c.inbox_id
         where c.customer_id = p_customer and i.address = p_address and i.deleted_at is null;
       if active is not null then return active; end if;
-      if (select count(*) from mail.customer_inboxes c join mail.inboxes i on i.id = c.inbox_id
+      if not p_owner and (select count(*) from mail.customer_inboxes c join mail.inboxes i on i.id = c.inbox_id
           where c.customer_id = p_customer and i.deleted_at is null) >= capacity
         then raise exception 'CUSTOMER_INBOX_LIMIT'; end if;
       active := mail.provision_client('dashboard_' || gen_random_uuid()::text,
