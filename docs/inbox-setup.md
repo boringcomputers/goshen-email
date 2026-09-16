@@ -58,3 +58,11 @@ routing, email sending, and object storage. Its loopback control server supports
 `POST /receive` to inject a received message, and the real mailbox handlers at
 `POST /inbox-rpc/getInbox` to verify the copied command with a fixture key.
 No provider delivery is implied by these checks.
+
+To run the mailbox-switch regression, start the account fixture on ports
+3168 and 3169 and run `node apps/email-dashboard/test/browser/mailbox-selection.mjs`
+with Playwright available. If installed outside this worktree, set
+`PLAYWRIGHT_MODULE` to its absolute module path and `CHROMIUM_PATH` to the browser
+executable. This check uses fixture email codes and deliberately fails message
+requests. It verifies that the guide and its actions follow the selected inbox
+while requests are pending, after failures, and after inventory refreshes.

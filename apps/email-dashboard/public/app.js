@@ -187,12 +187,15 @@ async function loadInboxes(preferred = state.inbox) {
     option.value = inbox.inboxId
     return option
   }))
-  state.inbox = inboxes.some((inbox) => inbox.inboxId === preferred) ? preferred : inboxes[0]?.inboxId ?? ''
+  await selectInbox(inboxes.some((inbox) => inbox.inboxId === preferred) ? preferred : inboxes[0]?.inboxId ?? '')
+}
+async function selectInbox(inboxId) {
+  state.inbox = inboxId
   $('#inboxes').value = state.inbox
   $('#inboxes').title = state.inbox
   $('#compose').disabled = !state.inbox
-  await loadThreads()
-  await setup.sync()
+  // Update the guide immediately, even when message loading is slow or fails.
+  await Promise.all([setup.sync(), loadThreads()])
 }
 async function loadThreads(append = false) {
   updateAccount()
@@ -464,8 +467,7 @@ action($('#logout'), async () => {
   if (logoutUrl === '/cdn-cgi/access/logout') location.assign(logoutUrl)
 })
 $('#inboxes').addEventListener('change', () => {
-  state.inbox = $('#inboxes').value
-  void loadThreads().then(() => setup.sync()).catch((error) => notify(error.message))
+  void selectInbox($('#inboxes').value).catch((error) => notify(error.message))
 })
 for (const button of document.querySelectorAll('[data-folder]')) action(button, async () => {
   setup.close()
