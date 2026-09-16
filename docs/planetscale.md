@@ -7,6 +7,39 @@ Cloudflare Workers. R2 continues to store MIME and attachments.
 The `mail` schema and mailbox API stay the same. The standalone project no longer
 uses the Neon driver. Original Bezalel deployments keep their existing configuration.
 
+## Provisioned database
+
+The database and Hyperdrive connection were created on September 15, 2026.
+
+| Setting | Value |
+| --- | --- |
+| PlanetScale organization | `michaelwasihun96` |
+| Database and branch | [`bezalel-email/main`](https://app.planetscale.com/michaelwasihun96/bezalel-email) |
+| Engine | PostgreSQL 18 |
+| Region | Northern Virginia, AWS `us-east-1`, PlanetScale `us-east` |
+| Compute | `PS_5_AWS_ARM`, one node, zero replicas |
+| Billing | PlanetScale directly; $5/month compute plus applicable storage and usage |
+| Cloudflare account | Goshen Labs, `c340deebb91d89c14d17239b7658dc81` |
+| Hyperdrive | `bezalel-email-standalone`, `d74b7d9147a348ae985ac889fb36232b` |
+| Origin | Primary endpoint on port 5432, logical database `postgres` |
+| Query caching | Disabled |
+| Origin connection limit | 10 |
+| TLS | `verify-full`, CA `a657546c-16b2-4145-b464-58ac71909ebf` |
+| Application role | `email-hyperdrive` |
+| Schema owner | `postgres` |
+
+The `mail` schema is initialized. The application role has schema usage, table
+read/write access, and function execution, including grants for future objects
+created by `postgres`. It has no `postgres` membership or schema creation privileges.
+`pnpm migrate` uses one transaction and applies `SET LOCAL ROLE postgres` before
+running the schema statements. Its login must be allowed to assume `postgres`;
+the application role cannot run migrations. This keeps existing default grants
+in effect when operators use temporary migration credentials.
+
+The PS-5 plan has no standby replicas or automatic failover. Review capacity and
+availability needs before serving production mail. The Worker, dashboard, SMTP
+gateway, mail domains, R2 bucket, and delivery queues still need deployment setup.
+
 ## Create the database connection
 
 1. Create a dedicated PlanetScale **Postgres** database and choose its region.
@@ -14,6 +47,17 @@ uses the Neon driver. Original Bezalel deployments keep their existing configura
    or connect an existing PlanetScale database.
 2. Use the primary's direct PostgreSQL endpoint on port 5432. Hyperdrive handles
    connection pooling. Use TLS certificate verification, `sslmode=verify-full`.
+   Cloudflare requires an uploaded CA certificate for this mode. Obtain the
+   provider's current trusted root, verify it against your system trust store,
+   and upload it with:
+
+   ```sh
+   pnpm --filter @bezalel/email exec wrangler cert upload certificate-authority --name NAME --ca-cert PATH
+   ```
+
+   Supply the resulting ID with `--ca-certificate-id` when creating or updating
+   Hyperdrive. This deployment uses ISRG Root X1, valid
+   until June 4, 2035. Recheck the trust chain when the provider changes CAs.
 3. Run the migrations with a database owner role. Put its direct connection URL
    in an ignored `apps/email/.env`, using `.env.example` as a reference, then run
    `pnpm migrate`. Keep development and production credentials separate. For an
@@ -24,12 +68,12 @@ uses the Neon driver. Original Bezalel deployments keep their existing configura
    for both existing and future objects created by the migration role.
 5. In Cloudflare's Hyperdrive page, create a configuration named
    `bezalel-email-standalone` using that role's primary connection. Disable query
-   caching. Copy its ID into `apps/email/wrangler.jsonc` under `HYPERDRIVE`,
-   replacing the all-zero placeholder.
+   caching. For a new deployment, copy its ID into `apps/email/wrangler.jsonc`
+   under `HYPERDRIVE` and set the intended Cloudflare account ID.
 6. Check the configuration before deployment:
 
    ```sh
-   pnpm --filter @bezalel/email exec wrangler hyperdrive update YOUR_HYPERDRIVE_ID --caching-disabled --sslmode verify-full
+   pnpm --filter @bezalel/email exec wrangler hyperdrive update YOUR_HYPERDRIVE_ID --caching-disabled --sslmode verify-full --ca-certificate-id YOUR_CA_ID
    pnpm --filter @bezalel/email exec wrangler hyperdrive get YOUR_HYPERDRIVE_ID
    ```
 

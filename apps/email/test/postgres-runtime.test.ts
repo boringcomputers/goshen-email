@@ -1,11 +1,59 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import { randomUUID } from "node:crypto"
+import { execFile } from "node:child_process"
+import { promisify } from "node:util"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { unstable_dev, type Unstable_DevWorker } from "wrangler"
-import { migrate } from "../src/database.js"
+import { migrate, postgresDatabase } from "../src/database.js"
 import { postgresFixture } from "./database.js"
 import { config, rawMail } from "./support.js"
+
+it("the migration command preserves postgres ownership and application grants for temporary logins", async () => {
+  const database = await postgresFixture()
+  const suffix = randomUUID().replaceAll("-", "")
+  const migrator = `migrator_${suffix}`
+  const application = `application_${suffix}`
+  const password = randomUUID()
+  const connection = new URL(database.connectionString)
+  const roles: string[] = []
+  try {
+    await database.db.query(`create role ${migrator} login noinherit password '${password}'`)
+    roles.push(migrator)
+    await database.db.query(`create role ${application}`)
+    roles.push(application)
+    await database.db.query(`grant postgres to ${migrator}`)
+    await database.db.query(`grant create on database ${connection.pathname.slice(1)} to ${migrator}`)
+    await database.db.query(`alter default privileges for role postgres grant select, insert, update, delete on tables to ${application}`)
+    await database.db.query("alter default privileges for role postgres revoke execute on functions from public")
+    await database.db.query(`alter default privileges for role postgres grant execute on functions to ${application}`)
+    connection.username = migrator
+    connection.password = password
+    const result = await promisify(execFile)("pnpm", ["migrate"], {
+      env: { ...process.env, DATABASE_URL: connection.href }, timeout: 20_000
+    })
+    expect(result.stdout).toContain("Email schema is ready")
+    const tables = await database.db.query<{ owner: string; readable: boolean; writable: boolean }>(
+      `select pg_get_userbyid(c.relowner) as owner,
+        has_table_privilege($1,c.oid,'SELECT') as readable,
+        has_table_privilege($1,c.oid,'INSERT') and has_table_privilege($1,c.oid,'UPDATE')
+          and has_table_privilege($1,c.oid,'DELETE') as writable
+        from pg_class c join pg_namespace n on n.oid=c.relnamespace
+        where n.nspname='mail' and c.relkind='r'`, [application])
+    expect(tables).toHaveLength(10)
+    for (const table of tables) expect(table).toEqual({ owner: "postgres", readable: true, writable: true })
+    const functions = await database.db.query<{ owner: string; executable: boolean }>(
+      `select pg_get_userbyid(p.proowner) as owner, has_function_privilege($1,p.oid,'EXECUTE') as executable
+        from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='mail'`, [application])
+    expect(functions).toHaveLength(9)
+    for (const routine of functions) expect(routine).toEqual({ owner: "postgres", executable: true })
+  } finally {
+    await database.pg.close()
+    const admin = postgresDatabase(process.env.TEST_DATABASE_URL!)
+    for (const role of roles.reverse()) await admin.query(`drop role ${role}`)
+  }
+})
 
 describe("Hyperdrive in the Workers runtime with PostgreSQL", () => {
   let database: Awaited<ReturnType<typeof postgresFixture>>
