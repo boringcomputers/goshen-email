@@ -11,7 +11,7 @@ header,footer { width:100%; max-width:var(--container-landing); margin:0 auto; p
 main { width:100%; max-width:456px; margin:auto; padding:76px 20px 96px}
 .eyebrow { font-size:10px; font-weight:650; letter-spacing:1.5px; margin-bottom:20px; color:#777}
 h1 { font-size:40px; line-height:1.12; letter-spacing:-1.6px; font-weight:500; margin:0 0 16px}
-.description { font-size:15px; color:#717171; margin:0 0 34px; max-width:380px}
+.description { overflow-wrap:anywhere; font-size:15px; color:#717171; margin:0 0 34px; max-width:380px}
 form>div { margin-bottom:22px}
 label { display:block; font-size:13px; font-weight:500; margin-bottom:9px}
 .label-row { display:flex; align-items:baseline; justify-content:space-between; gap:12px}
@@ -44,3 +44,12 @@ h1 { font-size:36px}
 footer { gap:12px}
 }
 
+fieldset { border:0; padding:0; margin:0 0 28px; min-width:0 }
+legend { font-size:13px; font-weight:500; margin-bottom:12px }
+.methods { display:flex; gap:12px }
+.methods label { display:flex; flex:1; align-items:center; gap:8px; padding:13px 12px; border:1px solid #dededb; border-radius:8px; margin:0; cursor:pointer }
+.methods label:has(input:checked) { border-color:#292929; background:#f8f8f6 }
+.methods input { width:16px; height:16px; margin:0; accent-color:#292929 }
+#code { font-size:24px; letter-spacing:10px; text-align:center; font-variant-numeric:tabular-nums }
+.text-button { background:transparent; color:#666; border:0; margin-top:8px; font-size:12px; text-decoration:underline; text-underline-offset:4px }
+.text-button:hover:not(:disabled) { background:#f8f8f6 }

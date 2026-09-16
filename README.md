@@ -17,8 +17,8 @@ See [SOURCE.md](SOURCE.md) for the source revision and how to carry fixes betwee
 - An SMTP gateway using Postfix, Rspamd, and ClamAV for domains at any DNS provider.
 - PostgreSQL migrations, R2 attachment storage, local database tests, and deployment guides.
 
-The Cloudflare dashboard supports public email/password accounts with verification,
-password recovery, and sign-out. See the [account guide](docs/accounts.md) for
+The Cloudflare dashboard supports public passwordless accounts with magic links,
+six-digit email codes, and sign-out. See the [account guide](docs/accounts.md) for
 configuration and rollout.
 Customers see their own inboxes. Owners can manage customers and all inboxes.
 Applications and agents use mailbox-scoped credentials.

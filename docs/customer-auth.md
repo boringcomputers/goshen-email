@@ -1,6 +1,6 @@
 # Optional Cloudflare Access sign-in
 
-Public sign-up uses [email/password accounts](accounts.md). This guide describes
+Public sign-up uses [passwordless accounts](accounts.md). This guide describes
 the optional `DASHBOARD_AUTH_MODE=access` integration for invited customers.
 
 Customers sign in with an email code through Cloudflare Access. The email API

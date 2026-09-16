@@ -1,4 +1,3 @@
-import { SignJWT } from "jose"
 import { PostgresDialect } from "kysely"
 import { Pool } from "pg"
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
@@ -8,7 +7,6 @@ import { createAccountAuth, handleAccountRequest, collectAccountGarbage, type Ac
 import { fixture } from "./support.js"
 
 const config = { publicUrl: "https://accounts.example.com", secret: "test-account-secret-".repeat(3), proxySecret: "test-proxy-secret-".repeat(3), from: "accounts@example.com", adminEmails: ["owner@example.net"] }
-const password = "test-account-password-123"
 
 describe("Public accounts", () => {
   let f: Awaited<ReturnType<typeof fixture>>, auth: AccountAuth, dialect: KyselyPGlite['dialect']
@@ -30,32 +28,65 @@ describe("Public accounts", () => {
   const rpc = (operation: string, cookie: string, data = {}) => request(`/account-rpc/${operation}`, data, cookie)
   const cookies = (response: Response) => response.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ')
   const emailUrl = () => new URL(f.send.mock.calls.at(-1)![0].text!.match(/https:\/\/\S+/)![0])
-  const signup = (email = 'a@example.net', extra = {}) => request('/api/auth/sign-up/email', { email, password, name: 'A Person', callbackURL: `${config.publicUrl}/verify-email?verified=1`, ...extra })
+  const signup = (email = 'a@example.net', extra = {}, instance = auth) => request('/api/auth/sign-in/magic-link', { email, name: 'A Person', ...extra }, '', {}, instance)
+  const verifyLink = (url = emailUrl(), email?: string) => {
+    const fragment = new URLSearchParams(url.hash.slice(1))
+    return request('/api/auth/magic-link/verify', { token: fragment.get('token'), email: email ?? fragment.get('email') })
+  }
   const verified = async (email = 'a@example.net') => {
     const response = await signup(email)
     expect(response.status, await response.clone().text()).toBe(200)
-    const url = emailUrl()
-    const verification = await request(url.pathname + url.search)
-    expect(verification.status, await verification.clone().text()).toBe(302)
+    const verification = await verifyLink()
+    expect(verification.status, await verification.clone().text()).toBe(200)
     return cookies(verification)
   }
-  it('requires verification, uses secure cookies, and creates a public customer with no elevated role', async () => {
+  const sendCode = (email = 'a@example.net') => request('/api/auth/email-otp/send-verification-otp', { email, type: 'sign-in' })
+  const code = () => f.send.mock.calls.at(-1)![0].text!.match(/\b\d{6}\b/)![0]
+  const useCode = (otp = code(), email = 'a@example.net') => request('/api/auth/sign-in/email-otp', { email, otp, name: 'Code Person' })
+  it('requires a single-use email link, hashes its token, and creates a customer without a password', async () => {
     const response = await signup('a@example.net', { role: 'admin', emailVerified: true })
     expect(response.status).toBe(200)
     expect(await response.json()).not.toHaveProperty('token')
     expect((await rpc('session', '')).status).toBe(401)
-    expect((await request('/api/auth/sign-in/email', { email: 'a@example.net', password })).status).toBe(403)
-    const url = emailUrl()
-    const verified = await request(url.pathname + url.search)
-    const cookie = cookies(verified)
+    expect(await f.db.query('select * from mail.auth_users')).toHaveLength(0)
+    const url = emailUrl(), token = new URLSearchParams(url.hash.slice(1)).get('token')!
+    expect(url.pathname).toBe('/magic-link')
+    const [stored] = await f.db.query<{ identifier: string }>('select identifier from mail.auth_verifications')
+    expect(stored!.identifier).not.toContain(token)
+    expect((await verifyLink(url, 'victim@example.net')).status).toBe(401)
+    expect((await request('/api/auth/magic-link/verify?token=' + token)).status).toBe(404)
+    const response2 = await verifyLink(url)
+    const cookie = cookies(response2)
     expect(cookie).toContain('__Secure-bezalel.session_token=')
-    expect(verified.headers.get('set-cookie')).toContain('HttpOnly')
-    expect(verified.headers.get('set-cookie')).toContain('Secure')
-    const session = await rpc('session', cookie)
-    expect(await session.json()).toMatchObject({ result: { customer: { email: 'a@example.net', role: 'customer', inboxLimit: 5 } } })
-    const [stored] = await f.db.query<{ password: string }>('select password from mail.auth_accounts')
-    expect(stored!.password).not.toContain(password)
+    expect(response2.headers.get('set-cookie')).toContain('HttpOnly')
+    expect(response2.headers.get('set-cookie')).toContain('Secure')
+    expect(await (await rpc('session', cookie)).json()).toMatchObject({ result: { customer: { email: 'a@example.net', role: 'customer', inboxLimit: 5 } } })
+    expect(await f.db.query('select * from mail.auth_accounts')).toHaveLength(0)
     expect((await rpc('session', cookie + 'forged')).status).toBe(401)
+    const replay = await verifyLink(url)
+    expect(replay.status).toBe(401)
+    expect(cookies(replay)).not.toContain('session_token=')
+  })
+  it('allows only one concurrent redemption of a magic link', async () => {
+    await signup()
+    const url = emailUrl()
+    const results = await Promise.all([verifyLink(url), verifyLink(url)])
+    expect(results.map((result) => result.status).sort()).toEqual([200, 401])
+    expect(results.filter((result) => cookies(result).includes('session_token='))).toHaveLength(1)
+    expect(await f.db.query('select * from mail.auth_sessions')).toHaveLength(1)
+  })
+  it('signs up with a six-digit code and never returns a session token in JSON', async () => {
+    expect((await sendCode()).status).toBe(200)
+    const otp = code()
+    const [stored] = await f.db.query<{ value: string }>('select value from mail.auth_verifications')
+    expect(stored!.value.startsWith(otp + ':')).toBe(false)
+    const response = await useCode(otp)
+    expect(response.status, await response.clone().text()).toBe(200)
+    const body = await response.json()
+    expect(body).not.toHaveProperty('token'); expect(body).not.toHaveProperty('user')
+    expect(await (await rpc('session', cookies(response))).json()).toMatchObject({ result: { customer: { displayName: 'Code Person', role: 'customer' } } })
+    expect((await useCode(otp)).status).toBe(400)
+    expect(await f.db.query('select * from mail.auth_accounts')).toHaveLength(0)
   })
   it('isolates inboxes, derives administrators from verified email, and honors disabled customers', async () => {
     const a = await verified(), b = await verified('b@example.net'), owner = await verified('owner@example.net')
@@ -77,63 +108,50 @@ describe("Public accounts", () => {
     expect((await request('/account-rpc/session', {}, cookie, {}, fresh)).status).toBe(200)
     expect((await request('/api/auth/sign-out', {}, cookie)).status).toBe(200)
     expect((await request('/account-rpc/session', {}, cookie, {}, fresh)).status).toBe(401)
-    const login = await request('/api/auth/sign-in/email', { email: 'a@example.net', password })
+    await sendCode()
+    const login = await useCode()
     expect(login.status).toBe(200)
     expect(await login.json()).not.toHaveProperty('token')
     expect((await rpc('session', cookies(login))).status).toBe(200)
     await f.db.query('update mail.auth_sessions set "expiresAt" = now() - interval \'1 second\'')
     expect((await rpc('session', cookies(login))).status).toBe(401)
   })
-  it('resets passwords once, revokes existing sessions, and hides unknown account existence', async () => {
-    const cookie = await verified()
-    const body = { email: 'a@example.net', redirectTo: `${config.publicUrl}/reset-password` }
-    const reset = await request('/api/auth/request-password-reset', body)
-    expect(reset.status).toBe(200)
-    const url = emailUrl()
-    const redirect = await request(url.pathname + url.search)
-    expect(redirect.status, await redirect.clone().text()).toBe(302)
-    const token = new URL(redirect.headers.get('location')!).searchParams.get('token')
-    const unknown = await request('/api/auth/request-password-reset', { ...body, email: 'unknown@example.net' })
-    expect(await unknown.json()).toEqual(await reset.json())
-    const change = { token, newPassword: 'changed-password-123456' }
-    expect((await request('/api/auth/reset-password', change)).status).toBe(200)
-    expect((await rpc('session', cookie)).status).toBe(401)
-    expect((await request('/api/auth/reset-password', change)).status).toBe(400)
-    expect((await request('/api/auth/sign-in/email', { email: body.email, password })).status).toBe(401)
-    expect((await request('/api/auth/sign-in/email', { email: body.email, password: change.newPassword })).status).toBe(200)
+  it('locks out incorrect codes, binds them to an email, and expires old codes after resend', async () => {
+    await sendCode(); const first = code()
+    expect((await useCode(first, 'other@example.net')).status).toBe(400)
+    await sendCode(); const second = code()
+    const wrong = second === '000000' ? '111111' : '000000'
+    if (first !== second) expect((await useCode(first)).status).toBe(400)
+    for (let attempt = first === second ? 0 : 1; attempt < 5; attempt++) expect((await useCode(wrong)).status).toBe(400)
+    expect((await useCode(second)).status).toBe(403)
+    expect(await f.db.query('select * from mail.auth_sessions')).toHaveLength(0)
   })
-  it('rejects direct API requests, cross-origin mutations, unsafe callbacks, and weak passwords', async () => {
-    expect((await request('/api/auth/sign-up/email', {}, '', { authorization: '' })).status).toBe(401)
-    expect((await request('/api/auth/sign-up/email', {}, '', { origin: 'https://evil.example' })).status).toBe(403)
-    expect((await signup('a@example.net', { callbackURL: 'https://evil.example' })).status).toBe(403)
-    expect((await signup('a@example.net', { password: 'short' })).status).toBe(400)
+  it('rejects direct API requests, cross-origin mutations, unsafe callbacks, and every password endpoint', async () => {
+    expect((await request('/api/auth/sign-in/magic-link', {}, '', { authorization: '' })).status).toBe(401)
+    expect((await request('/api/auth/sign-in/magic-link', {}, '', { origin: 'https://evil.example' })).status).toBe(403)
+    for (const key of ['callbackURL', 'newUserCallbackURL', 'errorCallbackURL'])
+      expect((await signup('a@example.net', { [key]: 'https://evil.example' })).status).toBe(403)
     expect((await request('/api/auth/get-session')).status).toBe(404)
-    expect((await request('/api/auth/delete-user', {})).status).toBe(404)
+    for (const endpoint of ['sign-up/email', 'sign-in/email', 'request-password-reset', 'reset-password', 'delete-user', 'email-otp/verify-email'])
+      expect((await request('/api/auth/' + endpoint, {})).status).toBe(404)
+    expect((await request('/api/auth/email-otp/send-verification-otp', { email: 'a@example.net', type: 'forget-password' })).status).toBe(400)
     expect(f.send).not.toHaveBeenCalled()
   })
-  it('rejects expired and reused email links and removes only expired account records', async () => {
-    const cookie = await verified()
-    const link = emailUrl()
-    await request('/api/auth/sign-out', {}, cookie)
-    const replay = await request(link.pathname + link.search)
-    expect(cookies(replay)).not.toContain('session_token=')
-    const expired = await new SignJWT({ email: 'a@example.net' }).setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime(1).sign(new TextEncoder().encode(config.secret))
-    const invalid = await request(`/api/auth/verify-email?token=${expired}&callbackURL=${encodeURIComponent(config.publicUrl + '/verify-email')}`)
-    expect(invalid.headers.get('location')).toContain('TOKEN_EXPIRED')
-    await request('/api/auth/request-password-reset', { email: 'a@example.net', redirectTo: config.publicUrl + '/reset-password' })
-    const reset = emailUrl()
+  it('rejects expired links and codes and removes only expired account records', async () => {
+    await verified()
+    await signup(); const url = emailUrl()
+    await sendCode(); const otp = code()
     await f.db.query('update mail.auth_verifications set "expiresAt" = now() - interval \'1 second\'')
-    const resetResponse = await request(reset.pathname + reset.search)
-    expect(resetResponse.headers.get('location')).toContain('INVALID_TOKEN')
+    expect((await verifyLink(url)).status).toBe(401)
+    expect((await useCode(otp)).status).toBe(400)
     await collectAccountGarbage(f.service)
     expect(await f.db.query('select * from mail.auth_verifications')).toHaveLength(0)
     expect(await f.db.query('select * from mail.auth_users')).toHaveLength(1)
-    expect((await request('/api/auth/sign-in/email', { email: 'a@example.net', password })).status).toBe(200)
   })
-  it('enforces durable sign-in throttling across instances', async () => {
-    for (let i = 0; i < 5; i++) expect((await request('/api/auth/sign-in/email', { email: 'missing@example.net', password })).status).toBe(401)
+  it('enforces durable email-send throttling across instances', async () => {
+    for (let i = 0; i < 3; i++) expect((await signup()).status).toBe(200)
     const fresh = createAccountAuth(config, dialect, f.service)
-    expect((await request('/api/auth/sign-in/email', { email: 'missing@example.net', password }, '', {}, fresh)).status).toBe(429)
+    expect((await signup('b@example.net', {}, fresh)).status).toBe(429)
+    expect(f.send).toHaveBeenCalledTimes(3)
   })
 })

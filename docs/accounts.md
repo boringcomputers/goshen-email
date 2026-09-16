@@ -1,14 +1,24 @@
 # Public accounts
 
-Anyone can create a Bezalel Email account at `/sign-up`. Better Auth handles
-email/password credentials, verification, recovery, and database sessions. The
-email Worker owns these records in PostgreSQL. Passwords use the library's scrypt
-hashing. A password must contain 12 to 128 characters.
+Anyone can create a Bezalel Email account at `/sign-up`. Choose a magic link or
+a six-digit email code. Better Auth verifies ownership of the email address and
+creates an account on the first successful sign-in. Password sign-up, sign-in,
+and recovery endpoints are disabled.
 
-The dashboard provides `/sign-in`, `/sign-up`, `/forgot-password`,
-`/reset-password`, and `/verify-email`. Verification is required before a session
-can access mail. Verification and recovery links expire after one hour. Sign-out
-revokes the current session; password reset revokes all the account's sessions.
+The dashboard provides `/sign-in`, `/sign-up`, and `/magic-link`. Links and codes
+expire after ten minutes and can be used once. Codes allow five incorrect
+attempts before a new code is required. Resending a code replaces the previous
+one. Both methods store hashed challenges in PostgreSQL.
+
+A magic link carries its token in the URL fragment, which is not sent to the
+server or in referrers. The confirmation screen removes it from browser history
+and preserves it in session storage across refreshes until sign-in. It names the
+account and requires a click on **Continue to workspace** before redemption. The
+API requires a same-origin POST and checks that the shown email matches the
+stored challenge. Opening or
+previewing the emailed URL alone cannot consume it.
+
+Sign-out revokes the current session and clears other tabs in the same browser.
 Sessions last seven days and refresh with activity. Cookies are HTTP-only,
 SameSite=Lax, Secure on HTTPS, and scoped to the dashboard host. Session caching
 is disabled so revocation takes effect on the next request.
@@ -39,8 +49,8 @@ exposes only the account endpoints needed by its screens. Account JSON responses
 do not include session tokens or password records.
 
 State changes require the dashboard Origin and JSON content type. Callback URLs
-must stay on the dashboard origin. Database rate limits cover sign-in, sign-up,
-verification resend, and password reset. Scheduled cleanup removes expired
+must stay on the dashboard origin. Database rate limits cover link requests, code requests, and
+challenge verification. Scheduled cleanup removes expired
 sessions, verification records, and stale rate-limit records.
 
 The local Node dashboard also supports `DASHBOARD_AUTH_MODE=account`; set the
@@ -68,8 +78,8 @@ The account feature is not enabled in production merely by merging this code.
 4. Deploy the dashboard with `DASHBOARD_AUTH_MODE=account`. Keep the password-mode
    secrets and previous Worker version available until the owner has verified
    their account and confirmed access to existing inboxes.
-5. The owner creates an account using an email in `DASHBOARD_ADMIN_EMAILS`, opens
-   the verification email, and confirms their existing inboxes and Customers
+5. The owner signs in using an email in `DASHBOARD_ADMIN_EMAILS`, completes
+   the emailed link or code, and confirms their existing inboxes and Customers
    controls. A normal account should see only its own inboxes.
 
 Rollback switches the dashboard back to its previous password-mode version.
@@ -89,12 +99,12 @@ FIXTURE_AUTH_MODE=account pnpm --filter @bezalel/email exec tsx test/dashboard-f
 
 Open `http://127.0.0.1:3038/sign-up`. The fixture binds to loopback, creates a
 fresh PGlite database, and simulates domain verification, routing, storage, and
-email sending. `http://127.0.0.1:3039/sends` contains captured verification and
-recovery URLs. These are test messages, not live delivery.
+email sending. `http://127.0.0.1:3039/sends` contains captured sign-in links and
+codes. These are test messages, not live delivery.
 
-`pnpm test` exercises real password hashing, verification, ownership, session
-revocation, recovery, CSRF, and rate limits with isolated local databases. The
-PostgreSQL suite also runs signup, verification, sessions, and sign-out inside
+`pnpm test` exercises link and code verification, ownership, session revocation,
+challenge expiry and replay, CSRF, and rate limits with isolated local databases.
+The PostgreSQL suite also runs links, codes, sessions, and sign-out inside
 Cloudflare's local workerd runtime using real PostgreSQL sockets. Only its
 provider API calls are simulated. Follow the database guide for the dedicated
 local `TEST_DATABASE_URL`; tests refuse remote databases.

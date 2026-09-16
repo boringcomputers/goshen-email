@@ -98,17 +98,19 @@ describe("Hyperdrive in the Workers runtime with PostgreSQL", () => {
     expect(response.status, JSON.stringify(body)).toBe(200)
     return body.result
   }
-  it("runs password hashing, verification, sessions, and revocation inside workerd", async () => {
+  it("runs passwordless links, codes, sessions, and revocation inside workerd", async () => {
     const headers = { authorization: 'Bearer ' + 'runtime-proxy-secret-'.repeat(3), origin: 'https://accounts.example.com',
       'content-type': 'application/json', 'x-bezalel-client-ip': '192.0.2.1' }
     expect((await worker.fetch('http://localhost/healthz', { signal: AbortSignal.timeout(5000) })).status).toBe(200)
-    const signup = await worker.fetch('http://localhost/api/auth/sign-up/email', { method: 'POST', headers,
-      body: JSON.stringify({ email: 'runtime@example.net', name: 'Runtime', password: 'runtime-password-123', callbackURL: 'https://accounts.example.com/app' }) })
+    const signup = await worker.fetch('http://localhost/api/auth/sign-in/magic-link', { method: 'POST', headers,
+      body: JSON.stringify({ email: 'runtime@example.net', name: 'Runtime', callbackURL: 'https://accounts.example.com/app' }) })
     expect(signup.status, await signup.clone().text()).toBe(200)
     const sent = await (await worker.fetch('http://localhost/__test/auth-email')).json() as { text: string }
     const verification = new URL(sent.text.match(/https:\/\/\S+/)![0])
-    const verified = await worker.fetch(`http://localhost${verification.pathname}${verification.search}`, { headers, redirect: 'manual' })
-    expect(verified.status, await verified.clone().text()).toBe(302)
+    const fragment = new URLSearchParams(verification.hash.slice(1))
+    const verified = await worker.fetch('http://localhost/api/auth/magic-link/verify', { method: 'POST', headers,
+      body: JSON.stringify({ token: fragment.get('token'), email: fragment.get('email') }) })
+    expect(verified.status, await verified.clone().text()).toBe(200)
     const cookie = verified.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ')
     expect(cookie).toContain('session_token=')
     const session = await worker.fetch('http://localhost/account-rpc/session', { method: 'POST', headers: { ...headers, cookie }, body: '{}' })
@@ -117,6 +119,16 @@ describe("Hyperdrive in the Workers runtime with PostgreSQL", () => {
     expect(signedOut.status).toBe(200)
     const denied = await worker.fetch('http://localhost/account-rpc/session', { method: 'POST', headers: { ...headers, cookie }, body: '{}' })
     expect(denied.status).toBe(401)
+    const sendCode = await worker.fetch('http://localhost/api/auth/email-otp/send-verification-otp', { method: 'POST', headers,
+      body: JSON.stringify({ email: 'runtime@example.net', type: 'sign-in' }) })
+    expect(sendCode.status).toBe(200)
+    const email = await (await worker.fetch('http://localhost/__test/auth-email')).json() as { text: string }
+    const code = email.text.match(/\b\d{6}\b/)![0]
+    const codeSignIn = await worker.fetch('http://localhost/api/auth/sign-in/email-otp', { method: 'POST', headers,
+      body: JSON.stringify({ email: 'runtime@example.net', otp: code }) })
+    expect(codeSignIn.status, await codeSignIn.clone().text()).toBe(200)
+    expect(codeSignIn.headers.get('set-cookie')).toContain('session_token=')
+
   })
   it("creates an inbox and reads it from independent concurrent requests", async () => {
     const created = await rpc("createInbox", { username: "runtime" })

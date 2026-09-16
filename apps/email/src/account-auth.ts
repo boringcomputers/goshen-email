@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto"
+import { magicLink, emailOTP } from "better-auth/plugins"
 import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { PostgresDialect, type Dialect } from "kysely"
 import { Pool } from "pg"
@@ -23,12 +25,11 @@ export function accountConfig(env: { AUTH_PUBLIC_URL?: string; AUTH_SECRET?: str
   return { ...parsed.data, adminEmails: admins.data }
 }
 
+const linkHash = (token: string, secret: string) => createHmac("sha256", secret).update(token).digest("hex")
+
 export function accountOptions(config: AccountConfig, dialect: Dialect, service: MailService): BetterAuthOptions {
-  const send = async (email: string, url: string, reset = false) => {
-    await service.transport.send({ from: { address: config.from, name: "Bezalel Email" }, to: [email], cc: [], bcc: [], headers: {},
-      subject: reset ? "Reset your Bezalel Email password" : "Verify your Bezalel Email address",
-      text: `${reset ? "Choose a new password" : "Verify your email address to finish creating your account"}:\n\n${url}\n\nThis link expires in one hour. If you didn't request this, you can ignore this email.`,
-    })
+  const send = async (email: string, subject: string, text: string) => {
+    await service.transport.send({ from: { address: config.from, name: "Bezalel Email" }, to: [email], cc: [], bcc: [], headers: {}, subject, text })
   }
   return {
     appName: "Bezalel Email", baseURL: config.publicUrl, basePath: "/api/auth", secret: config.secret,
@@ -36,16 +37,25 @@ export function accountOptions(config: AccountConfig, dialect: Dialect, service:
     user: { modelName: "auth_users" }, account: { modelName: "auth_accounts" },
     verification: { modelName: "auth_verifications" },
     session: { modelName: "auth_sessions", expiresIn: 7 * 24 * 60 * 60, cookieCache: { enabled: false } },
-    emailAndPassword: { enabled: true, minPasswordLength: 12, maxPasswordLength: 128, requireEmailVerification: true,
-      autoSignIn: false, revokeSessionsOnPasswordReset: true, resetPasswordTokenExpiresIn: 3600,
-      sendResetPassword: async ({ user, url }) => send(user.email, url, true) },
-    emailVerification: { sendOnSignUp: true, sendOnSignIn: true, autoSignInAfterVerification: true, expiresIn: 3600,
-      sendVerificationEmail: async ({ user, url }) => send(user.email, url) },
+    emailAndPassword: { enabled: false },
+    plugins: [
+      magicLink({ expiresIn: 600, storeToken: { type: "custom-hasher", hash: async (token) => linkHash(token, config.secret) }, disableSignUp: false,
+        sendMagicLink: async ({ email, token }) => {
+          // The confirmation page keeps email scanners from consuming a sign-in link.
+          const url = `${config.publicUrl}/magic-link#token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`
+          await send(email, "Your Bezalel Email sign-in link", `Sign in to Bezalel Email:\n\n${url}\n\nThis link works once and expires in 10 minutes. If you didn't request it, you can ignore this email.`)
+        } }),
+      emailOTP({ otpLength: 6, expiresIn: 600, allowedAttempts: 5, storeOTP: "hashed", disableSignUp: false,
+        sendVerificationOTP: async ({ email, otp, type }) => {
+          if (type !== "sign-in") throw new MailError("Use passwordless sign-in", "invalid_request", 400)
+          await send(email, "Your Bezalel Email sign-in code", `Your sign-in code is:\n\n${otp}\n\nEnter this code on Bezalel Email. It works once and expires in 10 minutes. If you didn't request it, you can ignore this email.`)
+        } }),
+    ],
     advanced: { database: { generateId: "uuid" }, cookiePrefix: "bezalel", useSecureCookies: config.publicUrl.startsWith("https:"),
       ipAddress: { ipAddressHeaders: ["x-bezalel-client-ip"] }, defaultCookieAttributes: { httpOnly: true, sameSite: "lax", path: "/" } },
     rateLimit: { enabled: true, storage: "database", modelName: "auth_rate_limits", window: 60, max: 100,
-      customRules: { "/sign-in/email": { window: 60, max: 5 }, "/sign-up/email": { window: 600, max: 5 },
-        "/request-password-reset": { window: 600, max: 3 }, "/send-verification-email": { window: 600, max: 3 } } },
+      customRules: { "/sign-in/magic-link": { window: 600, max: 3 }, "/magic-link/verify": { window: 60, max: 10 },
+        "/email-otp/send-verification-otp": { window: 600, max: 3 }, "/sign-in/email-otp": { window: 60, max: 10 } } },
     telemetry: { enabled: false }, logger: { disabled: true },
   }
 }
@@ -57,9 +67,9 @@ export function postgresAccountAuth(config: AccountConfig, connectionString: str
   return { auth: createAccountAuth(config, new PostgresDialect({ pool }), service), close: () => pool.end() }
 }
 const authRoutes = new Map([
-  ["/api/auth/sign-up/email", "POST"], ["/api/auth/sign-in/email", "POST"], ["/api/auth/sign-out", "POST"],
-  ["/api/auth/send-verification-email", "POST"], ["/api/auth/verify-email", "GET"],
-  ["/api/auth/request-password-reset", "POST"], ["/api/auth/reset-password", "POST"],
+  ["/api/auth/sign-in/magic-link", "POST"], ["/api/auth/magic-link/verify", "POST"],
+  ["/api/auth/email-otp/send-verification-otp", "POST"], ["/api/auth/sign-in/email-otp", "POST"],
+  ["/api/auth/sign-out", "POST"],
 ])
 
 export async function handleAccountRequest(request: Request, service: MailService, config: AccountConfig, auth: AccountAuth): Promise<Response> {
@@ -77,22 +87,40 @@ export async function handleAccountRequest(request: Request, service: MailServic
     const ip = headers.get("x-bezalel-client-ip") ?? ""
     if (!isIP(ip)) throw new MailError("Client address unavailable", "invalid_request", 400)
     const bytes = request.body ? await readBytes(request.body, url.pathname.startsWith("/api/auth/") ? 16 * 1024 : 5 * 1024 * 1024) : undefined
+    let confirmationToken: string | undefined
     if (url.pathname.startsWith("/api/auth/")) {
+      if (authRoutes.get(url.pathname) !== request.method) throw new MailError("Not found", "not_found", 404)
       let input: Record<string, unknown> = {}
       if (bytes) {
         try { input = JSON.parse(new TextDecoder().decode(bytes)) }
         catch { throw new MailError("Invalid JSON") }
         if (!input || typeof input !== "object" || Array.isArray(input)) throw new MailError("Invalid account request")
       }
-      for (const callback of [input.callbackURL, input.redirectTo, url.searchParams.get("callbackURL")]) {
+      for (const callback of [input.callbackURL, input.newUserCallbackURL, input.errorCallbackURL, ...["callbackURL", "newUserCallbackURL", "errorCallbackURL"].map((key) => url.searchParams.get(key))]) {
         if (callback == null) continue
         let valid = false
         try { valid = typeof callback === "string" && new URL(callback, config.publicUrl).origin === config.publicUrl }
         catch { /* Reject malformed redirects. */ }
         if (!valid) throw new MailError("Invalid redirect URL", "forbidden", 403)
       }
-      if (url.pathname === "/api/auth/sign-up/email" && (!z.string().trim().min(1).max(200).safeParse(input.name).success || !z.email().max(254).safeParse(input.email).success))
-        throw new MailError("Enter a valid name and email address")
+      if (request.method === "POST" && url.pathname !== "/api/auth/sign-out") {
+        if (!z.email().max(254).safeParse(input.email).success || (input.name !== undefined && !z.string().trim().min(1).max(200).safeParse(input.name).success))
+          throw new MailError("Enter a valid name and email address")
+        if (url.pathname === "/api/auth/magic-link/verify") {
+          const token = z.string().regex(/^[A-Za-z0-9_-]{20,256}$/).safeParse(input.token)
+          if (!token.success) throw new MailError("Invalid or expired sign-in link", "invalid_token", 401)
+          const context = await auth.$context
+          const record = await context.internalAdapter.findVerificationValue(linkHash(token.data, config.secret))
+          let email: unknown
+          try { email = record && JSON.parse(record.value).email } catch { /* Invalid verification record. */ }
+          if (!record || new Date(record.expiresAt).getTime() <= Date.now() || typeof email !== "string" || email.toLowerCase() !== String(input.email).toLowerCase())
+            throw new MailError("This sign-in link is invalid, expired, or already used. Request a new one.", "invalid_token", 401)
+          confirmationToken = token.data
+        }
+        if (url.pathname === "/api/auth/email-otp/send-verification-otp" && input.type !== "sign-in")
+          throw new MailError("Use passwordless sign-in", "invalid_request", 400)
+      }
+
     }
     const authRequest = new Request(new URL(url.pathname + url.search, config.publicUrl), {
       method: request.method, headers, ...(bytes ? { body: bytes } : {}),
@@ -107,12 +135,16 @@ export async function handleAccountRequest(request: Request, service: MailServic
       for (const cookie of sessionHeaders.getSetCookie()) response.headers.append("set-cookie", cookie)
       return response
     }
-    const resetLink = request.method === "GET" && /^\/api\/auth\/reset-password\/[A-Za-z0-9_-]+$/.test(url.pathname)
-    if (!resetLink && authRoutes.get(url.pathname) !== request.method) throw new MailError("Not found", "not_found", 404)
-    const response = await auth.handler(authRequest)
+    if (authRoutes.get(url.pathname) !== request.method) throw new MailError("Not found", "not_found", 404)
+    const response = await auth.handler(confirmationToken ? new Request(
+      `${config.publicUrl}/api/auth/magic-link/verify?token=${encodeURIComponent(confirmationToken)}`, { headers }) : authRequest)
     const outgoing = new Headers(response.headers)
     outgoing.set("cache-control", "no-store")
     outgoing.delete("content-length")
+    if (confirmationToken && response.status >= 300 && response.status < 400) {
+      outgoing.delete("location")
+      return Response.json({ message: "This sign-in link is invalid, expired, or already used. Request a new one." }, { status: 401, headers: outgoing })
+    }
     // Only HTTP-only cookies carry sessions; never expose the library's session token in JSON.
     if ((response.status < 300 || response.status >= 400) && response.headers.get("content-type")?.includes("application/json")) {
       const body = await response.json() as Record<string, unknown>

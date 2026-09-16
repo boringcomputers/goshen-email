@@ -1,7 +1,7 @@
 import { assets, dashboardOrigin, readBody, responseHeaders } from './handler.mjs'
 import { customerOperations, DashboardError } from './service.mjs'
 
-const pages = new Set(['/sign-in', '/sign-up', '/forgot-password', '/reset-password', '/verify-email'])
+const pages = new Set(['/sign-in', '/sign-up', '/magic-link'])
 const accountAssets = new Map([['/auth.css', ['auth.css', 'text/css; charset=utf-8']], ['/auth.js', ['auth.js', 'text/javascript; charset=utf-8']]])
 
 export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, request: backend, asset }) {
@@ -21,10 +21,9 @@ export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, req
       const session = path === '/api/session' && request.method === 'GET'
       const auth = path.startsWith('/api/auth/')
       const logout = path === '/api/logout'
-      const emailLink = request.method === 'GET' && (path === '/api/auth/verify-email' || /^\/api\/auth\/reset-password\/[A-Za-z0-9_-]+$/.test(path))
       const operation = path.startsWith('/api/rpc/') ? path.slice('/api/rpc/'.length) : ''
       if (!session && !auth && !logout && (!customerOperations.has(operation) || operation === 'session')) throw new DashboardError('Not found', 404)
-      if (!session && !emailLink) {
+      if (!session) {
         if (request.method !== 'POST') throw new DashboardError('Not found', 404)
         if (request.headers.get('origin') !== origin.origin) throw new DashboardError('Invalid request origin', 403)
         if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) throw new DashboardError('Expected application/json', 415)
