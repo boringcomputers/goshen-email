@@ -140,3 +140,17 @@ test('upstream connection failures do not expose credentials or private network 
   } })
   await assert.rejects(client.execute('send', {}), (error) => error.status === 502 && !error.message.includes('private-token'))
 })
+
+test('design tokens and Inter are served locally under a self-only font policy', async (t) => {
+  const f = await fixture(t)
+  const css = await f.request('/tokens.css')
+  assert.equal(css.status, 200)
+  assert.match(css.headers.get('content-type'), /^text\/css/)
+  assert.match(await css.text(), /--font-sans: Inter/)
+  const font = await f.request('/fonts/InterVariable.woff2')
+  assert.equal(font.status, 200)
+  assert.equal(font.headers.get('content-type'), 'font/woff2')
+  assert.equal(Buffer.from(await font.arrayBuffer()).subarray(0, 4).toString(), 'wOF2')
+  assert.match(font.headers.get('content-security-policy'), /font-src 'self';/)
+  assert.equal((await f.request('/fonts/../../.env')).status, 404)
+})

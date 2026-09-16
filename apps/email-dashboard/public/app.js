@@ -8,6 +8,93 @@ const node = (tag, text, className) => {
   if (className) element.className = className
   return element
 }
+const iconPaths = {
+  brand: '<path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="currentColor" stroke="none"/><g fill="white" stroke="none"><circle cx="9.5" cy="12.5" r="1.8"/><circle cx="14" cy="12.5" r="1.8"/><circle cx="18.5" cy="12.5" r="1.8"/></g>',
+  inbox: '<path d="M2 9l2-6h8l2 6v4H2zM2 9h3l1 2h4l1-2h3"/>',
+  send: '<path d="M14 2L7 9M14 2l-4 12-3-5-5-3z"/>',
+  stack: '<rect x="3" y="2" width="10" height="10" rx="2"/><path d="M1 6v8h9M6 5h4M6 8h3"/>',
+  shield: '<path d="M8 1.5l5.5 2v4c0 3-3 5.5-5.5 7-2.5-1.5-5.5-4-5.5-7v-4zM8 5v3M8 10.5h.01"/>',
+  trash: '<path d="M2 4h12M6 4V2h4v2M4 4l.7 10h6.6L12 4M6.5 7v4M9.5 7v4"/>',
+  users: '<circle cx="6" cy="5" r="2.5"/><path d="M1.5 14v-1.5a4.5 4.5 0 019 0V14M11 2.5a2.5 2.5 0 010 5M12 9.5a4 4 0 012.5 3.5v1"/>',
+  key: '<circle cx="5" cy="6" r="3.5"/><path d="M8 8l5.5 5.5M11 11l2-2M12.5 12.5l2-2"/>',
+  plus: '<path d="M8 3v10M3 8h10"/>',
+  globe: '<circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.5" ry="6"/><path d="M2 8h12"/>',
+  logout: '<path d="M6 2H2v12h4M6 8h8M11 5l3 3-3 3"/>',
+  search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>',
+  refresh: '<path d="M13.5 6a5.5 5.5 0 00-9.7-2L2 6M2 2v4h4M2.5 10a5.5 5.5 0 009.7 2l1.8-2M14 14v-4h-4"/>',
+  close: '<path d="M4 4l8 8M12 4l-8 8"/>',
+  menu: '<path d="M2 4h12M2 8h12M2 12h12"/>',
+  'arrow-right': '<path d="M2 8h12M9 3l5 5-5 5"/>',
+  'arrow-left': '<path d="M14 8H2M7 3L2 8l5 5"/>',
+  paperclip: '<path d="M6 9.5l4.5-4.5a2 2 0 012.8 2.8L7 14a3.5 3.5 0 01-5-5l6.5-6.5a2 2 0 012.8 2.8L5 11"/>',
+  archive: '<rect x="2" y="2" width="12" height="3" rx="1"/><path d="M3 5v9h10V5M6 8h4"/>',
+  reply: '<path d="M6 3L1 7l5 4M1 7h7a6 6 0 016 6"/>',
+  mail: '<rect x="2" y="3" width="12" height="10" rx="2"/><path d="M2 4l6 5 6-5"/>',
+  alert: '<circle cx="8" cy="8" r="6"/><path d="M8 4.5v4M8 11.5h.01"/>',
+}
+function icon(name) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  for (const [key, value] of Object.entries({ viewBox: name === 'brand' ? '0 0 28 28' : '0 0 16 16', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', class: 'icon' })) svg.setAttribute(key, value)
+  // Only static icon markup enters this SVG; mail content always uses textContent.
+  svg.innerHTML = iconPaths[name] ?? iconPaths.mail
+  return svg
+}
+for (const element of document.querySelectorAll('[data-icon]')) element.append(icon(element.dataset.icon))
+const initials = (value) => value.replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').toUpperCase() || 'B'
+const avatar = (value) => { const element = node('span', initials(value), 'avatar'); element.setAttribute('aria-hidden', 'true'); return element }
+function emptyState(title, description, buttonText, onClick) {
+  const wrap = node('div', undefined, 'empty-wrap'), empty = node('div', undefined, 'empty')
+  empty.append(icon('mail'), node('h2', title), node('p', description))
+  if (buttonText) { const button = node('button', buttonText, 'primary'); action(button, onClick); empty.append(button) }
+  wrap.append(empty)
+  return wrap
+}
+function statusBadge(status) {
+  const badge = node('span', status, 'badge')
+  badge.dataset.status = String(status).toLowerCase()
+  return badge
+}
+const mobileViewport = matchMedia('(max-width: 767px)')
+const compactViewport = matchMedia('(max-width: 1023px)')
+function setMenu(open, restoreFocus = true) {
+  $('#app').classList.toggle('menu-open', open)
+  $('#sidebar-backdrop').hidden = !open
+  $('#open-menu').setAttribute('aria-expanded', String(open))
+  $('#sidebar').inert = mobileViewport.matches && !open
+  $('.workspace').inert = mobileViewport.matches && open
+  if (open) $('#close-menu').focus()
+  else if (restoreFocus && mobileViewport.matches) $('#open-menu').focus()
+}
+$('#open-menu').addEventListener('click', () => setMenu(true))
+$('#close-menu').addEventListener('click', () => setMenu(false))
+$('#sidebar-backdrop').addEventListener('click', () => setMenu(false))
+$('#sidebar').addEventListener('click', (event) => {
+  if (mobileViewport.matches && event.target.closest('button') && event.target.closest('button').id !== 'close-menu') setMenu(false, false)
+})
+$('#sidebar').addEventListener('keydown', (event) => {
+  if (!mobileViewport.matches || !$('#app').classList.contains('menu-open') || document.querySelector('dialog[open]')) return
+  if (event.key === 'Escape') { event.preventDefault(); setMenu(false) }
+  if (event.key !== 'Tab') return
+  const controls = [...$('#sidebar').querySelectorAll('button:not(:disabled), select')].filter((element) => element.checkVisibility())
+  const first = controls[0], last = controls.at(-1)
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+})
+mobileViewport.addEventListener('change', () => setMenu(false, false))
+setMenu(false, false)
+function updateAccount() {
+  const customer = state.session?.customer
+  const inbox = state.inboxes.find((item) => item.inboxId === state.inbox)
+  const name = customer ? (customer.displayName || customer.email) : (inbox?.displayName || 'Your workspace')
+  $('#account-name').textContent = name
+  $('#account-name').title = name
+  $('#account-avatar').textContent = initials(name)
+  $('#account').textContent = customer ? `${customer.email} · ${customer.role === 'admin' ? 'Owner' : `${customer.inboxLimit} inboxes`}` : 'Owner'
+  $('#account').title = $('#account').textContent
+  $('#mailbox-address').textContent = state.inbox || 'Choose a mailbox to get started'
+  $('#mailbox-address').title = state.inbox
+}
+
 const notify = (message) => {
   clearTimeout(noticeTimer)
   $('#notice').textContent = message
@@ -45,6 +132,8 @@ function showLogin(mode = state.authMode) {
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#customer-list').replaceChildren(); $('#domain-list').replaceChildren(); $('#api-key').value = ''
+  setMenu(false, false)
+  $('#account-name').textContent = 'Your workspace'; $('#account-avatar').textContent = 'B'
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
   $('#password-login').hidden = mode === 'access'
   $('#access-login').hidden = mode !== 'access'
@@ -54,9 +143,8 @@ function showLogin(mode = state.authMode) {
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close()
 }
 function emptyReader() {
-  const empty = node('div', undefined, 'empty')
-  empty.append(node('span', '✉', 'empty-icon'), node('h2', 'A little room to focus.'), node('p', 'Select a conversation to read your mail.'))
-  $('#conversation').replaceChildren(empty)
+  $('.mail-workspace').classList.remove('reading')
+  $('#conversation').replaceChildren(emptyState('A little room to focus.', 'Select a conversation to read your mail.'))
 }
 async function loadInboxes(preferred = state.inbox) {
   const epoch = state.epoch
@@ -70,19 +158,22 @@ async function loadInboxes(preferred = state.inbox) {
   }))
   state.inbox = inboxes.some((inbox) => inbox.inboxId === preferred) ? preferred : inboxes[0]?.inboxId ?? ''
   $('#inboxes').value = state.inbox
+  $('#inboxes').title = state.inbox
   $('#compose').disabled = !state.inbox
   await loadThreads()
 }
 async function loadThreads(append = false) {
+  updateAccount()
+  $('#thread-count').hidden = true
   $('#finish-inbox').hidden = !state.inboxes.some((i) => i.inboxId === state.inbox && i.deliveryStatus === 'pending')
   const version = ++state.listVersion
   if (!append) { state.readVersion++; state.selected = ''; state.threads = []; state.page = undefined; emptyReader() }
   $('#load-more').hidden = true
   if (!state.inbox) {
-    $('#threads').replaceChildren(node('div', 'Create your first inbox to start sending and receiving mail.', 'empty'))
+    $('#threads').replaceChildren(emptyState('Your first inbox', 'Create an address to start sending and receiving mail.', 'Create inbox', () => $('#new-inbox').click()))
     return
   }
-  if (!append) $('#threads').replaceChildren(node('div', 'Loading mail…', 'empty'))
+  if (!append) $('#threads').replaceChildren(emptyState('Loading mail', 'Your conversations will appear here.'))
   try {
     const result = await rpc(state.query ? 'searchMessages' : 'listThreads', {
       inboxId: state.inbox, limit: 30, ...(append && state.page ? { pageToken: state.page } : {}),
@@ -94,7 +185,7 @@ async function loadThreads(append = false) {
     renderThreads()
     $('#load-more').hidden = !state.page
   } catch (error) {
-    if (version === state.listVersion) $('#threads').replaceChildren(node('div', error.message, 'empty error'))
+    if (version === state.listVersion) $('#threads').replaceChildren(emptyState('Could not load mail', error.message, 'Try again', () => loadThreads()))
     throw error
   }
 }
@@ -104,36 +195,50 @@ function renderThreads() {
     if (seen.has(thread.threadId)) return false
     seen.add(thread.threadId); return true
   }).map((thread) => {
-    const button = node('button', undefined, `thread${state.selected === thread.threadId ? ' selected' : ''}`)
-    const meta = node('div', undefined, 'thread-meta')
-    meta.append(node('span', thread.senders.join(', '), 'sender'), node('span', new Date(thread.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), 'time'))
-    button.append(meta, node('div', thread.subject || '(No subject)', 'subject'), node('div', thread.preview || (state.folder === 'quarantined' ? 'Held for your review' : 'No preview'), 'preview'))
+    const unread = thread.labels?.includes('unread')
+    const button = node('button', undefined, `thread${state.selected === thread.threadId ? ' selected' : ''}${unread ? ' unread' : ''}`)
+    button.setAttribute('aria-pressed', String(state.selected === thread.threadId))
+    const copy = node('div', undefined, 'thread-copy'), meta = node('div', undefined, 'thread-meta')
+    const time = node('span', new Date(thread.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), 'time')
+    if (unread) { const dot = node('span', undefined, 'unread-dot'); dot.setAttribute('aria-label', 'Unread'); time.prepend(dot) }
+    meta.append(node('span', thread.senders.join(', '), 'sender'), time)
+    copy.append(meta, node('div', thread.subject || '(No subject)', 'subject'), node('div', thread.preview || (state.folder === 'quarantined' ? 'Held for your review' : 'No preview'), 'preview'))
+    button.append(avatar(thread.senders[0] || 'Mail'), copy)
     action(button, () => readThread(thread.threadId))
     return button
   })
-  $('#threads').replaceChildren(...(buttons.length ? buttons : [node('div', state.query ? 'No matching messages.' : 'No messages here yet.', 'empty')]))
+  $('#thread-count').textContent = `${buttons.length}${state.page ? '+' : ''}`
+  $('#thread-count').hidden = !buttons.length
+  $('#threads').replaceChildren(...(buttons.length ? buttons : [emptyState(state.query ? 'No matching messages' : 'No conversations yet', state.query ? 'Try a different search in this mailbox.' : 'Messages in this folder will appear here.')]))
 }
 async function readThread(threadId) {
   const version = ++state.readVersion
   const inboxId = state.inbox
   state.selected = threadId
+  $('.mail-workspace').classList.add('reading')
   renderThreads()
-  $('#conversation').replaceChildren(node('div', 'Opening conversation…', 'empty'))
+  $('#conversation').replaceChildren(emptyState('Opening conversation', 'Getting your messages ready.'))
   let thread
   try {
     thread = await rpc(state.folder === 'quarantined' ? 'reviewThread' : 'getThread', { inboxId, threadId, includeBodies: true })
   } catch (error) {
-    if (version === state.readVersion) $('#conversation').replaceChildren(node('div', error.message, 'empty error'))
+    if (version === state.readVersion) $('#conversation').replaceChildren(emptyState('Could not open conversation', error.message, 'Back to conversations', () => loadThreads()))
     throw error
   }
   if (version !== state.readVersion) return
   const container = $('#conversation')
   container.replaceChildren()
   const header = node('header', undefined, 'reader-header')
-  header.append(node('span', `${thread.messageCount} MESSAGE${thread.messageCount === 1 ? '' : 'S'}`, 'eyebrow'), node('h2', thread.subject || '(No subject)'))
+  const heading = node('div', undefined, 'reader-heading')
+  const back = node('button', undefined, 'icon-button reader-back')
+  back.setAttribute('aria-label', 'Back to conversations'); back.append(icon('arrow-left'))
+  action(back, () => { emptyReader(); $('#threads .selected')?.focus() })
+  heading.append(back, node('span', `${thread.messageCount} message${thread.messageCount === 1 ? '' : 's'}`, 'eyebrow'))
+  header.append(heading, node('h2', thread.subject || '(No subject)'))
   const controls = node('div', undefined, 'reader-tools')
   for (const [label, changes] of [['Archive', { removeLabels: ['received'] }], ['Move to trash', { addLabels: ['trash'] }], ['Move to inbox', { addLabels: ['received'], removeLabels: ['trash'] }]]) {
     const button = node('button', label)
+    button.prepend(icon(label === 'Archive' ? 'archive' : label === 'Move to trash' ? 'trash' : 'inbox'))
     action(button, async () => {
       await rpc('updateThreadLabels', { inboxId, threadId, ...changes })
       notify('Conversation updated')
@@ -145,9 +250,9 @@ async function readThread(threadId) {
   container.append(header)
   for (const message of thread.messages) {
     const article = node('article', undefined, 'message')
-    const head = node('div', undefined, 'message-head'), sender = node('div')
+    const head = node('div', undefined, 'message-head'), sender = node('div', undefined, 'message-sender')
     sender.append(node('strong', message.from), node('p', `To: ${message.to.join(', ')}${message.cc?.length ? ` · Cc: ${message.cc.join(', ')}` : ''}`))
-    head.append(sender, node('time', new Date(message.timestamp).toLocaleString()))
+    head.append(avatar(message.from), sender, node('time', new Date(message.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })))
     article.append(head)
     if (message.protection?.status === 'quarantined') {
       article.append(node('p', 'This message is quarantined. Review its checks before releasing it.', 'warning'))
@@ -190,11 +295,16 @@ async function readThread(threadId) {
   }
   const replyTarget = thread.messages.findLast((message) => message.labels?.includes('received')) ?? thread.messages.at(-1)
   if (replyTarget && replyTarget.protection?.status !== 'quarantined') {
-    const reply = node('button', '↩ Reply', 'reply-button')
+    const reply = node('button', 'Reply', 'reply-button')
+    reply.prepend(icon('reply'))
     action(reply, () => openCompose({ inboxId, message: replyTarget }))
     container.append(reply)
   }
+  if (compactViewport.matches) $('.reader').focus()
   if (thread.labels.includes('unread')) {
+    const selected = state.threads.find((item) => item.threadId === threadId)
+    if (selected?.labels) selected.labels = selected.labels.filter((label) => label !== 'unread')
+    renderThreads()
     void rpc('updateThreadLabels', { inboxId, threadId, removeLabels: ['unread'] }).catch((error) => notify(error.message))
   }
 }
@@ -261,7 +371,7 @@ async function loadDomains() {
   $('#domain-list').replaceChildren()
   for (const domain of result) {
     const card = node('section', undefined, 'domain-card'), header = node('header')
-    header.append(node('strong', domain.domain ?? domain.domainId), node('span', domain.status, 'badge'))
+    header.append(node('strong', domain.domain ?? domain.domainId), statusBadge(domain.status))
     for (const [label, operation] of [['Verify DNS', 'verifyDomain'], ['Remove', 'deleteDomain']]) {
       const button = node('button', label)
       action(button, async () => {
@@ -281,13 +391,16 @@ async function loadDomains() {
         for (const value of [record.type, record.name, `${record.priority === undefined ? '' : `${record.priority} `}${record.value}`, record.status ?? 'Pending']) row.append(node('td', value))
         table.append(row)
       }
-      card.append(table)
+      const scroll = node('div', undefined, 'table-scroll'); scroll.append(table); card.append(scroll)
     }
     $('#domain-list').append(card)
   }
   if (!$('#domain-list').children.length) $('#domain-list').append(node('p', 'No domains have been connected yet.'))
 }
 for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => $(`#${button.dataset.close}`).close())
+for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('close', () => {
+  if (mobileViewport.matches && (document.activeElement === document.body || $('#sidebar').contains(document.activeElement))) $('#open-menu').focus()
+})
 action($('#compose'), () => openCompose())
 action($('#discard-draft'), () => {
   if (state.draft?.payload && !confirm('Discard this request? A send without a confirmed receipt may already have been accepted.')) return
@@ -358,7 +471,7 @@ $('#login-form').addEventListener('submit', async (event) => {
 void request('/api/session').then(async (session) => {
   if (!session.authenticated) return showLogin()
   state.session = session
-  $('#account').textContent = session.customer ? `${session.customer.email} · ${session.customer.role === 'admin' ? 'Owner' : `${session.customer.inboxLimit} inboxes`}` : 'Owner'
+  updateAccount()
   $('#customers').hidden = session.customer?.role !== 'admin'
   $('#credentials').hidden = session.authMode !== 'access'
   $('#domains').hidden = session.authMode === 'access' && !session.customDomainsEnabled
@@ -369,8 +482,9 @@ void request('/api/session').then(async (session) => {
 async function loadCustomers() {
   const { customers } = await rpc('listCustomers')
   $('#customer-list').replaceChildren(...customers.map((customer) => {
-    const card = node('section', undefined, 'domain-card')
-    card.append(node('strong', customer.email), node('p', `${customer.status} · ${customer.inboxCount} inboxes${customer.role === 'admin' ? '' : ` / ${customer.inboxLimit} allowed`}`))
+    const card = node('section', undefined, 'domain-card customer-row'), copy = node('div', undefined, 'customer-copy')
+    copy.append(node('strong', customer.email), node('p', `${customer.inboxCount} inbox${customer.inboxCount === 1 ? '' : 'es'}${customer.role === 'admin' ? ' · Owner' : ` / ${customer.inboxLimit} allowed`}`))
+    card.append(avatar(customer.displayName || customer.email), copy, statusBadge(customer.status))
     if (customer.role !== 'admin') {
       const button = node('button', customer.status === 'disabled' ? 'Enable access' : 'Disable access')
       action(button, async () => {
