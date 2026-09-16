@@ -19,12 +19,12 @@ async function request(path, value) {
   const response = await fetch(path, value === undefined ? {} : {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value),
   })
-  if (epoch !== state.epoch) throw new Error('Session changed. Sign in again.')
   let body
   try { body = await response.json() } catch {
     showLogin('access')
     throw new Error('Your session ended. Reload this page to sign in.')
   }
+  if (epoch !== state.epoch) throw new Error('Session changed. Sign in again.')
   if (body.authMode) state.authMode = body.authMode
   if (!response.ok) {
     if ([401, 403].includes(response.status) && path !== '/api/login') {
