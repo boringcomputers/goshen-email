@@ -1,5 +1,5 @@
 const $ = (selector) => document.querySelector(selector)
-const state = { inbox: '', folder: 'inbox', query: '', page: undefined, threads: [], selected: '', listVersion: 0, readVersion: 0, draft: null }
+const state = { session: null, epoch: 0, inboxes: [], inbox: '', folder: 'inbox', query: '', page: undefined, threads: [], selected: '', listVersion: 0, readVersion: 0, draft: null }
 const folderNames = { inbox: 'Inbox', sent: 'Sent', all: 'All mail', quarantined: 'Quarantine', trash: 'Trash' }
 let noticeTimer
 const node = (tag, text, className) => {
@@ -15,12 +15,22 @@ const notify = (message) => {
   noticeTimer = setTimeout(() => { $('#notice').hidden = true }, 7000)
 }
 async function request(path, value) {
+  const epoch = state.epoch
   const response = await fetch(path, value === undefined ? {} : {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value),
   })
-  const body = await response.json()
+  let body
+  try { body = await response.json() } catch {
+    showLogin('access')
+    throw new Error('Your session ended. Reload this page to sign in.')
+  }
+  if (epoch !== state.epoch) throw new Error('Session changed. Sign in again.')
+  if (body.authMode) state.authMode = body.authMode
   if (!response.ok) {
-    if (response.status === 401 && path !== '/api/login') showLogin()
+    if ([401, 403].includes(response.status) && path !== '/api/login') {
+      showLogin()
+      $('#login-error').textContent = body.error ?? 'Sign in to continue'
+    }
     throw new Error(body.error ?? 'Email request failed')
   }
   return body
@@ -30,8 +40,15 @@ const action = (element, task) => element.addEventListener('click', async () => 
   element.disabled = true
   try { await task() } catch (error) { notify(error.message) } finally { element.disabled = false }
 })
-function showLogin() {
-  state.listVersion++; state.readVersion++
+function showLogin(mode = state.authMode) {
+  state.listVersion++; state.readVersion++; state.epoch++
+  state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
+  $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
+  $('#customer-list').replaceChildren(); $('#domain-list').replaceChildren(); $('#api-key').value = ''
+  $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
+  $('#password-login').hidden = mode === 'access'
+  $('#access-login').hidden = mode !== 'access'
+  $('#login-form').elements.password.required = mode !== 'access'
   $('#app').hidden = true
   $('#login').hidden = false
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close()
@@ -42,9 +59,12 @@ function emptyReader() {
   $('#conversation').replaceChildren(empty)
 }
 async function loadInboxes(preferred = state.inbox) {
+  const epoch = state.epoch
   const { inboxes } = await rpc('listInboxes')
+  if (epoch !== state.epoch) return
+  state.inboxes = inboxes
   $('#inboxes').replaceChildren(...inboxes.map((inbox) => {
-    const option = node('option', inbox.inboxId)
+    const option = node('option', `${inbox.inboxId}${inbox.deliveryStatus === 'pending' ? ' (setup pending)' : ''}`)
     option.value = inbox.inboxId
     return option
   }))
@@ -54,6 +74,7 @@ async function loadInboxes(preferred = state.inbox) {
   await loadThreads()
 }
 async function loadThreads(append = false) {
+  $('#finish-inbox').hidden = !state.inboxes.some((i) => i.inboxId === state.inbox && i.deliveryStatus === 'pending')
   const version = ++state.listVersion
   if (!append) { state.readVersion++; state.selected = ''; state.threads = []; state.page = undefined; emptyReader() }
   $('#load-more').hidden = true
@@ -274,7 +295,15 @@ action($('#discard-draft'), () => {
 })
 action($('#refresh'), () => loadThreads())
 action($('#load-more'), () => loadThreads(true))
-action($('#new-inbox'), () => { $('#inbox-error').textContent = ''; $('#inbox-dialog').showModal() })
+action($('#finish-inbox'), async () => {
+  await rpc('finishInboxSetup', { inboxId: state.inbox })
+  await loadInboxes(); notify('Inbox delivery is ready')
+})
+action($('#new-inbox'), () => {
+  const domain = $('#inbox-form').elements.domain
+  domain.readOnly = state.authMode === 'access'
+  if (domain.readOnly) domain.value = state.session.defaultDomain
+  $('#inbox-error').textContent = ''; $('#inbox-dialog').showModal() })
 action($('#domains'), async () => { $('#domains-dialog').showModal(); await loadDomains() })
 action($('#delete-inbox'), async () => {
   const inboxId = state.inbox
@@ -284,9 +313,9 @@ action($('#delete-inbox'), async () => {
   await loadInboxes(); notify('Inbox deleted')
 })
 action($('#logout'), async () => {
-  await request('/api/logout', {})
-  state.draft = null; state.inbox = ''; state.threads = []
-  $('#compose-form').reset(); $('#threads').replaceChildren(); emptyReader(); showLogin()
+  const { logoutUrl } = await request('/api/logout', {})
+  showLogin()
+  if (logoutUrl === '/cdn-cgi/access/logout') location.assign(logoutUrl)
 })
 $('#inboxes').addEventListener('change', () => { state.inbox = $('#inboxes').value; void loadThreads().catch((error) => notify(error.message)) })
 for (const button of document.querySelectorAll('[data-folder]')) action(button, async () => {
@@ -311,7 +340,10 @@ for (const [formId, errorId, operation, after] of [
   try {
     const input = Object.fromEntries([...new FormData(form)].map(([key, value]) => [key, value.trim()]).filter(([, value]) => value))
     await after(await rpc(operation, input))
-  } catch (error) { $(`#${errorId}`).textContent = error.message } finally { button.disabled = false }
+  } catch (error) {
+    $(`#${errorId}`).textContent = error.message
+    if (operation === 'createInbox') await loadInboxes().catch(() => {})
+  } finally { button.disabled = false }
 })
 $('#login-form').addEventListener('submit', async (event) => {
   event.preventDefault()
@@ -323,8 +355,62 @@ $('#login-form').addEventListener('submit', async (event) => {
     await loadInboxes()
   } catch (error) { $('#login-error').textContent = error.message; notify(error.message) } finally { button.disabled = false }
 })
-void request('/api/session').then(async ({ authenticated }) => {
-  if (!authenticated) return showLogin()
+void request('/api/session').then(async (session) => {
+  if (!session.authenticated) return showLogin()
+  state.session = session
+  $('#account').textContent = session.customer ? `${session.customer.email} · ${session.customer.role === 'admin' ? 'Owner' : `${session.customer.inboxLimit} inboxes`}` : 'Owner'
+  $('#customers').hidden = session.customer?.role !== 'admin'
+  $('#credentials').hidden = session.authMode !== 'access'
+  $('#domains').hidden = session.authMode === 'access' && !session.customDomainsEnabled
   $('#app').hidden = false
   await loadInboxes()
 }).catch((error) => { notify(error.message); if ($('#app').hidden) showLogin() })
+
+async function loadCustomers() {
+  const { customers } = await rpc('listCustomers')
+  $('#customer-list').replaceChildren(...customers.map((customer) => {
+    const card = node('section', undefined, 'domain-card')
+    card.append(node('strong', customer.email), node('p', `${customer.status} · ${customer.inboxCount} inboxes${customer.role === 'admin' ? '' : ` / ${customer.inboxLimit} allowed`}`))
+    if (customer.role !== 'admin') {
+      const button = node('button', customer.status === 'disabled' ? 'Enable access' : 'Disable access')
+      action(button, async () => {
+        const enabled = customer.status === 'disabled'
+        if (!enabled && !confirm(`Disable ${customer.email}? Their dashboard and mailbox keys will stop working.`)) return
+        await rpc('setCustomerAccess', { customerId: customer.id, enabled })
+        await loadCustomers()
+      })
+      card.append(button)
+    }
+    return card
+  }))
+}
+action($('#customers'), async () => { $('#customers-dialog').showModal(); await loadCustomers() })
+$('#customer-form').addEventListener('submit', async (event) => {
+  event.preventDefault()
+  const form = event.currentTarget, button = form.querySelector('button')
+  button.disabled = true; $('#customer-error').textContent = ''
+  try {
+    await rpc('inviteCustomer', { email: form.elements.email.value.trim(),
+      ...(form.elements.displayName.value.trim() ? { displayName: form.elements.displayName.value.trim() } : {}),
+      inboxLimit: Number(form.elements.inboxLimit.value) })
+    form.reset(); await loadCustomers(); notify('Access added. Share the dashboard link with your customer.')
+  } catch (error) { $('#customer-error').textContent = error.message } finally { button.disabled = false }
+})
+let credentialsInbox = ''
+async function loadCredentials(operation) {
+  const result = await rpc(operation, { inboxId: credentialsInbox })
+  if ($('#credentials-dialog').open && credentialsInbox === result.inboxId) $('#api-key').value = result.apiKey
+}
+action($('#credentials'), async () => {
+  if (!state.inbox) return notify('Create or choose an inbox first.')
+  credentialsInbox = state.inbox
+  $('#api-key').value = ''; $('#credentials-inbox').textContent = credentialsInbox
+  $('#credentials-dialog').showModal()
+  await loadCredentials('getCredentials')
+})
+$('#credentials-dialog').addEventListener('close', () => { $('#api-key').value = ''; credentialsInbox = '' })
+action($('#copy-key'), async () => { if ($('#api-key').value) { await navigator.clipboard.writeText($('#api-key').value); notify('Key copied') } })
+action($('#rotate-key'), async () => {
+  if (!confirm('Replace this mailbox key? Agents using the old key will lose access.')) return
+  await loadCredentials('rotateCredentials'); notify('Mailbox key replaced')
+})

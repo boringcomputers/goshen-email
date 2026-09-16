@@ -12,22 +12,23 @@ export class DashboardError extends Error {
   }
 }
 
-export function mailClient({ workerUrl, apiToken, request = fetch }) {
+export const customerOperations = new Set([...operations, 'session', 'listCustomers', 'inviteCustomer',
+  'setCustomerAccess', 'getCredentials', 'rotateCredentials', 'finishInboxSetup'])
+
+function rpcClient({ workerUrl, request = fetch, endpoint, allowed, authorize, transform = (_, input) => input }) {
   const base = new URL(workerUrl)
   if (base.protocol !== 'https:' || base.username || base.password || base.pathname !== '/' || base.search || base.hash)
     throw new Error('MAIL_WORKER_URL must be an HTTPS origin')
-  if (!apiToken || apiToken.length < 32) throw new Error('MAIL_API_TOKEN must contain at least 32 characters')
   return {
-    async execute(operation, input) {
-      if (!operations.has(operation)) throw new DashboardError('Unknown email operation', 404)
-      const value = operation === 'releaseQuarantine'
-        ? { ...input, reviewedBy: 'standalone-dashboard-owner' }
-        : input
+    async execute(operation, input, identityToken) {
+      if (!allowed.has(operation)) throw new DashboardError('Unknown email operation', 404)
+      const value = transform(operation, input)
+      const authorization = authorize(identityToken)
       let response
       try {
-        response = await request(new URL(`/rpc/${operation}`, base), {
+        response = await request(new URL(`${endpoint}/${operation}`, base), {
           method: 'POST',
-          headers: { authorization: `Bearer ${apiToken}`, 'content-type': 'application/json' },
+          headers: { authorization, 'content-type': 'application/json' },
           body: JSON.stringify(value), redirect: 'manual', signal: AbortSignal.timeout(45_000),
         })
       } catch {
@@ -45,4 +46,20 @@ export function mailClient({ workerUrl, apiToken, request = fetch }) {
       return body.result
     },
   }
+}
+
+export function mailClient({ apiToken, ...options }) {
+  if (!apiToken || apiToken.length < 32) throw new Error('MAIL_API_TOKEN must contain at least 32 characters')
+  return rpcClient({ ...options, endpoint: '/rpc', allowed: operations, authorize: () => `Bearer ${apiToken}`,
+    transform: (operation, input) => operation === 'releaseQuarantine'
+      ? { ...input, reviewedBy: 'standalone-dashboard-owner' } : input })
+}
+
+export function customerMailClient(options) {
+  return rpcClient({ ...options, endpoint: '/dashboard-rpc', allowed: customerOperations,
+    authorize: (token) => {
+      if (typeof token !== 'string' || !token || token.length > 8192 || /\s/.test(token))
+        throw new DashboardError('Sign in to continue', 401)
+      return `Bearer ${token}`
+    } })
 }

@@ -1,10 +1,19 @@
+import { importJWK } from "jose"
+import { accessIdentity } from "../../src/access-auth.js"
 import { cloudflareTransport } from "../../src/cloudflare.js"
 import { type Transport } from "../../src/contracts.js"
 import { MailService } from "../../src/mail-service.js"
 import { type MailboxStore } from "../../src/mailbox-store.js"
 
 export default {
-  async fetch(request: Request, env: { MOCK_URL: string }) {
+  async fetch(request: Request, env: { MOCK_URL: string; ACCESS_PUBLIC_JWK: string }) {
+    if (new URL(request.url).pathname === "/auth") {
+      try {
+        const key = await importJWK(JSON.parse(env.ACCESS_PUBLIC_JWK), "RS256")
+        return Response.json(await accessIdentity(request.headers.get("authorization") ?? "",
+          { teamDomain: "fixture.cloudflareaccess.com", audience: "a".repeat(64), adminEmails: [] }, async () => key))
+      } catch { return new Response("Unauthorized", { status: 401 }) }
+    }
     if (new URL(request.url).pathname === "/domain") {
       const transport = cloudflareTransport({
         token: "runtime-test-token",

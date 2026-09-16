@@ -13,7 +13,7 @@ interface Client {
   display_name: string | null
   created_at: string
   deleted_at: string | null
-  webhook_url: string
+  webhook_url: string | null
   token_version: number
   daily_send_limit: number
 }
@@ -77,6 +77,17 @@ const activeClient = async (service: MailService, id: string) => {
   if (client.deleted_at)
     throw new MailError("This mailbox has been deleted", "inbox_retired", 410)
   return client
+}
+
+/** The caller must check dashboard ownership before reading or rotating a mailbox key. */
+export async function mailboxCredentials(service: MailService, inboxId: string, rotate = false) {
+  const [client] = await service.store.db.query<Client>(`${clientQuery} where c.inbox_id = $1 and i.deleted_at is null`, [inboxId])
+  if (!client) throw new MailError("This inbox does not have a customer API key", "not_found", 404)
+  if (rotate) {
+    await service.store.db.query("update mail.clients set token_version = token_version + 1 where inbox_id = $1", [inboxId])
+    return credentials(service, await activeClient(service, client.client_id))
+  }
+  return credentials(service, client)
 }
 
 /** Only the platform credential may assign an inbox or its webhook destination. */
@@ -184,7 +195,9 @@ export async function handleInboxRequest(
   const [client] =
     match && z.uuid().safeParse(match[1]).success
       ? await service.store.db.query<Client>(
-          `${clientQuery} where c.inbox_id = $1 and i.deleted_at is null and i.testing = false`,
+          `${clientQuery} where c.inbox_id = $1 and i.deleted_at is null and i.testing = false
+            and not exists(select 1 from mail.customer_inboxes ci join mail.customers cu on cu.id = ci.customer_id
+              where ci.inbox_id = c.inbox_id and cu.disabled_at is not null)`,
           [match[1]]
         )
       : []
@@ -204,6 +217,7 @@ export async function handleInboxRequest(
   if (["getCustomDomain", "connectCustomDomain", "disconnectCustomDomain"].includes(operation))
     return json(await clientDomainRequest(service, client.client_id, operation, input))
   if (operation === "ensureWebhook" || operation === "webhookStatus") {
+    if (!client.webhook_url) return json({ configured: false })
     if (
       operation === "ensureWebhook" &&
       decode(inputs.ensureWebhook, input).url !== client.webhook_url
@@ -240,17 +254,21 @@ export async function clientEventTarget(
   inboxId: string
 ): Promise<{ url: string; secret: string } | null> {
   const [inbox] = await service.store.db.query<{
+    client_id: string | null
     webhook_url: string | null
     deleted_at: string | null
+    disabled_at: string | null
   }>(
-    `select c.webhook_url, i.deleted_at from mail.inboxes i
-      left join mail.clients c on c.inbox_id = i.id where i.id = $1`,
+    `select c.client_id, c.webhook_url, i.deleted_at, cu.disabled_at from mail.inboxes i
+      left join mail.clients c on c.inbox_id = i.id
+      left join mail.customer_inboxes ci on ci.inbox_id = i.id
+      left join mail.customers cu on cu.id = ci.customer_id where i.id = $1`,
     [inboxId]
   )
-  if (!inbox || inbox.deleted_at) return null
+  if (!inbox || inbox.deleted_at || inbox.disabled_at) return null
   return inbox.webhook_url
     ? { url: inbox.webhook_url, secret: webhookSecret(service, inboxId) }
-    : service.config.eventsUrl
+    : !inbox.client_id && service.config.eventsUrl
       ? { url: service.config.eventsUrl, secret: service.config.webhookSecret }
       : null
 }

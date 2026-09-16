@@ -1,3 +1,4 @@
+import { generateKeyPair, exportJWK, SignJWT } from "jose"
 import { createServer, type Server } from "node:http"
 import { once } from "node:events"
 import { type AddressInfo } from "node:net"
@@ -5,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { unstable_dev, type Unstable_DevWorker } from "wrangler"
 
 describe("email HTTP requests in the Workers runtime", () => {
+  const keys = generateKeyPair("RS256")
   let mock: Server
   let worker: Unstable_DevWorker
   let redirect = false
@@ -32,7 +34,7 @@ describe("email HTTP requests in the Workers runtime", () => {
     worker = await unstable_dev("test/fixtures/runtime-worker.ts", {
       config: "test/fixtures/wrangler.jsonc",
       local: true, ip: "127.0.0.1", port: 0, inspectorPort: 0, logLevel: "error",
-      vars: { MOCK_URL: `http://127.0.0.1:${(mock.address() as AddressInfo).port}` },
+      vars: { ACCESS_PUBLIC_JWK: JSON.stringify(await exportJWK((await keys).publicKey)), MOCK_URL: `http://127.0.0.1:${(mock.address() as AddressInfo).port}` },
       experimental: { disableExperimentalWarning: true, disableDevRegistry: true }
     })
   })
@@ -41,6 +43,15 @@ describe("email HTTP requests in the Workers runtime", () => {
     await worker?.stop()
     mock?.closeAllConnections()
     await new Promise<void>((resolve) => mock?.close(() => resolve()) ?? resolve())
+  })
+  it("verifies RSA Access signatures inside workerd", async () => {
+    const jwt = await new SignJWT({ email: "customer@example.net", type: "app" }).setProtectedHeader({ alg: "RS256" })
+      .setIssuer("https://fixture.cloudflareaccess.com").setAudience("a".repeat(64)).setSubject("customer")
+      .setIssuedAt().setExpirationTime("1h").sign((await keys).privateKey)
+    const response = await worker.fetch("http://localhost/auth", { headers: { authorization: jwt } })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ subject: "customer", email: "customer@example.net" })
+    expect((await worker.fetch("http://localhost/auth", { headers: { authorization: jwt + "x" } })).status).toBe(401)
   })
   it("verifies the domain through three HTTP requests", async () => {
     const response = await worker.fetch("http://localhost/domain")

@@ -17,12 +17,13 @@ See [SOURCE.md](SOURCE.md) for the source revision and how to carry fixes betwee
 - An SMTP gateway using Postfix, Rspamd, and ClamAV for domains at any DNS provider.
 - PostgreSQL migrations, R2 attachment storage, local database tests, and deployment guides.
 
-The dashboard supports one owner or a trusted team sharing access to the entire
-deployment. Applications and agents use mailbox-scoped credentials.
+The Cloudflare dashboard uses email-code sign-in and invite-only customer accounts.
+Customers see their own inboxes. Owners can manage customers and all inboxes.
+Applications and agents use mailbox-scoped credentials.
 Bezalel's multi-tenant accounts, billing, approval policies, analytics pages, and
 MCP server stay in Bezalel. The standalone API uses HTTP JSON operations.
 
-## Run the dashboard
+## Run the local owner dashboard
 
 Install Node.js 24 and pnpm 10.15.1. Set up the email Worker using the
 [Worker guide](apps/email/README.md), then:
@@ -67,11 +68,14 @@ The API and dashboard both run on Cloudflare Workers:
 - [Dashboard](https://bezalel-email-dashboard.michaelwasihun96.workers.dev)
 - [API](https://bezalel-email-standalone.michaelwasihun96.workers.dev/healthz)
 
-The dashboard uses a SQLite-backed Durable Object for sessions and login
-throttling, static assets for the interface, and a service binding to the API.
-Sessions survive Worker restarts. Signing out revokes the session; changing
-`DASHBOARD_PASSWORD` invalidates every existing session. The platform token stays
-on the server. The Node dashboard remains available for local or VPS hosting.
+The dashboard uses Cloudflare Access for sign-in, static assets for the interface,
+and a service binding to the API. The API verifies the Access JWT and mailbox
+ownership on every request. Set up the Access application and API configuration
+before deploying the dashboard. Follow the [customer sign-in guide](docs/customer-auth.md).
+
+The Node dashboard remains available for local or VPS hosting with a shared owner
+password. Its access includes every inbox, so use Cloudflare customer mode for
+customer-facing deployments.
 
 The API connects to PlanetScale through Hyperdrive and uses its own R2 bucket
 and delivery queues. See the [database guide](docs/planetscale.md).
@@ -82,10 +86,9 @@ pnpm deploy:dashboard
 ```
 
 Both commands run Wrangler deployment scripts. Set `MAIL_API_TOKEN` and
-`MAIL_WEBHOOK_SECRET` as API Worker secrets. Set `MAIL_API_TOKEN` and an independent
-`DASHBOARD_PASSWORD` of at least 32 characters as dashboard Worker secrets. Use
-`wrangler secret put` or `wrangler secret bulk` from the corresponding app directory.
-Use the same platform token for both Workers. Never put it in public assets.
+`MAIL_WEBHOOK_SECRET` as API Worker secrets. Customer mode does not use a dashboard
+password or a copy of the platform token. It forwards the customer's signed Access
+assertion to the API through the service binding.
 
 The API uses `agents.goshenemail.com` for standalone inboxes. Cloudflare shares
 one catch-all across a zone, so this deployment creates an exact address rule
@@ -110,7 +113,8 @@ files out of Git. Apply required migrations separately before a Worker upgrade.
 
 `MAIL_EVENTS_URL` optionally configures a shared signed webhook. With it unset,
 shared-mailbox events are settled without delivery or later replay. Client
-mailboxes keep their own provisioned webhooks. The legacy `BEZALEL_EVENTS_URL`
+mailboxes keep their own provisioned webhooks. Customer dashboard inboxes have no
+webhook by default and never fall back to the shared webhook. The legacy `BEZALEL_EVENTS_URL`
 setting also works when connecting this Worker back to Bezalel.
 
 ## Connect an application or agent

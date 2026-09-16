@@ -17,7 +17,7 @@ test('Cloudflare persists sessions, throttles and logout across process restarts
     assets: { directory: resolve('public'), binding: 'ASSETS', run_worker_first: true },
     durable_objects: { bindings: [{ name: 'DASHBOARD', class_name: 'Dashboard' }] },
     migrations: [{ tag: 'v1', new_sqlite_classes: ['Dashboard'] }],
-    vars: { DASHBOARD_PASSWORD: password, DASHBOARD_PUBLIC_URL: origin,
+    vars: { DASHBOARD_AUTH_MODE: 'password', DASHBOARD_PASSWORD: password, DASHBOARD_PUBLIC_URL: origin,
       MAIL_WORKER_URL: 'https://mail.example', MAIL_API_TOKEN: 'test-token-'.repeat(5) },
   }))
   let worker
@@ -58,4 +58,33 @@ test('Cloudflare persists sessions, throttles and logout across process restarts
   await worker.stop(); await start({ DASHBOARD_PASSWORD: password + 'rotated' })
   assert.deepEqual(await (await request('/api/session', undefined, { cookie: nextCookie })).json(), { authenticated: false })
   assert.equal((await request('/api/login', { password })).status, 401)
+})
+
+
+test('Cloudflare customer mode forwards Access assertions without password secrets or owner sessions', { timeout: 120_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'email-dashboard-access-'))
+  const config = join(directory, 'wrangler.json')
+  await writeFile(config, JSON.stringify({
+    name: 'email-dashboard-access-test', main: resolve('test/fixtures/worker.mjs'),
+    compatibility_date: '2026-09-06', compatibility_flags: ['nodejs_compat'],
+    assets: { directory: resolve('public'), binding: 'ASSETS', run_worker_first: true },
+    durable_objects: { bindings: [{ name: 'DASHBOARD', class_name: 'Dashboard' }] },
+    migrations: [{ tag: 'v1', new_sqlite_classes: ['Dashboard'] }],
+    vars: { DASHBOARD_AUTH_MODE: 'access', DASHBOARD_PUBLIC_URL: origin, MAIL_WORKER_URL: 'https://mail.example' },
+  }))
+  const worker = await unstable_dev(resolve('test/fixtures/worker.mjs'), {
+    config, local: true, ip: '127.0.0.1', port: 0, inspectorPort: 0, logLevel: 'error',
+    experimental: { disableExperimentalWarning: true, disableDevRegistry: true },
+  })
+  t.after(async () => { await worker.stop(); await rm(directory, { recursive: true, force: true }) })
+  assert.equal((await worker.fetch(origin)).status, 200)
+  const identity = { 'cf-access-jwt-assertion': 'fixture-access-assertion' }
+  const session = await worker.fetch(origin + '/api/session', { headers: identity })
+  assert.equal(session.status, 200)
+  assert.equal((await session.json()).customer.email, 'customer@example.net')
+  assert.equal((await worker.fetch(origin + '/api/session', { headers: { 'cf-access-jwt-assertion': 'forged' } })).status, 401)
+  const inboxes = await worker.fetch(origin + '/api/rpc/listInboxes', { method: 'POST',
+    headers: { ...identity, origin, 'content-type': 'application/json' }, body: '{}' })
+  assert.equal(inboxes.status, 200)
+  assert.deepEqual((await inboxes.json()).result.inboxes, [{ inboxId: 'customer@example.com' }])
 })
