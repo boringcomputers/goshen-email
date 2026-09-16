@@ -51,7 +51,11 @@ importers:
         specifier: 4.129.0
         version: 4.129.0(@cloudflare/workers-types@5.20260906.1)
 
-  apps/email-dashboard: {}
+  apps/email-dashboard:
+    devDependencies:
+      wrangler:
+        specifier: 4.129.0
+        version: 4.129.0(@cloudflare/workers-types@5.20260906.1)
 
   apps/email-gateway:
     dependencies:

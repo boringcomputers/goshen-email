@@ -34,8 +34,8 @@ flowchart LR
 
 1. Enable the Workers Paid plan and Email Sending for your account.
 2. Onboard a domain for both Email Sending and Email Routing in Cloudflare.
-   This version supports zone apex domains, such as `example.com`. Cloudflare
-   manages their sending and routing DNS records.
+   Cloudflare manages sending and routing DNS records. Apex domains use a
+   catch-all; shared-zone subdomains use the per-address routing mode below.
 3. Create an R2 bucket with `pnpm --filter @bezalel/email exec wrangler r2 bucket create bezalel-email-standalone`.
 4. Edit `wrangler.jsonc`. Set `PUBLIC_EMAIL_URL` to the Worker's public origin,
    `DEFAULT_EMAIL_DOMAIN` to your domain. Set `EMAIL_DOMAINS` to a JSON map of
@@ -43,8 +43,8 @@ flowchart LR
    `{"example.com":"0123456789abcdef0123456789abcdef"}`. Keep `WORKER_NAME`
    equal to the deployed Worker name.
 5. Create a Cloudflare API token with Email Sending access and read access to
-   Email Routing settings and rules for those zones. The Worker reads domain
-   configuration; it does not change DNS or routing rules.
+   Email Routing settings and rules for those zones. Per-address routing also
+   requires Email Routing Rules Write. The Worker never changes DNS.
 6. Generate independent API and signing secrets:
 
    ```sh
@@ -60,7 +60,7 @@ flowchart LR
    Hyperdrive with query caching disabled, and replace the `HYPERDRIVE` ID in
    `wrangler.jsonc`. Run migrations with a direct PostgreSQL `DATABASE_URL`
    from `apps/email/.env`. The Worker uses the binding and needs no database URL secret.
-9. Deploy with `pnpm --filter @bezalel/email deploy`. In Cloudflare Email
+9. Deploy with `pnpm --filter @bezalel/email run deploy`. In Cloudflare Email
    Routing, send the domain's catch-all to this Worker. Remove any specific
    address rules that would override this route for agent addresses.
 
@@ -69,10 +69,33 @@ in `mail.schema_migrations`. The search-index upgrade replaces the old generated
 column and its index in one transaction, preserves messages, and can be rerun.
 It takes a table lock while rebuilding the index; schedule it during a quiet period.
 
-The Worker checks that Cloudflare has enabled sending and receiving for each
-managed domain and that its catch-all targets this Worker. Managed domains need
-operator onboarding in Cloudflare and an `EMAIL_DOMAINS` entry. Customer domains
-use the separate SMTP setup below and must not be added to `EMAIL_DOMAINS`.
+The Worker checks sending and receiving before creating an inbox. The default
+mode requires a catch-all targeting this Worker. For a subdomain sharing a zone
+with another service, set `EMAIL_ADDRESS_ROUTING_DOMAINS` to a comma-separated
+list of its domains. These domains must also appear in `EMAIL_DOMAINS`, mapped
+to their parent Cloudflare zone IDs.
+
+For this deployment:
+
+- Default domain: `agents.goshenemail.com`.
+- Parent zone: `35ea2f533f87f566600d95300aba1475`, for `goshenemail.com`.
+- Per-address routing: `agents.goshenemail.com`.
+- Original apex catch-all: `bezalel-email`, kept in place.
+
+Onboard the subdomain for Email Sending and Email Routing first. Cloudflare
+shares a zone's catch-all across subdomains, so the Worker creates an exact
+address rule before saving each inbox or provisioned client. It checks that the
+subdomain belongs to the configured zone and that its public MX records all
+point to Cloudflare. Existing rules must already target this Worker; conflicts
+fail without overwriting them. Retries reuse an existing matching rule.
+
+This mode uses one Cloudflare routing rule per mailbox and is subject to the
+zone's rule quota. An unsuccessful database write can leave a rule pointing to
+an address without a mailbox; retrying creation reuses that rule. Retired
+mailboxes keep their rule so incoming mail is rejected by this Worker instead
+of falling through to the original service. Remove unused rules manually only
+after checking the mailbox state. Customer domains use the SMTP setup below
+and must not be added to `EMAIL_DOMAINS`.
 
 Cloudflare's [Email Service docs](https://developers.cloudflare.com/email-service/),
 [sending API](https://developers.cloudflare.com/api/resources/email_sending/methods/send/),
@@ -121,7 +144,7 @@ allowed sending domain, subscribe the delivery queue to all six lifecycle events
 ```sh
 pnpm --filter @bezalel/email exec wrangler queues subscription create bezalel-email-standalone-delivery \
   --source email.sending --zone-id YOUR_ZONE_ID --domain YOUR_SENDING_DOMAIN \
-  --events cf.email.sending.message.delivered,cf.email.sending.message.deferred,cf.email.sending.message.bounced,cf.email.sending.message.failed,cf.email.sending.message.rejected,cf.email.sending.message.complained
+  --events message.delivered,message.deferred,message.bounced,message.failed,message.rejected,message.complained
 pnpm --filter @bezalel/email exec wrangler queues subscription list bezalel-email-standalone-delivery
 ```
 

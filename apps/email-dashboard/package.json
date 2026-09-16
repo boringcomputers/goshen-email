@@ -7,8 +7,13 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch src/main.mjs",
     "start": "node --env-file-if-exists=.env src/main.mjs",
-    "build": "node scripts/check.mjs",
+    "build": "node scripts/check.mjs && wrangler deploy --dry-run --outdir dist",
     "check": "node scripts/check.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "deploy": "wrangler deploy",
+    "dev:cloudflare": "wrangler dev --port 8791"
+  },
+  "devDependencies": {
+    "wrangler": "4.129.0"
   }
 }

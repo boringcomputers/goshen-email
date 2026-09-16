@@ -60,28 +60,53 @@ proxy requests without a valid `X-Real-IP` cannot sign in.
 Wrangler separately. Local Worker development still needs a dedicated PostgreSQL
 database. The root `build` command bundles the Worker without deploying it.
 
-## Worker and SMTP deployment
+## Cloudflare deployment
 
-Follow the [Worker setup](apps/email/README.md) for Cloudflare Email Sending,
-Email Routing, PlanetScale Postgres through Hyperdrive, R2, and delivery queues.
-Configuration uses placeholders and separate `bezalel-email-standalone` resource names. Set your own account,
-domain, zone, bucket, and queue values before deployment.
+The API and dashboard both run on Cloudflare Workers:
+
+- [Dashboard](https://bezalel-email-dashboard.michaelwasihun96.workers.dev)
+- [API](https://bezalel-email-standalone.michaelwasihun96.workers.dev/healthz)
+
+The dashboard uses a SQLite-backed Durable Object for sessions and login
+throttling, static assets for the interface, and a service binding to the API.
+Sessions survive Worker restarts. Signing out revokes the session; changing
+`DASHBOARD_PASSWORD` invalidates every existing session. The platform token stays
+on the server. The Node dashboard remains available for local or VPS hosting.
+
+The API connects to PlanetScale through Hyperdrive and uses its own R2 bucket
+and delivery queues. See the [database guide](docs/planetscale.md).
 
 ```sh
-pnpm migrate
 pnpm deploy:worker
+pnpm deploy:dashboard
 ```
 
-Follow the [PlanetScale and Hyperdrive guide](docs/planetscale.md) to create the database
-connection and disable query caching. The checked-in binding ID is a placeholder.
+Both commands run Wrangler deployment scripts. Set `MAIL_API_TOKEN` and
+`MAIL_WEBHOOK_SECRET` as API Worker secrets. Set `MAIL_API_TOKEN` and an independent
+`DASHBOARD_PASSWORD` of at least 32 characters as dashboard Worker secrets. Use
+`wrangler secret put` or `wrangler secret bulk` from the corresponding app directory.
+Use the same platform token for both Workers. Never put it in public assets.
+
+The API uses `agents.goshenemail.com` for standalone inboxes. Cloudflare shares
+one catch-all across a zone, so this deployment creates an exact address rule
+for each new inbox. The `goshenemail.com` catch-all continues to target the
+original Bezalel Worker. The API verifies sending and public MX records before
+provisioning an inbox, and refuses to overwrite a conflicting address rule.
+
+Set a scoped `CLOUDFLARE_API_TOKEN` secret with Email Sending access, Email
+Routing settings read access, and Email Routing Rules Write for this zone.
+Until it is present, dashboard reads work but mailbox creation and sending fail
+with a configuration error. Never deploy a short-lived Wrangler login token as
+this secret. See the [Worker setup](apps/email/README.md).
+
+Merging a PR runs CI only. These deployments are manual; no automatic deployment
+workflow is configured. No SMTP gateway is included in the Workers deployment.
+For customer-owned domains, follow the [SMTP gateway runbook](ops/email/README.md).
+That gateway needs a host that permits incoming and outgoing SMTP on port 25.
 
 Migration reads a direct PostgreSQL URL from `apps/email/.env`. Worker development
 reads `apps/email/.dev.vars`; deployed secrets are set through Wrangler. Keep these
-files out of Git. Run migrations before each Worker upgrade.
-
-For customer-owned domains, follow the [SMTP gateway runbook](ops/email/README.md).
-It covers DNS, reverse DNS, TLS, scanner health, durable queues, and backups.
-The gateway needs a host that permits incoming and outgoing SMTP on port 25.
+files out of Git. Apply required migrations separately before a Worker upgrade.
 
 `MAIL_EVENTS_URL` optionally configures a shared signed webhook. With it unset,
 shared-mailbox events are settled without delivery or later replay. Client

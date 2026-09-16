@@ -145,6 +145,7 @@ export class MailService {
       case "createInbox": {
         const input = inputs.createInbox.parse(value)
         const domain = input.domain ?? this.config.defaultDomain
+        if (!domain) throw new MailError("Configure an email domain before creating inboxes", "domain_not_configured", 422)
         await this.store.assertUnscopedDomain(domain)
         const info = await this.transport.verifyDomain(domain)
         if (info.status !== "VERIFIED")
@@ -159,6 +160,7 @@ export class MailService {
           `agent-${crypto.randomUUID().slice(0, 12)}`
         if (!emailAddress.safeParse(`${username}@${domain}`).success)
           throw new MailError("This address is too long. Choose a shorter username or domain.", "invalid_argument", 422)
+        await this.transport.ensureInboxRoute?.(`${username}@${domain}`)
         return inboxView(
           await this.store.createInbox(
             `${username}@${domain}`,

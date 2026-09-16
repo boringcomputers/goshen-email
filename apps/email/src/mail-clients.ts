@@ -102,6 +102,7 @@ export async function handleClientAdmin(
     const input = decode(provisionInput, raw)
     const url = validateUrl(input.webhookUrl)
     const domain = service.config.defaultDomain
+    if (!domain) throw new MailError("Configure a default email domain before provisioning clients", "domain_not_configured", 422)
     const inboxAddress = decode(
       address,
       `${input.username.toLowerCase()}@${domain}`
@@ -110,6 +111,7 @@ export async function handleClientAdmin(
     if (info.status !== "VERIFIED")
       throw new MailError("Email domain is not ready", "domain_not_ready", 422)
     await service.store.saveDomain(info)
+    await service.transport.ensureInboxRoute?.(inboxAddress)
     try {
       await service.store.db.query(
         "select mail.provision_client($1, $2, $3, $4, $5, $6)",

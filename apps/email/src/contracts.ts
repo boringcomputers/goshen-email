@@ -222,6 +222,7 @@ export interface DeliveryResult {
   suppressed: string[]
 }
 export interface Transport {
+  ensureInboxRoute?(address: string): Promise<void>
   send(input: {
     trackingId?: string
     from: string | { address: string; name: string }
@@ -255,7 +256,7 @@ export interface ObjectStore {
 }
 export interface MailConfig {
   accountId?: string
-  defaultDomain: string
+  defaultDomain?: string
   domains: Record<string, string>
   publicUrl: string
   eventsUrl?: string

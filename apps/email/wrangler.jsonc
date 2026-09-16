@@ -18,9 +18,11 @@
   ],
   "vars": {
     "WORKER_NAME": "bezalel-email-standalone",
-    "DEFAULT_EMAIL_DOMAIN": "example.com",
-    "EMAIL_DOMAINS": "{\"example.com\": \"00000000000000000000000000000000\"}",
-    "PUBLIC_EMAIL_URL": "https://mail.example.com"
+    "CLOUDFLARE_ACCOUNT_ID": "c340deebb91d89c14d17239b7658dc81",
+    "EMAIL_DOMAINS": "{\"agents.goshenemail.com\":\"35ea2f533f87f566600d95300aba1475\"}",
+    "DEFAULT_EMAIL_DOMAIN": "agents.goshenemail.com",
+    "EMAIL_ADDRESS_ROUTING_DOMAINS": "agents.goshenemail.com",
+    "PUBLIC_EMAIL_URL": "https://bezalel-email-standalone.michaelwasihun96.workers.dev"
   },
   "r2_buckets": [
     {
