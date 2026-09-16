@@ -14,6 +14,7 @@ const mailboxOperations = new Set<Operation>([
 const domainOperations = new Set<Operation>(["listDomains", "createDomain", "verifyDomain", "deleteDomain"])
 const inboxView = (row: InboxRow & Partial<CustomerInbox>) => ({ inboxId: row.address, address: row.custom_address ?? row.address,
   deliveryStatus: row.route_ready === false ? "pending" : "ready",
+  setupAvailable: typeof row.route_ready === "boolean",
   displayName: row.display_name ?? undefined, createdAt: new Date(row.created_at).toISOString() })
 
 async function verifyCustomerDomain(service: MailService, domain: string) {
@@ -50,7 +51,7 @@ export async function executeCustomerRequest(request: Request, service: MailServ
   const object = z.record(z.string(), z.unknown()).safeParse(raw)
   if (!object.success) throw new MailError("Invalid email request")
   const result = async (): Promise<unknown> => {
-    if (operation === "session") return { customer, defaultDomain: service.config.defaultDomain,
+    if (operation === "session") return { customer, defaultDomain: service.config.defaultDomain, apiUrl: service.config.publicUrl,
       customDomainsEnabled: customer.role === "admin" && Boolean(service.customDomains) }
     if (["listCustomers", "inviteCustomer", "setCustomerAccess"].includes(operation)) {
       if (customer.role !== "admin") throw new MailError("Administrator access required", "forbidden", 403)
@@ -85,13 +86,27 @@ export async function executeCustomerRequest(request: Request, service: MailServ
       if (customer.role !== "admin") throw new MailError("Administrator access required", "forbidden", 403)
       return service.execute(operation as Operation, raw)
     }
-    if (!mailboxOperations.has(operation as Operation) && !["getCredentials", "rotateCredentials", "finishInboxSetup"].includes(operation))
+    if (!mailboxOperations.has(operation as Operation) && !["getCredentials", "rotateCredentials", "finishInboxSetup", "setupStatus"].includes(operation))
       throw new MailError("Unknown dashboard operation", "not_found", 404)
     const input = object.data
     if (typeof input.inboxId !== "string") throw new MailError("Choose an inbox")
     const inbox = await service.store.inbox(input.inboxId)
     if (inbox.testing) throw new MailError("Inbox not found", "not_found", 404)
     await store.owns(customer, inbox.id)
+    if (operation === "setupStatus") {
+      const [setup] = await service.store.db.query<{ route_ready: boolean; connected_at: string | null; received_at: string | null }>(
+        `select ci.route_ready,
+           case when c.connected_token_version = c.token_version then c.connected_at end as connected_at,
+           (select min(m.timestamp) from mail.messages m where m.inbox_id = ci.inbox_id
+             and m.direction = 'received' and coalesce(m.protection->>'status', '') <> 'quarantined'
+             and not ('trash' = any(m.labels))) as received_at
+         from mail.customer_inboxes ci join mail.clients c on c.inbox_id = ci.inbox_id
+         where ci.inbox_id = $1`, [inbox.id])
+      if (!setup) throw new MailError("This inbox does not use customer setup", "not_found", 404)
+      return { inboxId: inbox.address, deliveryReady: setup.route_ready,
+        connectedAt: setup.connected_at ? new Date(setup.connected_at).toISOString() : null,
+        receivedAt: setup.received_at ? new Date(setup.received_at).toISOString() : null }
+    }
     if (operation === "finishInboxSetup") {
       await store.requireCustomerInbox(inbox.id)
       await verifyCustomerDomain(service, inbox.address.slice(inbox.address.lastIndexOf("@") + 1))

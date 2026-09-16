@@ -23,9 +23,11 @@ const objects: ObjectStore = {
   async delete(keys) { for (const key of typeof keys === 'string' ? [keys] : keys) blobs.delete(key) },
 }
 const sends: unknown[] = []
+let routingAvailable = true
 const service = new MailService({ store: new MailboxStore(db), objects,
   config: { defaultDomain: 'example.com', domains: { 'example.com': 'a'.repeat(32) }, publicUrl: 'https://fixture.example.com', apiToken: 'fixture-worker-token-'.repeat(3), webhookSecret: `whsec_${Buffer.from('fixture-webhook-secret-'.repeat(3)).toString('base64')}` },
   transport: {
+    ensureInboxRoute: async () => { if (!routingAvailable) throw new Error('Fixture routing unavailable') },
     verifyDomain: async (domain) => ({ domainId: domain, domain, status: 'VERIFIED', records: [] }),
     send: async (input) => { sends.push(input); return { messageId: `<${crypto.randomUUID()}@fixture.example.com>`, delivered: input.to, queued: [], bounced: [], suppressed: [] } },
   },
@@ -46,10 +48,19 @@ server.listen(port, '127.0.0.1', () => console.log(`Fixture dashboard http://127
 const control = createServer(async (req, res) => {
   try {
     if (req.url === '/sends') { res.end(JSON.stringify(sends)); return }
-    if (req.method !== 'POST' || req.url !== '/receive') { res.writeHead(404).end(); return }
+    if (req.method !== 'POST') { res.writeHead(404).end(); return }
     const chunks = []
     for await (const chunk of req) chunks.push(chunk)
+    if (req.url?.startsWith('/inbox-rpc/')) {
+      const response = await handleRequest(new Request(service.config.publicUrl + req.url, {
+        method: 'POST', headers: { authorization: req.headers.authorization ?? '', 'content-type': 'application/json' },
+        body: Buffer.concat(chunks).toString(),
+      }), service)
+      res.writeHead(response.status, { 'content-type': 'application/json' }).end(await response.text()); return
+    }
     const input = JSON.parse(Buffer.concat(chunks).toString())
+    if (req.url === '/routing') { routingAvailable = input.available === true; res.end('{}'); return }
+    if (req.url !== '/receive') { res.writeHead(404).end(); return }
     const raw = new TextEncoder().encode([
       `From: ${input.from ?? 'Jamie <jamie@example.net>'}`, `To: ${input.inboxId}`,
       `Message-ID: <${crypto.randomUUID()}@example.net>`, `Subject: ${input.subject ?? 'A fresh start for your inbox'}`,
