@@ -13,8 +13,9 @@
       <div class="brand"><span class="mark">b</span><span>Bezalel <span class="muted">Email</span></span></div>
       <h1>Your mail, in one place.</h1>
       <p>Sign in to manage your inboxes and email domains.</p>
-      <label>Dashboard password<input name="password" type="password" autocomplete="current-password" required></label>
-      <button class="primary" type="submit">Sign in</button>
+      <div id="password-login"><label>Dashboard password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="primary" type="submit">Sign in</button></div>
+      <p id="access-login" hidden>Use your invited email address to sign in. <a href="/cdn-cgi/access/logout">Sign in with another account</a></p>
       <p id="login-error" class="error" role="alert"></p>
     </form>
   </section>
@@ -31,6 +32,9 @@
         <button data-folder="trash"><span>⌫</span> Trash</button>
       </nav>
       <div class="sidebar-bottom">
+        <p id="account" class="account muted"></p>
+        <button id="customers" hidden>Customers</button>
+        <button id="credentials" hidden>Mailbox API key</button>
         <button id="new-inbox">＋ New inbox</button>
         <button id="domains">◎ Custom domains</button>
         <button id="delete-inbox">Delete selected inbox</button>
@@ -74,6 +78,25 @@
     <form id="domain-form" class="domain-form"><label>Domain<input name="domain" required placeholder="agents.example.com"></label><button class="primary" type="submit">Add domain</button></form>
     <p id="domain-error" class="error" role="alert"></p>
     <div id="domain-list"></div>
+  </dialog>
+  <dialog id="customers-dialog" class="wide-dialog">
+    <div class="dialog-header"><h2>Customers</h2><button type="button" data-close="customers-dialog" aria-label="Close customers">×</button></div>
+    <p class="muted">Add a customer's email, then share this dashboard's address. They sign in with an email code.</p>
+    <form id="customer-form">
+      <label>Email<input name="email" type="email" required maxlength="254" autocomplete="off"></label>
+      <label>Name<input name="displayName" maxlength="200"></label>
+      <label>Inbox limit<input name="inboxLimit" type="number" min="1" max="100" value="5" required></label>
+      <button class="primary" type="submit">Add customer</button>
+    </form>
+    <p id="customer-error" class="error" role="alert"></p>
+    <div id="customer-list"></div>
+  </dialog>
+  <dialog id="credentials-dialog">
+    <div class="dialog-header"><h2>Mailbox API key</h2><button type="button" data-close="credentials-dialog" aria-label="Close API key">×</button></div>
+    <p id="credentials-inbox"></p>
+    <p class="muted">This key gives an agent access to this mailbox. Keep it private.</p>
+    <label>API key<input id="api-key" type="password" readonly autocomplete="off"></label>
+    <footer><button id="copy-key">Copy key</button><button id="rotate-key">Replace key</button></footer>
   </dialog>
 </body>
 </html>

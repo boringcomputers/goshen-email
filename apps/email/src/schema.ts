@@ -1,4 +1,5 @@
 import { clientDomainMigrations } from "./client-domains-schema.js"
+import { customerMigrations } from "./customer-schema.js"
 
 const searchExpression = `
   setweight(to_tsvector('simple', left(coalesce(data->>'subject', ''), 4096)), 'A') ||
@@ -202,5 +203,6 @@ export const migrations = [
       delete from mail.recipient_suppressions where inbox_id = active;
       insert into mail.garbage(prefix) values (active::text || '/') on conflict do nothing;
       return 'deleted';
-    end $$`
+    end $$`,
+  ...customerMigrations,
 ]

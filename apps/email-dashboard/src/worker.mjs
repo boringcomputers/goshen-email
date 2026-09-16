@@ -2,7 +2,8 @@ import { DurableObject } from 'cloudflare:workers'
 import { isIP } from 'node:net'
 import { dashboardHandler, readBody } from './handler.mjs'
 import { durableState } from './durable-state.mjs'
-import { DashboardError, mailClient } from './service.mjs'
+import { accessDashboardHandler } from './access-handler.mjs'
+import { DashboardError, customerMailClient, mailClient } from './service.mjs'
 
 export class Dashboard extends DurableObject {
   constructor(ctx, env) {
@@ -42,6 +43,22 @@ export default {
         headers: { 'cache-control': 'no-store' },
       })
     }
+    if (env.DASHBOARD_AUTH_MODE === 'access') {
+      return accessDashboardHandler({
+        publicUrl: env.DASHBOARD_PUBLIC_URL,
+        client: customerMailClient({ workerUrl: env.MAIL_WORKER_URL,
+          request: (url, init) => env.MAIL_API.fetch(url, init) }),
+        asset: async (file, request) => {
+          const url = new URL(request.url)
+          url.pathname = file === 'index.html' ? '/' : `/${file}`
+          const response = await env.ASSETS.fetch(url)
+          if (!response.ok) throw new Error('Dashboard asset unavailable')
+          return response.body
+        },
+      })(request)
+    }
+    if (env.DASHBOARD_AUTH_MODE !== 'password')
+      return Response.json({ error: 'Dashboard sign-in is not configured' }, { status: 503 })
     return env.DASHBOARD.get(env.DASHBOARD.idFromName('owner')).fetch(request)
   },
 }

@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { DashboardError, operations } from './service.mjs'
 
-const assets = new Map([
+export const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
@@ -23,7 +23,7 @@ export async function readBody(request) {
   return Buffer.concat(chunks)
 }
 
-async function readJson(request) {
+export async function readJson(request) {
   const body = await readBody(request)
   try {
     const value = JSON.parse(body.toString('utf8'))
@@ -34,10 +34,7 @@ async function readJson(request) {
 
 export function dashboardHandler({ client, password, publicUrl, asset, state = {}, now = Date.now }) {
   if (!password || password.length < 32) throw new Error('DASHBOARD_PASSWORD must contain at least 32 characters')
-  const origin = new URL(publicUrl)
-  if (origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash ||
-      (origin.protocol !== 'https:' && !(origin.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname))))
-    throw new Error('DASHBOARD_PUBLIC_URL must be an HTTPS origin, or HTTP on loopback')
+  const origin = dashboardOrigin(publicUrl)
   const secure = origin.protocol === 'https:'
   const cookieName = secure ? '__Host-mail-session' : 'mail-session'
   const signingKey = state.signingKey ?? randomBytes(32)
@@ -55,12 +52,7 @@ export function dashboardHandler({ client, password, publicUrl, asset, state = {
   }
   const attempts = state.attempts ?? new Map()
   return async (request, { clientIdentity } = {}) => {
-    const headers = new Headers({
-      'cache-control': 'no-store',
-      'x-content-type-options': 'nosniff',
-      'referrer-policy': 'no-referrer',
-      'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
-    })
+    const headers = responseHeaders()
     const json = (value, status = 200) => {
       headers.set('content-type', 'application/json; charset=utf-8')
       return new Response(JSON.stringify(value), { status, headers })
@@ -117,4 +109,21 @@ export function dashboardHandler({ client, password, publicUrl, asset, state = {
       return json({ error: error instanceof DashboardError ? error.message : 'Dashboard request failed' }, error instanceof DashboardError ? error.status : 500)
     }
   }
+}
+
+export function dashboardOrigin(publicUrl) {
+  const origin = new URL(publicUrl)
+  if (origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash ||
+      (origin.protocol !== 'https:' && !(origin.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname))))
+    throw new Error('DASHBOARD_PUBLIC_URL must be an HTTPS origin, or HTTP on loopback')
+  return origin
+}
+
+export function responseHeaders() {
+  return new Headers({
+      'cache-control': 'no-store',
+      'x-content-type-options': 'nosniff',
+      'referrer-policy': 'no-referrer',
+      'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+    })
 }

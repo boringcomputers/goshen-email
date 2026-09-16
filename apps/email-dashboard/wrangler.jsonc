@@ -11,6 +11,7 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Dashboard"] }],
   "services": [{ "binding": "MAIL_API", "service": "bezalel-email-standalone" }],
   "vars": {
+    "DASHBOARD_AUTH_MODE": "access",
     "DASHBOARD_PUBLIC_URL": "https://bezalel-email-dashboard.michaelwasihun96.workers.dev",
     "MAIL_WORKER_URL": "https://bezalel-email-standalone.michaelwasihun96.workers.dev"
   },

@@ -1,4 +1,7 @@
 import { handleClientAdmin, handleInboxRequest } from "./mail-clients.js"
+import { handleCustomerRequest } from "./customer-api.js"
+import { accessConfig, type AccessConfig } from "./access-auth.js"
+import type { JWTVerifyGetKey } from "jose"
 import { ingestDelivery } from "./delivery.js"
 import { z } from "zod"
 import { cloudflareTransport } from "./cloudflare.js"
@@ -42,6 +45,9 @@ export interface Env {
   MAIL_DOMAIN_ENCRYPTION_KEY?: string
   MAIL_INBOUND_SCAN_ENABLED?: string
   MAIL_FEEDBACK_SIGNERS?: string
+  ACCESS_TEAM_DOMAIN?: string
+  ACCESS_AUD?: string
+  DASHBOARD_ADMIN_EMAILS?: string
 }
 
 const configuration = z.object({
@@ -131,12 +137,15 @@ const json = (data: unknown, status = 200): Response =>
 
 export const handleRequest = async (
   request: Request,
-  service: MailService
+  service: MailService,
+  customerAccess?: AccessConfig,
+  accessKey?: JWTVerifyGetKey,
 ): Promise<Response> => {
   const url = new URL(request.url)
   try {
     if (request.method === "GET" && url.pathname === "/healthz")
       return json({ status: "ok", service: "bezalel-email" })
+    if (url.pathname.startsWith("/dashboard-rpc/")) return await handleCustomerRequest(request, service, customerAccess, accessKey)
     if (request.method === "GET" && url.pathname.startsWith("/attachments/")) {
       const match =
         /^\/attachments\/([a-f0-9-]{36})\/([a-f0-9-]{36})\/([a-f0-9-]{36})$/.exec(
@@ -268,7 +277,7 @@ export async function consumeDeliveryBatch(
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
-      return await handleRequest(request, serviceFor(env))
+      return await handleRequest(request, serviceFor(env), accessConfig(env))
     } catch {
       return json(
         {
