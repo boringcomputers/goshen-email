@@ -74,6 +74,7 @@ describe("Hyperdrive in the Workers runtime with PostgreSQL", () => {
       vars: {
         AUTH_PUBLIC_URL: 'https://accounts.example.com', AUTH_SECRET: 'runtime-account-secret-'.repeat(3),
         AUTH_PROXY_SECRET: 'runtime-proxy-secret-'.repeat(3), AUTH_FROM: 'accounts@example.com',
+        DASHBOARD_ADMIN_EMAILS: 'owner@example.net',
         MAIL_API_TOKEN: config.apiToken, MAIL_WEBHOOK_SECRET: config.webhookSecret,
         CLOUDFLARE_API_TOKEN: "test-token", CLOUDFLARE_ACCOUNT_ID: config.accountId,
         EMAIL_DOMAINS: JSON.stringify(config.domains), DEFAULT_EMAIL_DOMAIN: config.defaultDomain,

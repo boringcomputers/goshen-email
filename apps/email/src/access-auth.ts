@@ -13,7 +13,7 @@ const keySets = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
 export function accessConfig(env: {
   ACCESS_TEAM_DOMAIN?: string; ACCESS_AUD?: string; DASHBOARD_ADMIN_EMAILS?: string
 }): AccessConfig | undefined {
-  if (!env.ACCESS_TEAM_DOMAIN && !env.ACCESS_AUD && !env.DASHBOARD_ADMIN_EMAILS) return undefined
+  if (!env.ACCESS_TEAM_DOMAIN && !env.ACCESS_AUD) return undefined
   const result = z.object({
     teamDomain: z.string().regex(/^[a-z0-9][a-z0-9-]*\.cloudflareaccess\.com$/),
     audience: z.string().regex(/^[a-f0-9]{64}$/),

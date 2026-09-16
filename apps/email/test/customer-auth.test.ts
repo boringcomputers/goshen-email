@@ -72,7 +72,10 @@ describe("Customer dashboard authorization", () => {
     for (const jwt of cases) expect((await request("session", {}, jwt)).status).toBe(401)
     expect(await f.db.query("select * from mail.customers")).toHaveLength(0)
     expect(accessConfig({})).toBeUndefined()
+    expect(accessConfig({ DASHBOARD_ADMIN_EMAILS: "owner@example.net" })).toBeUndefined()
     expect(() => accessConfig({ ACCESS_TEAM_DOMAIN: "evil.example" })).toThrow()
+    expect(() => accessConfig({ ACCESS_TEAM_DOMAIN: access.teamDomain, DASHBOARD_ADMIN_EMAILS: "owner@example.net" })).toThrow()
+    expect(() => accessConfig({ ACCESS_AUD: access.audience, DASHBOARD_ADMIN_EMAILS: "owner@example.net" })).toThrow()
     expect(accessConfig({ ACCESS_TEAM_DOMAIN: access.teamDomain, ACCESS_AUD: access.audience, DASHBOARD_ADMIN_EMAILS: "OWNER@example.net" })).toEqual(access)
   })
 
