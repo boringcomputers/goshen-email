@@ -71,7 +71,7 @@ export function createInboxSetup({ state, rpc, createInbox, loadInboxes, openCre
     $('#setup-create').disabled = !domain
     if (!initialChecked && enabled) {
       initialChecked = true
-      if (!wasDismissed() && available && (state.inboxes.length === 0 || state.session.customer.role !== 'admin')) setOpen(true)
+      if (!wasDismissed() && available && state.inboxes.length === 0 && !location.hash) setOpen(true)
     }
     if (!available) setOpen(false)
     if (open) {
@@ -87,7 +87,7 @@ export function createInboxSetup({ state, rpc, createInbox, loadInboxes, openCre
       finally { button.disabled = false }
     })
   }
-  bind('#get-started', async () => { setOpen(true, true); await refresh() })
+  bind('#get-started', () => setOpen(true, true))
   bind('#setup-dismiss', () => { rememberDismissal(); setOpen(false) })
   bind('#setup-copy-address', async () => { await navigator.clipboard.writeText(current().address); notify('Address copied') })
   bind('#setup-check-mail', refresh)
@@ -112,6 +112,7 @@ export function createInboxSetup({ state, rpc, createInbox, loadInboxes, openCre
     finally { button.disabled = !state.session?.defaultDomain; button.firstChild.textContent = 'Create inbox ' }
   })
   return {
+    open: async () => { if (!open) setOpen(true, true); await refresh() },
     sync,
     refresh: async () => { if (open) await refresh() },
     close: () => setOpen(false),

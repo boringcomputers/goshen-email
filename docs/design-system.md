@@ -1,6 +1,15 @@
-# Fancy design system
+# Design system
 
-The dashboard and landing page use the [Fancy project in Paper](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/2-0), synchronized on September 16, 2026. Its Design System, App Components, Dashboard, and Bezalel Email Landing artboards supply the values below. The 72-token snapshot has Paper content hash `a098097c`.
+The landing page retains the Fancy design below. The dashboard now follows the
+resource navigation and list/detail pattern in AgentMail's published console
+screenshots. See [dashboard UX](dashboard-ux.md) for the reference and behavior.
+`console.css` supplies the dashboard's neutral surfaces, 224px resource sidebar,
+60px breadcrumb header, 1280px content maximum, and compact rectangular controls.
+These overrides load only on `/app`; the exported Paper tokens remain intact.
+
+## Original Fancy reference
+
+The original dashboard and current landing page use the [Fancy project in Paper](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/2-0), synchronized on September 16, 2026. Its Design System, App Components, Dashboard, and Bezalel Email Landing artboards supplied the values below. The 72-token snapshot has Paper content hash `a098097c`.
 
 `apps/email-dashboard/public/tokens.css` contains the exported tokens with their original names and values. `style.css` applies them to the email interface. The app keeps plain HTML, CSS, and JavaScript.
 
@@ -19,7 +28,7 @@ The dashboard and landing page use the [Fancy project in Paper](https://app.pape
 | Dialogs | 24px radius and padding; 20px title; Paper modal shadow |
 | Status badges | Original success, warning, danger, and neutral tokens |
 
-The message list, email reader, compose form, and customer list adapt these primitives to the existing email functions. Fancy does not contain complete email-specific screen artboards. At narrow widths, the navigation opens as a drawer and the message reader has a back button. Folder, mailbox, domain, credential, and customer actions remain available.
+The message list, email reader, and compose form adapt these primitives to the existing email functions. Fancy does not contain complete email-specific screen artboards. At narrow widths, the navigation opens as a drawer and the message reader has a back button. Folder, mailbox, domain, and credential actions remain available.
 
 Inter is served from `/fonts/InterVariable.woff2`; the security policy permits fonts only from the dashboard's own origin. The font and its SIL Open Font License come from the [Inter repository](https://github.com/rsms/inter). The bundled license is in `public/fonts/OFL.txt`.
 

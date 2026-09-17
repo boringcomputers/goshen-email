@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/setup.css">
   <link rel="stylesheet" href="/developer.css">
   <link rel="stylesheet" href="/triage.css">
+  <link rel="stylesheet" href="/console.css">
   <script src="/app.js" type="module"></script>
 </head>
 <body>
@@ -29,38 +30,33 @@
   </section>
   <main id="app" hidden>
     <button id="sidebar-backdrop" tabindex="-1" aria-label="Close navigation" hidden></button>
-    <aside id="sidebar" class="sidebar" aria-label="Mailbox navigation">
+    <aside id="sidebar" class="sidebar" aria-label="Workspace navigation">
       <div class="brand"><span data-icon="brand" class="brand-mark"></span><span>Bezalel <span class="brand-secondary">Email</span></span><button id="close-menu" class="icon-button mobile-only" aria-label="Close navigation"><span data-icon="close"></span></button></div>
-      <div class="mailbox-switcher"><label for="inboxes" class="section-label">Mailbox</label><select id="inboxes" aria-label="Mailbox"></select></div>
-      <nav aria-label="Email folders" id="folders">
-        <button data-folder="inbox" aria-current="page"><span data-icon="inbox"></span><span>Inbox</span></button>
-        <button data-folder="sent"><span data-icon="send"></span><span>Sent</span></button>
-        <button data-folder="all"><span data-icon="stack"></span><span>All mail</span></button>
-        <button data-folder="quarantined"><span data-icon="shield"></span><span>Quarantine</span></button>
-        <button data-folder="trash"><span data-icon="trash"></span><span>Trash</span></button>
+      <div class="workspace-label"><span class="avatar" aria-hidden="true">B</span><div><strong>Your workspace</strong><span>Bezalel Email</span></div></div>
+      <nav aria-label="Resources" class="resource-nav">
+        <span class="section-label">Resources</span>
+        <a href="#/inboxes" data-page="inboxes"><span data-icon="inbox"></span>Inboxes</a>
+        <a id="domains" href="#/domains" data-page="domains"><span data-icon="globe"></span>Domains</a>
+        <a id="developers" href="#/api-keys" data-page="api-keys" hidden><span data-icon="key"></span>API keys</a>
+        <a id="integrations" href="#/integrations" data-page="integrations" hidden><span data-icon="code"></span>Integrations</a>
       </nav>
       <div class="sidebar-bottom">
-        <span class="section-label">Workspace</span>
         <button id="get-started" hidden><span data-icon="arrow-right"></span><span>Get started</span></button>
-        <button id="customers" hidden><span data-icon="users"></span><span>Customers</span></button>
-        <button id="developers" hidden><span data-icon="key"></span><span>Developers</span></button>
-        <button id="credentials" hidden><span data-icon="key"></span><span>Mailbox API key</span></button>
-        <button id="finish-inbox" hidden><span data-icon="alert"></span><span>Finish inbox setup</span></button>
-        <button id="new-inbox"><span data-icon="plus"></span><span>New inbox</span></button>
-        <button id="domains"><span data-icon="globe"></span><span>Custom domains</span></button>
-        <button id="delete-inbox"><span data-icon="trash"></span><span>Delete selected inbox</span></button>
         <div class="account-row"><span id="account-avatar" class="avatar" aria-hidden="true">B</span><div class="account-copy"><strong id="account-name">Your workspace</strong><p id="account" class="account">Owner</p></div><button id="logout" class="icon-button" aria-label="Sign out" title="Sign out"><span data-icon="logout"></span></button></div>
       </div>
     </aside>
     <section class="workspace" aria-label="Email workspace">
       <header class="topbar">
-        <div class="page-heading"><button id="open-menu" class="icon-button mobile-only" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><span data-icon="menu"></span></button><h1 id="folder-title">Inbox</h1></div>
-        <div class="topbar-actions">
-          <form id="search-form" class="search"><input id="query" aria-label="Search mail" placeholder="Search this mailbox" type="search"><button type="submit" aria-label="Search" title="Search"><span data-icon="search"></span></button></form>
-          <button id="compose" class="primary"><span data-icon="plus"></span><span>Compose</span></button>
-        </div>
+        <div class="page-heading"><button id="open-menu" class="icon-button mobile-only" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><span data-icon="menu"></span></button><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="#/inboxes">Workspace</a><span aria-hidden="true">/</span><span id="page-title" aria-current="page">Inboxes</span></nav></div>
       </header>
       <div class="workspace-content">
+        <section id="inboxes-page" class="resource-page" aria-labelledby="inboxes-heading">
+          <header class="resource-heading"><div><h1 id="inboxes-heading" tabindex="-1">Inboxes</h1><p>Create and manage email addresses for your agents.</p></div><button id="new-inbox" class="primary"><span data-icon="plus"></span>Create inbox</button></header>
+          <div class="resource-toolbar"><label class="filter-search"><span data-icon="search"></span><input id="inbox-search" type="search" aria-label="Search inboxes" placeholder="Search inboxes…"></label><select id="inbox-group" aria-label="Filter by group"><option value="">All groups</option></select><button id="refresh-inboxes" class="icon-button" aria-label="Refresh inboxes" title="Refresh inboxes"><span data-icon="refresh"></span></button></div>
+          <p id="inboxes-error" class="error" role="alert"></p>
+          <div class="resource-table-wrap"><table class="resource-table"><thead><tr><th scope="col">Inbox</th><th scope="col">Group</th><th scope="col">Status</th><th scope="col">Created</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody id="inbox-rows"></tbody></table><div id="inboxes-empty" class="resource-empty" hidden></div></div>
+          <footer class="resource-footer"><span id="inbox-count" role="status"></span><div><button id="inbox-previous" aria-label="Previous inbox page"><span data-icon="arrow-left"></span></button><span id="inbox-page-count"></span><button id="inbox-next" aria-label="Next inbox page"><span data-icon="arrow-right"></span></button></div></footer>
+        </section>
         <section id="setup" class="setup" aria-labelledby="setup-title" hidden>
           <header class="setup-intro"><span class="section-label">MAKE YOURSELF AT HOME</span><h2 id="setup-title" tabindex="-1">A home for your next conversation.</h2><p>Create an address for yourself or your agent. Your first inbox starts here.</p></header>
           <div class="setup-layout">
@@ -84,7 +80,7 @@
                 <button id="setup-retry" class="primary" hidden>Retry delivery setup</button>
                 <div id="setup-try" hidden>
                   <section class="setup-option"><div><h4>Try your new address</h4><p>Send an email here from another account, then check for it.</p></div><button id="setup-copy-address">Copy address</button><button id="setup-check-mail">Check for email</button><p id="setup-mail-status" class="setup-caption" role="status"></p></section>
-                  <section class="setup-option"><div><h4>Connect your agent</h4><p>Open Developers for one account key across all your inboxes. A mailbox key can optionally limit an agent to this inbox.</p></div><button id="setup-connect">Get a mailbox key <span data-icon="arrow-right"></span></button><p id="setup-connection-status" class="setup-caption" role="status"></p></section>
+                  <section class="setup-option"><div><h4>Connect your agent</h4><p>Open API keys for one account key across all your inboxes. A mailbox key can optionally limit an agent to this inbox.</p></div><button id="setup-connect">Get a mailbox key <span data-icon="arrow-right"></span></button><p id="setup-connection-status" class="setup-caption" role="status"></p></section>
                 </div>
               </div>
               <p id="setup-error" class="error" role="alert"></p>
@@ -92,9 +88,12 @@
           </div>
           <footer class="setup-footer"><span id="setup-footer-note">You can use your inbox in the browser or through the API.</span><button id="setup-dismiss">Set up later <span data-icon="arrow-right"></span></button></footer>
         </section>
-        <div class="mail-workspace">
+        <section id="mail-page" class="mail-page" aria-labelledby="mail-heading" hidden>
+          <header class="resource-heading mail-heading"><div><a class="back-link" href="#/inboxes"><span data-icon="arrow-left"></span>All inboxes</a><h1 id="mail-heading" tabindex="-1">Inbox</h1><div class="mailbox-switcher"><select id="inboxes" aria-label="Mailbox"></select><button id="copy-inbox-address" class="icon-button" aria-label="Copy email address" title="Copy email address"><span data-icon="copy"></span></button></div></div><div class="heading-actions"><button id="finish-inbox" hidden><span data-icon="alert"></span>Finish setup</button><button id="compose" class="primary"><span data-icon="plus"></span>Compose</button><details class="actions-menu" id="mail-actions"><summary aria-label="Inbox options" title="Inbox options"><span data-icon="more"></span></summary><div class="actions-popover"><button id="credentials" hidden><span data-icon="key"></span>Mailbox API key</button><button id="delete-inbox" class="danger-text"><span data-icon="trash"></span>Delete inbox…</button></div></details></div></header>
+          <div class="mail-toolbar"><nav aria-label="Email folders" id="folders"><button data-folder="inbox" aria-current="page"><span data-icon="inbox"></span>Inbox</button><button data-folder="sent"><span data-icon="send"></span>Sent</button><button data-folder="all"><span data-icon="stack"></span>All mail</button><button data-folder="quarantined"><span data-icon="shield"></span>Quarantine</button><button data-folder="trash"><span data-icon="trash"></span>Trash</button></nav><form id="search-form" class="search"><input id="query" aria-label="Search mail" placeholder="Search this inbox" type="search"><button type="submit" aria-label="Search" title="Search"><span data-icon="search"></span></button></form></div>
+          <div class="mail-workspace">
           <section class="mail-list" aria-label="Messages">
-            <header class="list-header"><div><h2>Conversations <span id="thread-count" class="count" hidden></span></h2><p id="mailbox-address">Choose a mailbox to get started</p></div><button id="refresh" class="icon-button" title="Refresh messages" aria-label="Refresh messages"><span data-icon="refresh"></span></button></header>
+            <header class="list-header"><div><h2><span id="folder-title">Inbox</span> <span id="thread-count" class="count" hidden></span></h2><p id="mailbox-address">Choose a mailbox to get started</p></div><div class="list-tools"><button id="toggle-triage" class="icon-button" aria-label="Filter messages" title="Filter messages" aria-expanded="false" aria-controls="triage-filters"><span data-icon="filter"></span></button><button id="refresh" class="icon-button" title="Refresh messages" aria-label="Refresh messages"><span data-icon="refresh"></span></button></div></header>
             <fieldset id="triage-filters" class="triage-filters" aria-label="Filter email triage">
               <div class="triage-filter-heading"><p>Email triage</p><button id="clear-triage" type="button" hidden>Clear filters</button></div>
               <div class="triage-filter-fields">
@@ -107,11 +106,18 @@
             <button id="load-more" class="load-more" hidden>Load more</button>
           </section>
           <section class="reader" aria-label="Conversation" tabindex="-1"><div id="conversation" class="conversation"></div></section>
-        </div>
+          </div>
+        </section>
+        <section id="api-keys-page" class="resource-page" aria-labelledby="api-keys-heading" hidden><header class="resource-heading"><div><h1 id="api-keys-heading" tabindex="-1">API keys</h1><p>Connect your agents to every inbox in your account.</p></div><button id="new-api-key" class="primary"><span data-icon="plus"></span>Create API key</button></header><p id="api-keys-error" class="error" role="alert"></p><div id="developer-key-list"></div></section>
+        <section id="integrations-page" class="resource-page" aria-labelledby="integrations-heading" hidden><header class="resource-heading"><div><h1 id="integrations-heading" tabindex="-1">Integrations</h1><p>One account key. All your inboxes.</p></div><a class="button-link" href="#/api-keys">Manage API keys <span data-icon="arrow-right"></span></a></header><div class="integration-grid"><section class="integration-card"><span data-icon="code"></span><h2>REST API</h2><p>Create inboxes, read mail, and send messages from your application.</p><label>API URL<code id="developer-base-url"></code></label><a id="developer-api-docs" target="_blank" rel="noopener">View API specification <span data-icon="arrow-right"></span></a></section><section class="integration-card"><span data-icon="stack"></span><h2>MCP</h2><p>Give an MCP client access to your email tools. Connect with an account API key.</p><label>Server URL<code id="developer-mcp-url"></code></label></section><section class="integration-card"><span data-icon="terminal"></span><h2>SDKs &amp; CLI</h2><p>Use the TypeScript SDK, Python SDK, or CLI to work with your inboxes and named groups.</p><a href="https://github.com/boringcomputers/bezalel-email/blob/main/docs/developers.md" target="_blank" rel="noopener">Setup and examples <span data-icon="arrow-right"></span></a></section></div></section>
+        <section id="domains-page" class="resource-page" aria-labelledby="domains-heading" hidden><header class="resource-heading"><div><h1 id="domains-heading" tabindex="-1">Domains</h1><p>Send and receive email on your own domain.</p></div><button id="new-domain" class="primary"><span data-icon="plus"></span>Add domain</button></header><p id="domains-error" class="error" role="alert"></p><div id="domain-list"></div></section>
       </div>
     </section>
   </main>
   <div id="notice" role="status" hidden></div>
+  <dialog id="delete-inbox-dialog" aria-labelledby="delete-inbox-title" aria-describedby="delete-inbox-description">
+    <form id="delete-inbox-form"><div class="dialog-header"><h2 id="delete-inbox-title">Delete inbox?</h2></div><p class="dialog-description" id="delete-inbox-description">All messages in this inbox will be permanently deleted. This email address cannot be used again.</p><div class="delete-inbox-target"><span data-icon="inbox"></span><div><strong id="delete-inbox-name"></strong><p id="delete-inbox-address"></p></div></div><p id="delete-inbox-error" class="error" role="alert"></p><footer><button id="cancel-delete-inbox" type="button" data-close="delete-inbox-dialog" autofocus>Cancel</button><button id="confirm-delete-inbox" class="danger" type="submit">Delete inbox</button></footer></form>
+  </dialog>
   <dialog id="compose-dialog" aria-labelledby="compose-title">
     <form id="compose-form">
       <div class="dialog-header"><h2 id="compose-title">New message</h2><button class="icon-button" type="button" data-close="compose-dialog" aria-label="Close compose"><span data-icon="close"></span></button></div>
@@ -136,23 +142,10 @@
     </form>
   </dialog>
   <dialog id="domains-dialog" class="wide-dialog" aria-labelledby="domains-title">
-    <div class="dialog-header"><h2 id="domains-title">Custom domains</h2><button class="icon-button" type="button" data-close="domains-dialog" aria-label="Close domains"><span data-icon="close"></span></button></div>
+    <div class="dialog-header"><h2 id="domains-title">Add domain</h2><button class="icon-button" type="button" data-close="domains-dialog" aria-label="Close domain creation"><span data-icon="close"></span></button></div>
     <p class="dialog-description">Connect a domain by adding its DNS records. Custom domains require a configured SMTP gateway.</p>
     <form id="domain-form" class="domain-form"><label>Domain<input name="domain" required placeholder="agents.example.com"></label><button class="primary" type="submit">Add domain</button></form>
     <p id="domain-error" class="error" role="alert"></p>
-    <div id="domain-list"></div>
-  </dialog>
-  <dialog id="customers-dialog" class="wide-dialog" aria-labelledby="customers-title">
-    <div class="dialog-header"><h2 id="customers-title">Customers</h2><button class="icon-button" type="button" data-close="customers-dialog" aria-label="Close customers"><span data-icon="close"></span></button></div>
-    <p class="dialog-description">Add a customer's email, then share this dashboard's address. They sign in with an email code.</p>
-    <form id="customer-form">
-      <label>Email<input name="email" type="email" placeholder="alex@company.com" required maxlength="254" autocomplete="off"></label>
-      <label>Name<input name="displayName" placeholder="Alex Morgan" maxlength="200"></label>
-      <label>Inbox limit (optional)<input name="inboxLimit" type="number" min="1" max="100" placeholder="No limit"></label>
-      <button class="primary" type="submit">Add customer</button>
-    </form>
-    <p id="customer-error" class="error" role="alert"></p>
-    <div id="customer-list"></div>
   </dialog>
   <dialog id="credentials-dialog" aria-labelledby="credentials-title">
     <div class="dialog-header"><h2 id="credentials-title">Mailbox API key</h2><button class="icon-button" type="button" data-close="credentials-dialog" aria-label="Close API key"><span data-icon="close"></span></button></div>
@@ -167,11 +160,9 @@
     </section>
     <footer><button id="rotate-key">Replace key</button><button id="copy-key" class="primary">Copy key</button></footer>
   </dialog>
-  <dialog id="developer-dialog">
-    <header class="dialog-header"><div><h2>Developers</h2><p>Connect your apps and agents to your inboxes.</p></div><button class="icon-button" data-close="developer-dialog" aria-label="Close developers"><span data-icon="close"></span></button></header>
-    <p>API: <code id="developer-base-url"></code></p><p>MCP: <code id="developer-mcp-url"></code></p>
-    <p><a id="developer-api-docs" target="_blank" rel="noopener">Open API specification</a></p>
-    <h3>Create an account API key</h3><p>One key connects your account to the API, SDKs, CLI, and MCP. Create multiple inboxes and organize them into groups with the same key.</p>
+  <dialog id="developer-dialog" aria-labelledby="developer-title">
+    <header class="dialog-header"><h2 id="developer-title">Create API key</h2><button class="icon-button" data-close="developer-dialog" aria-label="Close API key creation"><span data-icon="close"></span></button></header>
+    <p>Choose what this key can access. It can be used across all your inboxes.</p>
     <form id="developer-form">
       <label>Key name<input name="name" required maxlength="100" placeholder="Research agent" autocomplete="off"></label>
       <fieldset><legend>Permissions</legend>
@@ -185,7 +176,7 @@
       <button id="developer-create" class="primary" type="submit">Create API key</button>
     </form>
     <section id="developer-created" hidden><p>Copy this key now. It is shown only once. Store it as <code>BEZALEL_API_KEY</code>.</p><label>New account API key<input id="developer-token" readonly type="password" autocomplete="off"></label><button id="developer-copy">Copy API key</button></section>
-    <p id="developer-error" class="error" role="alert"></p><h3>Your API keys</h3><div id="developer-key-list"></div>
+    <p id="developer-error" class="error" role="alert"></p>
   </dialog>
 </body>
 </html>

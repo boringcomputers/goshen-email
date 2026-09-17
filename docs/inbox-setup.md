@@ -2,10 +2,11 @@
 
 New account users see **Get started** when they open an empty workspace. They
 choose an email username on the configured default domain and can add an inbox
-name. The guide uses the same provisioning and ownership checks as **New inbox**.
+name. The guide uses the same provisioning and ownership checks as **Create inbox**.
 
 If delivery routing fails, the address remains reserved. Reloading the page
-shows that reservation and **Retry delivery setup** retries the same inbox.
+shows that reservation in **Inboxes**. Open it and choose **Get started**;
+**Retry delivery setup** retries the same inbox.
 The guide distinguishes configured routing from confirmed receipt of an email.
 It never sends a test email automatically.
 
@@ -16,7 +17,7 @@ message contents.
 
 ## Connect an agent
 
-Open **Developers** for an account API key that works across all of the account's
+Open **API keys** for an account API key that works across all of the account's
 inboxes through the API, SDKs, CLI, and MCP. See the [developer guide](developers.md).
 
 For optional single-inbox access, **Get a mailbox key** opens the mailbox key dialog. The key stays masked

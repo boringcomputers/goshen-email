@@ -1,6 +1,7 @@
 import { triageBadges, triageDetails } from "./triage.js"
 import { createDeveloperPanel } from "./developer.js"
 import { createInboxSetup, connectionCommand } from './setup.js'
+import { createDashboardConsole } from './console.js'
 const $ = (selector) => document.querySelector(selector)
 const accountEvents = new BroadcastChannel('bezalel-account')
 accountEvents.addEventListener('message', (event) => { if (event.data === 'signed-out' && state.authMode === 'account') showLogin() })
@@ -21,7 +22,6 @@ const iconPaths = {
   stack: '<rect x="3" y="2" width="10" height="10" rx="2"/><path d="M1 6v8h9M6 5h4M6 8h3"/>',
   shield: '<path d="M8 1.5l5.5 2v4c0 3-3 5.5-5.5 7-2.5-1.5-5.5-4-5.5-7v-4zM8 5v3M8 10.5h.01"/>',
   trash: '<path d="M2 4h12M6 4V2h4v2M4 4l.7 10h6.6L12 4M6.5 7v4M9.5 7v4"/>',
-  users: '<circle cx="6" cy="5" r="2.5"/><path d="M1.5 14v-1.5a4.5 4.5 0 019 0V14M11 2.5a2.5 2.5 0 010 5M12 9.5a4 4 0 012.5 3.5v1"/>',
   key: '<circle cx="5" cy="6" r="3.5"/><path d="M8 8l5.5 5.5M11 11l2-2M12.5 12.5l2-2"/>',
   plus: '<path d="M8 3v10M3 8h10"/>',
   globe: '<circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.5" ry="6"/><path d="M2 8h12"/>',
@@ -30,6 +30,11 @@ const iconPaths = {
   refresh: '<path d="M13.5 6a5.5 5.5 0 00-9.7-2L2 6M2 2v4h4M2.5 10a5.5 5.5 0 009.7 2l1.8-2M14 14v-4h-4"/>',
   close: '<path d="M4 4l8 8M12 4l-8 8"/>',
   menu: '<path d="M2 4h12M2 8h12M2 12h12"/>',
+  more: '<circle cx="3" cy="8" r=".8"/><circle cx="8" cy="8" r=".8"/><circle cx="13" cy="8" r=".8"/>',
+  copy: '<rect x="5" y="5" width="9" height="9" rx="2"/><path d="M10 2H4a2 2 0 00-2 2v6"/>',
+  code: '<path d="M5 4L1 8l4 4M11 4l4 4-4 4M9 2L7 14"/>',
+  terminal: '<rect x="1" y="2" width="14" height="12" rx="2"/><path d="M4 5l3 3-3 3M9 11h3"/>',
+  filter: '<path d="M2 4h12M4 8h8M6 12h4"/>',
   'arrow-right': '<path d="M2 8h12M9 3l5 5-5 5"/>',
   'arrow-left': '<path d="M14 8H2M7 3L2 8l5 5"/>',
   paperclip: '<path d="M6 9.5l4.5-4.5a2 2 0 012.8 2.8L7 14a3.5 3.5 0 01-5-5l6.5-6.5a2 2 0 012.8 2.8L5 11"/>',
@@ -75,13 +80,13 @@ $('#open-menu').addEventListener('click', () => setMenu(true))
 $('#close-menu').addEventListener('click', () => setMenu(false))
 $('#sidebar-backdrop').addEventListener('click', () => setMenu(false))
 $('#sidebar').addEventListener('click', (event) => {
-  if (mobileViewport.matches && event.target.closest('button') && event.target.closest('button').id !== 'close-menu') setMenu(false, false)
+  if (mobileViewport.matches && event.target.closest('button, a') && event.target.closest('button, a').id !== 'close-menu') setMenu(false, false)
 })
 $('#sidebar').addEventListener('keydown', (event) => {
   if (!mobileViewport.matches || !$('#app').classList.contains('menu-open') || document.querySelector('dialog[open]')) return
   if (event.key === 'Escape') { event.preventDefault(); setMenu(false) }
   if (event.key !== 'Tab') return
-  const controls = [...$('#sidebar').querySelectorAll('button:not(:disabled), select')].filter((element) => element.checkVisibility())
+  const controls = [...$('#sidebar').querySelectorAll('button:not(:disabled), a[href], select')].filter((element) => element.checkVisibility())
   const first = controls[0], last = controls.at(-1)
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
@@ -132,9 +137,7 @@ const rpc = async (operation, value = {}) => (await request(`/api/rpc/${operatio
 const setup = createInboxSetup({ state, rpc, createInbox, loadInboxes, notify,
   openCredentials: () => $('#credentials').click(),
   onVisibilityChange(open) {
-    $('.mail-workspace').hidden = open
-    $('.topbar-actions').hidden = open
-    $('#folder-title').textContent = open ? 'Get started' : state.query ? 'Search results' : folderNames[state.folder]
+    dashboard.showSetup(open)
     if (open) $('#get-started').setAttribute('aria-current', 'page')
     else $('#get-started').removeAttribute('aria-current')
     for (const button of document.querySelectorAll('[data-folder]')) {
@@ -158,13 +161,20 @@ const action = (element, task) => element.addEventListener('click', async () => 
   try { await task() } catch (error) { notify(error.message) } finally { element.disabled = false }
 })
 const developers = createDeveloperPanel({ rpc, notify, getSession: () => state.session })
+const dashboard = createDashboardConsole({ state, icon, rpc, notify, selectInbox, loadInboxes,
+  closeSetup: () => setup.close(), openSetup: () => setup.open(), closeNavigation: () => setMenu(false, false),
+  loadPage: async page => {
+    if (page === 'api-keys') await developers.load()
+    if (page === 'domains') { $('#domains-error').textContent = ''; await loadDomains() }
+  },
+})
 function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
-  setup.reset(); developers.reset(); resetTriageFilters()
+  dashboard.reset(); setup.reset(); developers.reset(); resetTriageFilters()
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
-  $('#customer-list').replaceChildren(); $('#domain-list').replaceChildren(); $('#api-key').value = ''
+  $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)
   $('#account-name').textContent = 'Your workspace'; $('#account-avatar').textContent = 'B'
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
@@ -194,6 +204,7 @@ async function loadInboxes(preferred = state.inbox) {
   } while (pageToken)
   if (epoch !== state.epoch) return
   state.inboxes = inboxes
+  dashboard.render()
   $('#inboxes').replaceChildren(...inboxes.map((inbox) => {
     const option = node('option', `${inbox.group ? `[${inbox.group}] ` : ''}${inbox.inboxId}${inbox.deliveryStatus === 'pending' ? ' (setup pending)' : ''}`)
     option.value = inbox.inboxId
@@ -207,8 +218,9 @@ async function selectInbox(inboxId) {
   $('#inboxes').value = state.inbox
   $('#inboxes').title = state.inbox
   $('#compose').disabled = !state.inbox
+  dashboard.syncSelection()
   // Update the guide immediately, even when message loading is slow or fails.
-  await Promise.all([setup.sync(), loadThreads()])
+  await Promise.all([setup.sync(), dashboard.page === 'mail' ? loadThreads() : Promise.resolve()])
 }
 function resetTriageFilters() {
   state.triageFilters = {}
@@ -217,7 +229,8 @@ function resetTriageFilters() {
 }
 async function loadThreads(append = false) {
   updateAccount()
-  $('#triage-filters').hidden = !state.inbox || state.folder === 'quarantined'
+  $('#triage-filters').hidden = !state.inbox || state.folder === 'quarantined' || $('#toggle-triage').getAttribute('aria-expanded') !== 'true'
+  $('#toggle-triage').hidden = !state.inbox || state.folder === 'quarantined'
   $('#thread-count').hidden = true
   $('#finish-inbox').hidden = !state.inboxes.some((i) => i.inboxId === state.inbox && i.deliveryStatus === 'pending')
   const version = ++state.listVersion
@@ -458,6 +471,10 @@ for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListene
   if (mobileViewport.matches && (document.activeElement === document.body || $('#sidebar').contains(document.activeElement))) $('#open-menu').focus()
 })
 action($('#compose'), () => openCompose())
+$('#toggle-triage').addEventListener('click', () => {
+  const open = $('#toggle-triage').getAttribute('aria-expanded') !== 'true'
+  $('#toggle-triage').setAttribute('aria-expanded', String(open)); $('#triage-filters').hidden = !open
+})
 action($('#discard-draft'), () => {
   if (state.draft?.payload && !confirm('Discard this request? A send without a confirmed receipt may already have been accepted.')) return
   state.draft = null; $('#compose-form').reset(); $('#compose-dialog').close()
@@ -483,14 +500,7 @@ action($('#new-inbox'), () => {
   domain.readOnly = ['access', 'account'].includes(state.authMode)
   if (domain.readOnly) domain.value = state.session.defaultDomain
   $('#inbox-error').textContent = ''; $('#inbox-dialog').showModal() })
-action($('#domains'), async () => { $('#domains-dialog').showModal(); await loadDomains() })
-action($('#delete-inbox'), async () => {
-  const inboxId = state.inbox
-  if (!inboxId || !confirm(`Delete ${inboxId} and all its mail? This address cannot be reused.`)) return
-  await rpc('deleteInbox', { inboxId })
-  if (state.draft?.inboxId === inboxId) state.draft = null
-  await loadInboxes(); notify('Inbox deleted')
-})
+action($('#new-domain'), () => { $('#domain-error').textContent = ''; $('#domains-dialog').showModal() })
 action($('#logout'), async () => {
   const { logoutUrl } = await request('/api/logout', {})
   if (state.authMode === 'account') accountEvents.postMessage('signed-out')
@@ -498,7 +508,7 @@ action($('#logout'), async () => {
   if (logoutUrl === '/cdn-cgi/access/logout') location.assign(logoutUrl)
 })
 $('#inboxes').addEventListener('change', () => {
-  void selectInbox($('#inboxes').value).catch((error) => notify(error.message))
+  dashboard.openInbox($('#inboxes').value)
 })
 for (const button of document.querySelectorAll('[data-folder]')) action(button, async () => {
   setup.close()
@@ -515,8 +525,8 @@ $('#search-form').addEventListener('submit', (event) => {
   void loadThreads().catch((error) => notify(error.message))
 })
 for (const [formId, errorId, operation, after] of [
-  ['inbox-form', 'inbox-error', 'createInbox', async () => { $('#inbox-dialog').close(); $('#inbox-form').reset(); notify('Inbox created') }],
-  ['domain-form', 'domain-error', 'createDomain', async () => { $('#domain-form').reset(); await loadDomains() }],
+  ['inbox-form', 'inbox-error', 'createInbox', async result => { $('#inbox-dialog').close(); $('#inbox-form').reset(); dashboard.openInbox(result.inboxId); notify('Inbox created') }],
+  ['domain-form', 'domain-error', 'createDomain', async () => { $('#domains-dialog').close(); $('#domain-form').reset(); await loadDomains() }],
 ]) $(`#${formId}`).addEventListener('submit', async (event) => {
   event.preventDefault()
   const form = event.currentTarget, button = form.querySelector('[type=submit]')
@@ -536,51 +546,24 @@ $('#login-form').addEventListener('submit', async (event) => {
     await request('/api/login', { password: form.elements.password.value })
     form.reset(); $('#login').hidden = true; $('#app').hidden = false
     await loadInboxes()
+    dashboard.start()
   } catch (error) { $('#login-error').textContent = error.message; notify(error.message) } finally { button.disabled = false }
 })
 void request('/api/session').then(async (session) => {
   if (!session.authenticated) return showLogin()
   state.session = session
   updateAccount()
-  $('#customers').hidden = session.customer?.role !== 'admin'
   $('#developers').hidden = !['access', 'account'].includes(session.authMode)
+  $('#integrations').hidden = $('#developers').hidden
   $('#credentials').hidden = !['access', 'account'].includes(session.authMode)
   $('#domains').hidden = ['access', 'account'].includes(session.authMode) && !session.customDomainsEnabled
   $('#app').hidden = false
-  await loadInboxes()
+  try { await loadInboxes() } catch (error) { $('#inboxes-error').textContent = error.message }
+  if ($('#app').hidden) return
+  developers.configure()
+  dashboard.start()
 }).catch((error) => { notify(error.message); if ($('#app').hidden) showLogin() })
 
-async function loadCustomers() {
-  const { customers } = await rpc('listCustomers')
-  $('#customer-list').replaceChildren(...customers.map((customer) => {
-    const card = node('section', undefined, 'domain-card customer-row'), copy = node('div', undefined, 'customer-copy')
-    copy.append(node('strong', customer.email), node('p', `${customer.inboxCount} inbox${customer.inboxCount === 1 ? '' : 'es'}${customer.role === 'admin' ? ' · Owner' : customer.inboxLimit === null ? ' · No inbox limit' : ` / ${customer.inboxLimit} allowed`}`))
-    card.append(avatar(customer.displayName || customer.email), copy, statusBadge(customer.status))
-    if (customer.role !== 'admin') {
-      const button = node('button', customer.status === 'disabled' ? 'Enable access' : 'Disable access')
-      action(button, async () => {
-        const enabled = customer.status === 'disabled'
-        if (!enabled && !confirm(`Disable ${customer.email}? Their dashboard and mailbox keys will stop working.`)) return
-        await rpc('setCustomerAccess', { customerId: customer.id, enabled })
-        await loadCustomers()
-      })
-      card.append(button)
-    }
-    return card
-  }))
-}
-action($('#customers'), async () => { $('#customers-dialog').showModal(); await loadCustomers() })
-$('#customer-form').addEventListener('submit', async (event) => {
-  event.preventDefault()
-  const form = event.currentTarget, button = form.querySelector('button')
-  button.disabled = true; $('#customer-error').textContent = ''
-  try {
-    await rpc('inviteCustomer', { email: form.elements.email.value.trim(),
-      ...(form.elements.displayName.value.trim() ? { displayName: form.elements.displayName.value.trim() } : {}),
-      inboxLimit: form.elements.inboxLimit.value ? Number(form.elements.inboxLimit.value) : null })
-    form.reset(); await loadCustomers(); notify('Access added. Share the dashboard link with your customer.')
-  } catch (error) { $('#customer-error').textContent = error.message } finally { button.disabled = false }
-})
 let credentialsInbox = ''
 async function loadCredentials(operation) {
   const result = await rpc(operation, { inboxId: credentialsInbox })
