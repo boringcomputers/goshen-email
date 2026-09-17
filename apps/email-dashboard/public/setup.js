@@ -87,7 +87,7 @@ export function createInboxSetup({ state, rpc, createInbox, loadInboxes, openCre
       finally { button.disabled = false }
     })
   }
-  bind('#get-started', async () => { setOpen(true, true); await refresh() })
+  bind('#get-started', () => setOpen(true, true))
   bind('#setup-dismiss', () => { rememberDismissal(); setOpen(false) })
   bind('#setup-copy-address', async () => { await navigator.clipboard.writeText(current().address); notify('Address copied') })
   bind('#setup-check-mail', refresh)

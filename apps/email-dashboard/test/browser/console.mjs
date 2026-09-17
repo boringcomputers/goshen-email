@@ -57,6 +57,22 @@ test('resource navigation, grouped inbox search, pagination, and deletion stay s
   await page.locator('#inboxes-page').waitFor()
   await page.goBack()
   await page.locator('#mail-page').waitFor()
+  const setupRequests = []
+  const trackSetup = request => { if (new URL(request.url()).pathname === '/api/rpc/setupStatus') setupRequests.push(request.postDataJSON().inboxId) }
+  page.on('request', trackSetup)
+  for (const openSetup of [() => page.locator('#get-started').click(), () => page.reload()]) {
+    setupRequests.length = 0
+    const response = page.waitForResponse('**/api/rpc/setupStatus')
+    await openSetup()
+    const result = await response
+    assert.equal(result.status(), 200)
+    await result.finished()
+    await page.locator('#setup-address').filter({ hasText: inboxes[0].inboxId }).waitFor()
+    assert.deepEqual(setupRequests, [inboxes[0].inboxId], 'Opening or reloading setup fetches its inbox status once')
+  }
+  page.off('request', trackSetup)
+  await page.locator('#setup-dismiss').click()
+  await page.locator('#mail-page').waitFor()
   await page.locator('#developers').click()
   await page.getByText('No account API keys yet.', { exact: true }).waitFor()
   assert.equal(await page.locator('#developer-dialog').isVisible(), false)
