@@ -30,6 +30,12 @@ Deployment preserves all five existing secrets, including the old `DATABASE_URL`
 for code rollback. No mailbox token, webhook secret, address, or ownership
 record is replaced.
 
+The profile declares those five secrets as required. The native deployment
+command reads their names and types from the existing Worker and stops before
+uploading code if any are missing or the inventory fails. It never rotates or
+uploads secrets. Missing credentials must be recovered from protected storage;
+generating replacements would invalidate existing client keys or signatures.
+
 ## Preservation and recovery evidence
 
 The protected PostgreSQL snapshot was restored into disposable PostgreSQL 18.
@@ -82,8 +88,7 @@ are retained for exact comparison after deployment. They are not public artifact
 4. Deploy the reviewed native profile to the existing Worker:
 
    ```sh
-   pnpm --filter @bezalel/email exec wrangler deploy \
-     --config wrangler.native.jsonc --message "Native mail deployment from bezalel-email"
+   pnpm --filter @bezalel/email exec tsx scripts/deploy-native.ts
    ```
 
 5. Verify authenticated mail reads and Bezalel API parity before canary writes.

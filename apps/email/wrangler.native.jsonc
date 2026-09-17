@@ -8,6 +8,9 @@
     "nodejs_compat"
   ],
   "workers_dev": true,
+  "secrets": {
+    "required": ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "DATABASE_URL", "MAIL_API_TOKEN", "MAIL_WEBHOOK_SECRET"]
+  },
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
