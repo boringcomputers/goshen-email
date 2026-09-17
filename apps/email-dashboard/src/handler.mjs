@@ -6,6 +6,7 @@ export const assets = new Map([
   ['/app', ['dashboard.html', 'text/html; charset=utf-8']],
   ['/app/', ['dashboard.html', 'text/html; charset=utf-8']],
   ['/landing.css', ['landing.css', 'text/css; charset=utf-8']],
+  ['/site-header.css', ['site-header.css', 'text/css; charset=utf-8']],
   ['/images/solenne.svg', ['images/solenne.svg', 'image/svg+xml']],
   ['/images/imessage.png', ['images/imessage.png', 'image/png']],
   ['/images/whatsapp.png', ['images/whatsapp.png', 'image/png']],
