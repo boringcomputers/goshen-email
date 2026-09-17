@@ -5,11 +5,18 @@ addresses and history. This release uses the existing `bezalel-email` Worker,
 Neon `bezalel_email` database, R2 bucket, delivery queues, and public URLs.
 AgentMail and the standalone deployment keep their existing resources.
 
+The migration is live. At 23:41 UTC on September 17, the reviewed native profile
+replaced the embedded implementation on the existing Worker. Production checks
+below passed. The 24-hour observation period ends September 18 at 23:46 UTC;
+that period is still in progress.
+
 ## Release identity
 
 | Item | Value |
 | --- | --- |
 | Shared implementation | `80384464e99c8ec4865443f94aa99579c0f137c5` |
+| Activated source commit | `fdb3c1133d0018385d9b1c7ff674e996da8ad96a` |
+| Active Worker version | `a599ab54-7473-46d0-9c27-6d21962050fb`, 100% traffic |
 | Previous native source | Bezalel `8c39cb800b951b6708bf197927957cad09e8f0e3` |
 | Previous Worker version | `b75d5b23-888c-49a3-81bc-6b0b79dbb81c` |
 | Profile | [`wrangler.native.jsonc`](../apps/email/wrangler.native.jsonc) |
@@ -69,8 +76,52 @@ They sent no external mail and replayed no historical webhooks.
 
 The live baseline contains 75 successful requests: 38 to the Worker and 37
 through Bezalel's owner-scoped dashboard API. It covers inbox/message lists and
-all eleven visible production messages and their threads. The protected results
-are retained for exact comparison after deployment. They are not public artifacts.
+all eleven visible production messages and their threads. All 75 responses
+matched exactly after deployment, before the delivery check added new messages.
+The protected results are retained as evidence. They are not public artifacts.
+
+## Production verification
+
+The native migration completed at 23:41:26 UTC. Its command took 1.64 seconds,
+including process startup. Every original field matched in all ten original
+tables. The runtime role had the required grants on all nineteen tables.
+
+| Check | Before activation | After activation |
+| --- | --- | --- |
+| Existing inbox records | 31 | All 31 unchanged |
+| Existing message records | 13 | All 13 unchanged; three new delivery-check messages |
+| Native ownership | 26 active inboxes | All 26 ledger records unchanged |
+| AgentMail ledger | 88 records across all statuses | All 88 unchanged |
+| Direct mailbox clients | Three existing keys | All three authenticated successfully; no rotation |
+| Test namespace | One active test inbox | Same inbox visible through the test API |
+| Worker and Bezalel API reads | 75 baseline responses | 75 exact matches |
+| Pending work | Zero pending events or intake | Zero pending events, intake, or unsettled sends |
+
+The delivery check used an existing owner mailbox and the same owner's connected
+Gmail account. The initial send arrived in Gmail. Retrying the same request
+returned its original receipt without another send. A Gmail reply arrived in
+Bezalel with one received event attributed to the correct owner and completed
+fan-out. Its 90-byte attachment downloaded through Bezalel's signed URL with
+identical bytes. Replying through Bezalel reached Gmail in the same thread.
+Both outgoing messages passed Gmail's SPF, DKIM, and DMARC checks. The three
+check messages remain in the inbox history.
+
+Cloudflare readback confirmed the existing R2 bucket, delivery queue, minute
+schedule, public URL, and all five secrets. Scheduled execution succeeded after
+activation. No customer records or customer notifications were created.
+All 26 domain ledger records and the empty draft ledger are unchanged. The five
+original R2 objects remaining after the previous Worker's garbage collection
+still match their backup hashes, totaling 75,446 bytes. The sixth backed-up
+object belonged to the garbage-collection job completed before activation.
+
+A local systemd user service, `bezalel-native-release-0917a-observation`, checks
+the Worker, original record presence, inbox ownership, pending work, and recent
+scheduled execution every five minutes until September 18 at 23:46 UTC. Its
+initial samples passed. It records failures for review and never changes mail or
+rolls back automatically. The protected status and sample log are under
+`.artifacts/native-release/private/`. The worktree must remain until observation
+finishes. Protected recovery material also exists outside the worktree and must
+remain through at least September 25 at 00:00 UTC.
 
 ## Activation and recovery
 
@@ -118,20 +169,22 @@ versioned bindings; it does not restore storage. See Cloudflare's
 - The PostgreSQL suite passed 221 tests initially. One assertion still expected
   eighteen tables after the settings merge added a nineteenth. That assertion
   was corrected; all five tests in its runtime file passed on rerun.
-- Six native migration target and secret-redaction tests passed.
+- Six native migration target and secret-redaction tests and seven deployment
+  secret-inventory tests passed.
 - Companion packages passed 61 tests. Bezalel's six email UI files passed all
-  37 tests. The first Bezalel server run passed 63 tests and skipped 77 database
-  cases. All seventeen managed-provider tests then passed against isolated
-  PostgreSQL, including original-provider replies, ownership, shared limits,
-  AgentMail outage isolation, and saved default senders. The remaining database
-  cases are running separately after the first combined run was stopped by the
-  job wrapper.
-- Authenticated browser UI verification, external delivery, and the 24-hour
-  observation period are still pending at release preparation time.
+  37 tests. All 140 distinct focused Bezalel server cases passed across isolated
+  PostgreSQL runs, including managed providers, signed events, policy, drafts,
+  replies, and AgentMail isolation. The first combined run stopped in the job
+  wrapper after 96 passing cases; focused runs covered the remaining cases.
+- Production verification used authenticated dashboard APIs and real delivery.
+  No authenticated browser session was available, so these results do not claim
+  a manual browser walkthrough. The 24-hour observation period is still running.
+- GitHub Actions could not start because the account has a billing or spending
+  limit block. The build and test results above came from local runs.
 
 Cloudflare's scheduled invocation dataset had stopped recording native runs at
 03:18 UTC on September 17 while recent HTTP invocations remained present. The
 existing minute schedule was reapplied at 22:51 UTC. Successful runs at 22:57,
 22:58, and 22:59 UTC confirmed recovery. The previous Worker also completed its
 pending garbage-collection job. The six-object backup predates that collection.
-Activation must confirm that scheduled progress continues after the code change.
+The new Worker recorded a successful scheduled run at 23:42 UTC, after activation.
