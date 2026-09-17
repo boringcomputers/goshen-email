@@ -1,6 +1,7 @@
 import { beforeAll, afterAll, beforeEach, expect, it } from 'vitest'
 import { fixture, rawMail } from './support.js'
 import { CustomerStore, updateSettingsInput, type Customer } from '../src/customer-store.js'
+import type { Database } from '../src/database.js'
 import { desktopNotifications, sendNotifications } from '../src/notifications.js'
 
 let f: Awaited<ReturnType<typeof fixture>>, store: CustomerStore, owner: Customer, other: Customer
@@ -76,4 +77,77 @@ it('suppresses automatic-mail loops and never retries uncertain notification sen
   await deliver(); await deliver()
   expect(f.send).toHaveBeenCalledTimes(1)
   expect(await f.db.query(`select email_state from mail.notifications where email_requested`)).toEqual([{ email_state: 'failed' }])
+})
+
+
+it('uses a server cursor to exclude old mail while including arrivals during the first poll', async () => {
+  await enable(); await receive('historical')
+  await f.db.query("update mail.notifications set created_at = now() - interval '1 minute'")
+  const session = await store.resolve({ email: owner.email, subject: owner.email })
+  expect(session.notificationCursor).toBeTruthy()
+  await receive('during-request')
+  const result = await desktopNotifications(f.db, owner.id, session.notificationCursor)
+  expect(result.notifications).toHaveLength(1)
+})
+
+it('cancels and finalizes a summary when opt-out wins before the send lock', async () => {
+  await enable(); await receive('queued')
+  const db: Database = { ...f.db, transaction: async task => {
+    await store.updateSettings(owner, { emailNotifications: false })
+    return f.db.transaction(task)
+  } }
+  await sendNotifications(db, f.service.transport, 'notify@example.com', 'https://app.example.com')
+  expect(f.send).not.toHaveBeenCalled()
+  expect(await f.db.query('select email_state from mail.notifications')).toEqual([{ email_state: 'failed' }])
+})
+
+it('serializes opt-out with an active send and prevents sends after the opt-out completes', async () => {
+  await enable(); await receive('queued')
+  let started!: () => void, release!: () => void
+  const sending = new Promise<void>(resolve => { started = resolve })
+  const gate = new Promise<void>(resolve => { release = resolve })
+  f.send.mockImplementationOnce(async input => {
+    started(); await gate
+    return { messageId: 'receipt', delivered: input.to, queued: [], bounced: [], suppressed: [] }
+  })
+  const worker = deliver()
+  await sending
+  let saved = false
+  const optOut = store.updateSettings(owner, { emailNotifications: false }).then(() => { saved = true })
+  try { await new Promise(resolve => setTimeout(resolve, 25)); expect(saved).toBe(false) }
+  finally { release(); await Promise.all([worker, optOut]) }
+  expect(saved).toBe(true)
+  await receive('after-opt-out'); await deliver()
+  expect(f.send).toHaveBeenCalledTimes(1)
+})
+
+it('restores a claimed summary when recipient lookup fails before transport begins', async () => {
+  await enable(); await receive('queued')
+  const db: Database = { ...f.db, transaction: task => f.db.transaction(tx => task({
+    query: async (sql, params) => {
+      if (sql.includes('select c.email, count')) throw new Error('recipient lookup unavailable')
+      return tx.query(sql, params)
+    },
+  })) }
+  await expect(sendNotifications(db, f.service.transport, 'notify@example.com', 'https://app.example.com'))
+    .rejects.toThrow('recipient lookup unavailable')
+  expect(f.send).not.toHaveBeenCalled()
+  expect(await f.db.query('select email_state from mail.notifications')).toEqual([{ email_state: 'pending' }])
+  await deliver()
+  expect(f.send).toHaveBeenCalledTimes(1)
+})
+
+it('keeps an attempted send terminal if its receipt cannot be committed', async () => {
+  await enable(); await receive('queued')
+  const db: Database = { ...f.db, transaction: task => f.db.transaction(tx => task({
+    query: async (sql, params) => {
+      if (sql.includes('set email_state = $2')) throw new Error('receipt update unavailable')
+      return tx.query(sql, params)
+    },
+  })) }
+  await expect(sendNotifications(db, f.service.transport, 'notify@example.com', 'https://app.example.com'))
+    .rejects.toThrow('receipt update unavailable')
+  expect(await f.db.query('select email_state from mail.notifications')).toEqual([{ email_state: 'attempted' }])
+  await deliver()
+  expect(f.send).toHaveBeenCalledTimes(1)
 })

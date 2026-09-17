@@ -16,7 +16,10 @@ cannot change their email, role, quota, or another account. These operations
 are excluded from the public account-key API and MCP.
 
 Profile saves update both the customer and linked authentication profile in
-one database statement. Disabled accounts cannot read or change settings.
+one database statement. Disabled accounts cannot read or change settings. Session and settings responses
+also include a server-generated `notificationCursor`; notification requests use
+this timestamp to exclude old mail without discarding arrivals during the first
+request. The cursor is a read boundary, not an authentication credential.
 Dashboard requests retain the existing session and origin checks.
 
 ## Notifications
@@ -27,7 +30,10 @@ spam, and trashed messages. Enabling them does not replay historical mail.
 New arrivals create notification records in the message commit statement;
 duplicate inbound messages cannot create duplicate records. Ownership,
 account access, inbox deletion, and protection are checked again on delivery.
-Opt-out cancels queued notifications for that channel.
+Opt-out cancels queued notifications for that channel. The sender holds the
+account row lock during its final eligibility check and transport call. An
+opt-out either cancels work before sending or waits for a send already in
+progress; no new send begins after the opt-out response succeeds.
 
 Desktop alerts require a supported browser, permission, and an open dashboard.
 The **Allow in this browser** button requests permission only on a click,
@@ -50,9 +56,12 @@ links, never message contents. Automated messages with `Auto-Submitted` or
 `X-Bezalel-Notification` headers do not trigger email alerts, preventing loops.
 The notification queue does not alter mailbox send idempotency or webhooks.
 
-The existing transport accepts no notification idempotency key. Each summary is reserved
-before sending and attempted once; errors and interrupted sends are not
-retried automatically because delivery may already have happened. Inspect
+The existing transport accepts no notification idempotency key. Each summary is durably reserved
+before sending and attempted once. A failed lookup before transport begins
+returns the reservation to pending, and an ineligible recipient finalizes it
+as failed. Transport errors and interrupted sends are not retried automatically
+because delivery may already have happened. The reservation is committed
+before the send transaction so a rollback after sending cannot cause a resend. Inspect
 `mail.notifications.email_state` for pending, attempted, accepted, or failed
 records. An accepted receipt means queued or delivered by the transport,
 not confirmed arrival in the recipient's mailbox. Pending notifications
@@ -85,7 +94,8 @@ and uncertain sends. Browser checks cover saves and failures, navigation,
 permission prompts, alert deduplication, grouped email transport, isolation,
 sign-out/in, and responsive layouts. Focused notification tests also cover granting
 permission after opt-in, cross-tab deduplication, delayed responses after
-sign-out, opt-out cleanup, and recovery after a failed poll.
+sign-out, opt-out cleanup, recovery after a failed poll, and mail arriving
+while the first poll is still in progress.
 
 Start `apps/email/test/dashboard-fixture.ts` with `FIXTURE_AUTH_MODE=account`
 and `FIXTURE_PORT=3194`, then run

@@ -6,14 +6,15 @@ import { inboxGroup, listAccountInboxes } from "./account-inbox-contract.js"
 
 interface CustomerRow {
   id: string; email: string; display_name: string | null; access_subject: string | null;
-  organization_name: string; desktop_notifications: boolean; email_notifications: boolean;
+  notification_cursor?: string; organization_name: string; desktop_notifications: boolean; email_notifications: boolean;
   created_at: string; signed_in_at: string | null; disabled_at: string | null; inbox_limit: number | null
 }
 export type CustomerInbox = InboxRow & { route_ready: boolean | null; group_name: string | null }
-export interface Customer { id: string; email: string; displayName?: string; organizationName?: string; desktopNotifications?: boolean; emailNotifications?: boolean; role: "admin" | "customer"; inboxLimit: number | null }
+export interface Customer { id: string; email: string; displayName?: string; organizationName?: string; notificationCursor?: string; desktopNotifications?: boolean; emailNotifications?: boolean; role: "admin" | "customer"; inboxLimit: number | null }
 const view = (row: CustomerRow, adminEmails: string[]): Customer => ({
   id: row.id, email: row.email, displayName: row.display_name ?? undefined,
   organizationName: row.organization_name ?? "Your workspace",
+  notificationCursor: row.notification_cursor ? new Date(row.notification_cursor).toISOString() : undefined,
   desktopNotifications: row.desktop_notifications ?? false, emailNotifications: row.email_notifications ?? false,
   role: adminEmails.includes(row.email) ? "admin" : "customer", inboxLimit: adminEmails.includes(row.email) ? null : row.inbox_limit,
 })
@@ -41,7 +42,7 @@ export class CustomerStore {
     }
     const [row] = await this.db.query<CustomerRow>(
       `update mail.customers set access_subject = coalesce(access_subject, $2), signed_in_at = coalesce(signed_in_at, now())
-       where email = $1 and disabled_at is null and (access_subject is null or access_subject = $2) returning *`,
+       where email = $1 and disabled_at is null and (access_subject is null or access_subject = $2) returning *, statement_timestamp() as notification_cursor`,
       [identity.email, identity.subject])
     if (!row) throw new MailError("This account does not have dashboard access. Contact the owner for an invitation.", "access_denied", 403)
     return view(row, this.adminEmails)
@@ -54,7 +55,7 @@ export class CustomerStore {
        on conflict (email) do update set auth_user_id = coalesce(mail.customers.auth_user_id, excluded.auth_user_id),
          signed_in_at = coalesce(mail.customers.signed_in_at, now())
        where mail.customers.disabled_at is null and (mail.customers.auth_user_id is null or mail.customers.auth_user_id = excluded.auth_user_id)
-       returning *`, [user.email.toLowerCase(), user.name, user.id])
+       returning *, statement_timestamp() as notification_cursor`, [user.email.toLowerCase(), user.name, user.id])
     if (!row) throw new MailError("Your dashboard access has been disabled. Contact the owner.", "access_denied", 403)
     return view(row, this.adminEmails)
   }
@@ -82,7 +83,7 @@ export class CustomerStore {
          update mail.customers set organization_name = coalesce($2, organization_name),
            display_name = coalesce($3, display_name),
            desktop_notifications = coalesce($4, desktop_notifications), email_notifications = coalesce($5, email_notifications)
-         where id = $1 and disabled_at is null returning *
+         where id = $1 and disabled_at is null returning *, statement_timestamp() as notification_cursor
        ), notifications as (
          update mail.notifications set desktop_requested = case when $4 = false then false else desktop_requested end,
            email_requested = case when $5 = false then false else email_requested end

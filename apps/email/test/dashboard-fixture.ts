@@ -15,7 +15,10 @@ const { dashboardServer } = await import(new URL('../../email-dashboard/src/serv
 const { accountDashboardHandler } = await import(new URL('../../email-dashboard/src/account-handler.mjs', import.meta.url).href)
 const { mailClient } = await import(new URL('../../email-dashboard/src/service.mjs', import.meta.url).href)
 const pg = new PGlite()
-const db: Database = { query: async <T>(sql: string, params: unknown[] = []) => (await pg.query<T>(sql, params)).rows }
+const db: Database = {
+  query: async <T>(sql: string, params: unknown[] = []) => (await pg.query<T>(sql, params)).rows,
+  transaction: task => pg.transaction(tx => task({ query: async <T>(sql: string, params: unknown[] = []) => (await tx.query<T>(sql, params)).rows })),
+}
 await migrate(db)
 const blobs = new Map<string, Uint8Array>()
 const objects: ObjectStore = {

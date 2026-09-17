@@ -1,5 +1,5 @@
 export function createDesktopNotifications({ rpc, openInbox }) {
-  let account = null, timer = null, generation = 0, busy = false, initialized = false
+  let account = null, timer = null, generation = 0, busy = false, since = null
   let enabled = false
   const seen = new Set(), visible = new Set()
   function remember(ids) {
@@ -7,17 +7,14 @@ export function createDesktopNotifications({ rpc, openInbox }) {
     while (seen.size > 500) seen.delete(seen.values().next().value)
   }
   async function poll() {
-    if (!account || !enabled || busy || !('Notification' in window)) return
+    if (!account || !enabled || !since || busy || !('Notification' in window)) return
     const current = generation, key = `bezalel-notifications:${account}`
     busy = true
     try {
-      const { notifications } = await rpc('getNotifications')
+      const { notifications } = await rpc('getNotifications', { since })
       if (current !== generation) return
-      // Establish the baseline before permission is granted so the first
-      // allowed poll can distinguish new arrivals from older messages.
-      if (!initialized || Notification.permission !== 'granted') {
+      if (Notification.permission !== 'granted') {
         remember(notifications.map(item => item.id))
-        initialized = true
         return
       }
       const show = () => {
@@ -43,14 +40,14 @@ export function createDesktopNotifications({ rpc, openInbox }) {
     finally { if (current === generation) busy = false }
   }
   function reset() {
-    generation++; clearInterval(timer); timer = null; account = null; busy = false; initialized = false; seen.clear()
+    generation++; clearInterval(timer); timer = null; account = null; busy = false; since = null; seen.clear()
     for (const alert of visible) alert.close()
     visible.clear()
   }
   return {
     start(customer) {
       if (!customer || (account === customer.id && enabled === customer.desktopNotifications)) return
-      reset(); account = customer.id; enabled = customer.desktopNotifications === true
+      reset(); account = customer.id; enabled = customer.desktopNotifications === true; since = customer.notificationCursor ?? null
       timer = setInterval(poll, 30_000)
       void poll()
     },

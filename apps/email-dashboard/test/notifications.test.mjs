@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 
 const source = (await readFile(new URL('../public/notifications.js', import.meta.url), 'utf8')).replace('export function', 'function')
-const owner = { id: 'owner', desktopNotifications: true }
+const owner = { id: 'owner', desktopNotifications: true, notificationCursor: '2026-09-17T00:00:00.000Z' }
 const message = id => ({ id, inboxId: 'support@example.com' })
 function sharedBrowser() {
   const storage = new Map()
@@ -31,7 +31,7 @@ function tab(shared = sharedBrowser()) {
     document: { hasFocus: () => focused },
     setInterval: callback => { timer = callback; return 1 }, clearInterval: () => { timer = null },
   })
-  const panel = create({ rpc: () => request(), openInbox: inbox => opened.push(inbox) })
+  const panel = create({ rpc: (operation, input) => request(operation, input), openInbox: inbox => opened.push(inbox) })
   return { panel, alerts, opened, Notification, setRows: value => { rows = value }, setRequest: value => { request = value },
     setFocused: value => { focused = value }, tick: async () => { await timer?.() },
     settle: () => new Promise(resolve => setImmediate(resolve)) }
@@ -100,5 +100,20 @@ test('denied permission stays quiet and the next successful poll recovers from a
   await t.tick()
   assert.equal(t.alerts.length, 1)
   assert.equal(t.alerts[0].options.body, 'New mail in support@example.com')
+  t.panel.reset()
+})
+
+
+test('mail arriving during the first request is shown using the session cursor', async () => {
+  const t = tab()
+  let release, input
+  t.setRequest((_operation, value) => { input = value; return new Promise(resolve => { release = resolve }) })
+  t.panel.start(owner)
+  assert.equal(input.since, owner.notificationCursor)
+  release({ notifications: [message('arrived-during-request')] })
+  await t.settle()
+  assert.equal(t.alerts.length, 1)
+  t.setRequest(async () => ({ notifications: [message('arrived-during-request')] }))
+  await t.tick(); assert.equal(t.alerts.length, 1)
   t.panel.reset()
 })

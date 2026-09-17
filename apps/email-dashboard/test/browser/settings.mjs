@@ -94,23 +94,28 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   assert.equal(await page.evaluate(() => window.notificationPermissionRequests), 0, 'No unsolicited permission prompt')
   await page.locator('#desktop-notifications').check()
   await page.locator('#email-notifications').check()
-  const baseline = page.waitForResponse('**/api/rpc/getNotifications')
-  await page.locator('#notifications-form button[type=submit]').click()
-  await page.getByText('Notification preferences saved.', { exact: true }).waitFor()
   const rpc = async (operation, data = {}) => {
     const response = await context.request.post(base + '/api/rpc/' + operation, { headers: { origin: base }, data })
     assert.equal(response.status(), 200)
     return (await response.json()).result
   }
-  await baseline
   const { inboxId } = await rpc('createInbox', { username: 'notifications' })
+  let notificationRequested
+  const firstRequest = new Promise(resolve => { notificationRequested = resolve })
+  const notificationGate = new Promise(resolve => { release = resolve })
+  await page.route('**/api/rpc/getNotifications', async route => { notificationRequested(); await notificationGate; await route.continue() })
+  const baseline = page.waitForResponse('**/api/rpc/getNotifications')
+  await page.locator('#notifications-form button[type=submit]').click()
+  await page.getByText('Notification preferences saved.', { exact: true }).waitFor()
+  await firstRequest
   await page.locator('#allow-notifications').click()
   assert.equal(await page.evaluate(() => window.notificationPermissionRequests), 1)
-  await page.clock.install()
   assert.equal((await context.request.post(control + '/receive', { data: { inboxId, subject: 'Private content stays private' } })).status(), 200)
-  await page.clock.runFor(30_000)
+  release(); await baseline
   await page.waitForFunction(() => window.notificationAlerts.length === 1)
-  assert.equal(await page.evaluate(() => window.notificationAlerts[0].options.body), `New mail in ${inboxId}`)
+  assert.equal(await page.evaluate(() => window.notificationAlerts[0].options.body), `New mail in ${inboxId}`, 'An arrival during the initial poll is displayed')
+  await page.unroute('**/api/rpc/getNotifications')
+  await page.clock.install()
   await page.clock.runFor(30_000)
   assert.equal(await page.evaluate(() => window.notificationAlerts.length), 1, 'The next poll does not repeat an alert')
   assert.equal((await context.request.post(control + '/notifications', { data: {} })).status(), 200)

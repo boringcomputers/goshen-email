@@ -58,7 +58,11 @@ export async function executeCustomerRequest(request: Request, service: MailServ
     if (["createApiKey", "listApiKeys", "revokeApiKey"].includes(operation)) return manageApiKeys(service.store.db, customer, operation, raw)
     if (operation === "session") return { customer, defaultDomain: service.config.defaultDomain, apiUrl: service.config.publicUrl,
       customDomainsEnabled: customer.role === "admin" && Boolean(service.customDomains) }
-    if (operation === "getNotifications") return desktopNotifications(service.store.db, customer.id)
+    if (operation === "getNotifications") {
+      const input = z.object({ since: z.iso.datetime() }).strict().safeParse(raw)
+      if (!input.success) throw new MailError("Use the notification cursor from your account session")
+      return desktopNotifications(service.store.db, customer.id, input.data.since)
+    }
     if (operation === "getSettings") return { customer }
     if (operation === "updateSettings") {
       const input = updateSettingsInput.safeParse(raw)

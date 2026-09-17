@@ -14,7 +14,9 @@ Changes to the copied code:
 
 - The schema includes organization names and notification preferences on standalone
   dashboard accounts. Message commits queue opted-in notifications, and the Worker
-  schedules email summaries. Settings, profiles, and notification delivery are
+  schedules email summaries. The PostgreSQL adapter supports transactions so
+  an opt-out and a notification send cannot overlap after the opt-out returns.
+  Settings, profiles, and notification delivery are
   implemented in independently added files. Original source hashes are preserved.
 
 - `MAIL_EVENTS_URL` accepts a shared webhook at any supported URL path.
