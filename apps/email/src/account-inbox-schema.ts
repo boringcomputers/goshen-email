@@ -1,13 +1,7 @@
 export const accountInboxMigrations = [
-  // Convert the old default once; later migrations must preserve explicitly assigned quotas.
-  `do $$ begin
-    if exists (select 1 from information_schema.columns where table_schema = 'mail'
-        and table_name = 'customers' and column_name = 'inbox_limit' and is_nullable = 'NO') then
-      alter table mail.customers alter column inbox_limit drop not null;
-      alter table mail.customers alter column inbox_limit set default null;
-      update mail.customers set inbox_limit = null where inbox_limit = 5;
-    end if;
-  end $$`,
+  // Historical values may be operator-assigned; change the default without rewriting them.
+  `alter table mail.customers alter column inbox_limit drop not null`,
+  `alter table mail.customers alter column inbox_limit set default null`,
   `alter table mail.customer_inboxes add column if not exists group_name text
     check (group_name ~ '^[a-z0-9][a-z0-9_-]{0,63}$')`,
   `create index if not exists customer_inboxes_group on mail.customer_inboxes(customer_id, group_name)`,

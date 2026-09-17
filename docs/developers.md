@@ -227,10 +227,11 @@ EXECUTE on `mail.create_api_key` and `mail.set_customer_access`. Existing defaul
 grants should cover these; verify them before deploying.
 Also verify EXECUTE on the replacement six-argument
 `mail.provision_customer_inbox` function. The migration adds inbox groups and
-changes the default inbox quota to unlimited. On the first upgrade it converts
-existing quotas of five to unlimited, because the old schema cannot distinguish
-the automatic default from a manually assigned five-inbox quota. Other explicit
-quotas remain. Subsequent migration runs preserve all assigned quotas.
+changes the default inbox quota to unlimited for new accounts. Every existing
+quota is preserved, including five: the old schema cannot distinguish its
+automatic default from a manually assigned quota. Review older accounts
+individually before setting their `inbox_limit` to `NULL` to remove a limit.
+Migration reruns also preserve assigned quotas.
 
 Deploy the API before the dashboard. No new secrets, SMTP changes, or DNS changes
 are needed. Package publishing is a separate release step. Rollback can restore
