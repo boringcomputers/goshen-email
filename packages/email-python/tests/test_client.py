@@ -12,14 +12,14 @@ class ClientTests(unittest.TestCase):
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, *_): pass
             def do_GET(self):
-                records.append((self.path, self.headers.get("Authorization"), None))
+                records.append((self.path, self.headers.get("Authorization"), None, self.headers.get("User-Agent")))
                 if self.path == "/v1/inboxes":
                     self.send_response(200); self.end_headers(); self.wfile.write(b'{"inboxes":[]}')
                 else:
                     self.send_response(307); self.send_header("Location", "/other"); self.end_headers()
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
-                records.append((self.path, self.headers.get("Authorization"), body))
+                records.append((self.path, self.headers.get("Authorization"), body, self.headers.get("User-Agent")))
                 self.send_response(422); self.end_headers(); self.wfile.write(b'{"error":{"code":"send_uncertain","message":"Retry same key","transient":false}}')
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True); self.thread.start()
@@ -31,6 +31,7 @@ class ClientTests(unittest.TestCase):
     def test_list(self):
         self.assertEqual(self.client.inboxes.list(), {"inboxes": []})
         self.assertEqual(self.requests[0][1], "Bearer bze_test")
+        self.assertEqual(self.requests[0][3], "bezalel-email-python")
 
     def test_send_maps_snake_case_and_never_retries(self):
         with self.assertRaises(BezalelError) as raised:
@@ -39,6 +40,7 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(len(self.requests), 1)
         self.assertEqual(self.requests[0][2]["idempotencyKey"], "stable")
         self.assertNotIn("inboxId", self.requests[0][2])
+        self.assertEqual(self.requests[0][3], "bezalel-email-python")
 
     def test_redirect_is_not_followed(self):
         with self.assertRaises(BezalelError): self.client.inboxes.get(inbox_id="me@example.com")

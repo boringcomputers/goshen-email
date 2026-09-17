@@ -84,7 +84,8 @@ class BezalelEmail:
         elif definition["method"] != "DELETE":
             body = json.dumps(data).encode()
         request = urllib.request.Request(url, data=body, method=definition["method"], headers={
-            "Authorization": "Bearer " + self._key, "Content-Type": "application/json", "Accept": "application/json"})
+            "Authorization": "Bearer " + self._key, "Content-Type": "application/json", "Accept": "application/json",
+            "User-Agent": "bezalel-email-python"})
         try:
             with self._opener.open(request, timeout=self._timeout) as response:
                 return json.load(response)
