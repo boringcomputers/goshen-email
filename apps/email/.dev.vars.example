@@ -20,6 +20,10 @@ CLOUDFLARE_API_TOKEN=replace-with-your-scoped-cloudflare-api-token
 # Optional shared webhook. Mailbox clients keep their own provisioned webhooks.
 # MAIL_EVENTS_URL=https://your-agent.example/email/inbound
 
+# Optional Jev triage for new incoming mail. See docs/triage.md for data sent.
+# TYPESAFE_API_KEY=your-typesafe-api-key
+# TYPESAFE_MODEL=jev-latest
+
 # Public email/password accounts. Match the dashboard origin exactly (no slash).
 # AUTH_PUBLIC_URL=http://127.0.0.1:3031
 # AUTH_FROM=accounts@your-verified-domain.example

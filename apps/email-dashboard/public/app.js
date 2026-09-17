@@ -1,10 +1,11 @@
+import { triageBadges, triageDetails } from "./triage.js"
 import { createDeveloperPanel } from "./developer.js"
 import { createInboxSetup, connectionCommand } from './setup.js'
 const $ = (selector) => document.querySelector(selector)
 const accountEvents = new BroadcastChannel('bezalel-account')
 accountEvents.addEventListener('message', (event) => { if (event.data === 'signed-out' && state.authMode === 'account') showLogin() })
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload() })
-const state = { session: null, epoch: 0, inboxes: [], inbox: '', folder: 'inbox', query: '', page: undefined, threads: [], selected: '', listVersion: 0, readVersion: 0, draft: null }
+const state = { session: null, epoch: 0, inboxes: [], inbox: '', folder: 'inbox', query: '', triageFilters: {}, page: undefined, threads: [], selected: '', listVersion: 0, readVersion: 0, draft: null }
 const folderNames = { inbox: 'Inbox', sent: 'Sent', all: 'All mail', quarantined: 'Quarantine', trash: 'Trash' }
 let noticeTimer
 const node = (tag, text, className) => {
@@ -161,7 +162,7 @@ function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
-  setup.reset(); developers.reset()
+  setup.reset(); developers.reset(); resetTriageFilters()
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#customer-list').replaceChildren(); $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)
@@ -201,6 +202,7 @@ async function loadInboxes(preferred = state.inbox) {
   await selectInbox(inboxes.some((inbox) => inbox.inboxId === preferred) ? preferred : inboxes[0]?.inboxId ?? '')
 }
 async function selectInbox(inboxId) {
+  if (state.inbox !== inboxId) resetTriageFilters()
   state.inbox = inboxId
   $('#inboxes').value = state.inbox
   $('#inboxes').title = state.inbox
@@ -208,8 +210,14 @@ async function selectInbox(inboxId) {
   // Update the guide immediately, even when message loading is slow or fails.
   await Promise.all([setup.sync(), loadThreads()])
 }
+function resetTriageFilters() {
+  state.triageFilters = {}
+  for (const select of document.querySelectorAll('#triage-filters select')) select.value = ''
+  $('#clear-triage').hidden = true
+}
 async function loadThreads(append = false) {
   updateAccount()
+  $('#triage-filters').hidden = !state.inbox || state.folder === 'quarantined'
   $('#thread-count').hidden = true
   $('#finish-inbox').hidden = !state.inboxes.some((i) => i.inboxId === state.inbox && i.deliveryStatus === 'pending')
   const version = ++state.listVersion
@@ -222,7 +230,7 @@ async function loadThreads(append = false) {
   if (!append) $('#threads').replaceChildren(emptyState('Loading mail', 'Your conversations will appear here.'))
   try {
     const result = await rpc(state.query ? 'searchMessages' : 'listThreads', {
-      inboxId: state.inbox, limit: 30, ...(append && state.page ? { pageToken: state.page } : {}),
+      ...state.triageFilters, inboxId: state.inbox, limit: 30, ...(append && state.page ? { pageToken: state.page } : {}),
       ...(state.query ? { query: state.query } : { ...(state.folder === 'all' ? {} : { labels: [state.folder === 'inbox' ? 'received' : state.folder] }), includeTrash: state.folder === 'trash' }),
     })
     if (version !== state.listVersion) return
@@ -249,13 +257,14 @@ function renderThreads() {
     if (unread) { const dot = node('span', undefined, 'unread-dot'); dot.setAttribute('aria-label', 'Unread'); time.prepend(dot) }
     meta.append(node('span', thread.senders.join(', '), 'sender'), time)
     copy.append(meta, node('div', thread.subject || '(No subject)', 'subject'), node('div', thread.preview || (state.folder === 'quarantined' ? 'Held for your review' : 'No preview'), 'preview'))
+    copy.append(triageBadges(thread.triage))
     button.append(avatar(thread.senders[0] || 'Mail'), copy)
     action(button, () => readThread(thread.threadId))
     return button
   })
   $('#thread-count').textContent = `${buttons.length}${state.page ? '+' : ''}`
   $('#thread-count').hidden = !buttons.length
-  $('#threads').replaceChildren(...(buttons.length ? buttons : [emptyState(state.query ? 'No matching messages' : 'No conversations yet', state.query ? 'Try a different search in this mailbox.' : 'Messages in this folder will appear here.')]))
+  $('#threads').replaceChildren(...(buttons.length ? buttons : [emptyState(state.query || Object.keys(state.triageFilters).length ? 'No matching messages' : 'No conversations yet', Object.keys(state.triageFilters).length ? 'Try different triage filters or clear them to see all conversations.' : state.query ? 'Try a different search in this mailbox.' : 'Messages in this folder will appear here.')]))
 }
 async function readThread(threadId) {
   const version = ++state.readVersion
@@ -300,6 +309,7 @@ async function readThread(threadId) {
     sender.append(node('strong', message.from), node('p', `To: ${message.to.join(', ')}${message.cc?.length ? ` · Cc: ${message.cc.join(', ')}` : ''}`))
     head.append(avatar(message.from), sender, node('time', new Date(message.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })))
     article.append(head)
+    if (message.triage) article.append(triageBadges(message.triage), triageDetails(message.triage))
     if (message.protection?.status === 'quarantined') {
       article.append(node('p', 'This message is quarantined. Review its checks before releasing it.', 'warning'))
       if (message.protection.antivirus?.status === 'clean') {
@@ -452,6 +462,16 @@ action($('#discard-draft'), () => {
   if (state.draft?.payload && !confirm('Discard this request? A send without a confirmed receipt may already have been accepted.')) return
   state.draft = null; $('#compose-form').reset(); $('#compose-dialog').close()
 })
+for (const [id, field] of [['triage-category', 'category'], ['triage-needs-reply', 'needsReply'], ['triage-urgency', 'urgency']]) {
+  document.getElementById(id).addEventListener('change', () => {
+    const value = document.getElementById(id).value
+    if (value) state.triageFilters[field] = value
+    else delete state.triageFilters[field]
+    $('#clear-triage').hidden = !Object.keys(state.triageFilters).length
+    void loadThreads().catch(error => notify(error.message))
+  })
+}
+action($('#clear-triage'), async () => { resetTriageFilters(); await loadThreads() })
 action($('#refresh'), () => loadThreads())
 action($('#load-more'), () => loadThreads(true))
 action($('#finish-inbox'), async () => {
@@ -482,6 +502,7 @@ $('#inboxes').addEventListener('change', () => {
 })
 for (const button of document.querySelectorAll('[data-folder]')) action(button, async () => {
   setup.close()
+  resetTriageFilters()
   state.folder = button.dataset.folder; state.query = ''; $('#query').value = ''
   $('#folder-title').textContent = folderNames[state.folder]
   for (const other of document.querySelectorAll('[data-folder]')) other.removeAttribute('aria-current')

@@ -1,3 +1,5 @@
+import { processTriage } from "./triage-worker.js"
+import type { TriageAnalyzer } from "./triage.js"
 import { clientEventTarget } from "./mail-clients.js"
 import { initialDelivery, deliveryEvent } from "./delivery.js"
 import PostalMime, { type Address } from "postal-mime"
@@ -63,6 +65,7 @@ const plainText = (text?: string, html?: string): string =>
   clean(text?.trim() ? text : html ? htmlToText(html) : "")
 const summary = (row: MessageRow, inboxId: string) => ({
   ...(row.protection ? { protection: row.protection } : {}),
+  ...(row.triage && row.protection?.status !== "quarantined" ? { triage: row.triage } : {}),
   messageId: row.wire_id,
   threadId: row.thread_id,
   inboxId,
@@ -106,6 +109,7 @@ export class MailService {
   readonly request: typeof fetch
   readonly customDomains?: CustomDomains
   readonly scanner?: InboundScanner
+  readonly triageAnalyzer?: TriageAnalyzer
   constructor(deps: {
     store: MailboxStore
     objects: ObjectStore
@@ -114,6 +118,7 @@ export class MailService {
     request?: typeof fetch
     customDomains?: CustomDomains
     scanner?: InboundScanner
+    triageAnalyzer?: TriageAnalyzer
   }) {
     this.store = deps.store
     this.objects = deps.objects
@@ -122,6 +127,7 @@ export class MailService {
     this.request = deps.request ?? fetch.bind(globalThis)
     this.customDomains = deps.customDomains
     this.scanner = deps.scanner
+    this.triageAnalyzer = deps.triageAnalyzer
   }
 
   async execute(operation: Operation, raw: unknown, testing = false): Promise<unknown> {
@@ -245,6 +251,7 @@ export class MailService {
             lastMessageId: row.last_message_id,
             senders: row.senders,
             recipients: row.recipients,
+            ...(row.triage ? { triage: row.triage } : {}),
             attachmentCount: row.attachment_count
           })),
           ...nextPage(rows, input.limit, offset)
@@ -270,6 +277,7 @@ export class MailService {
           labels: [...new Set(rows.flatMap((row) => row.labels))],
           senders: [...new Set(rows.map((row) => row.data.from))],
           recipients: [...new Set(rows.flatMap((row) => row.data.to))],
+          ...(last.triage && last.protection?.status !== "quarantined" ? { triage: last.triage } : {}),
           messages: rows.map((row) =>
             input.includeBodies
               ? messageView(row, inbox.address, true, operation === "reviewThread")
@@ -593,6 +601,7 @@ export class MailService {
       thread_id: threadId,
       timestamp: new Date().toISOString(),
       direction: "received",
+      ...(this.triageAnalyzer ? { triage: { status: "pending" as const } } : {}),
       labels: protection?.status === "quarantined" ? ["quarantined"] : ["received", "unread"],
       ...(protection ? { protection } : {}),
       data
@@ -632,6 +641,10 @@ export class MailService {
     if (result?.status === "missing") throw new MailError("Message not found", "not_found", 404)
     if (result?.status === "infected") throw new MailError("Attachments did not pass scanning", "malware_blocked", 403)
     return result?.status === "released"
+  }
+
+  async processTriage(): Promise<void> {
+    if (this.triageAnalyzer) await processTriage(this.store.db, this.triageAnalyzer)
   }
 
   async acceptIncoming(recipient: string, raw: Uint8Array, sender?: string): Promise<void> {

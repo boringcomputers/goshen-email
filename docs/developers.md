@@ -3,6 +3,10 @@
 Bezalel Email has an account API, TypeScript and Python clients, a JSON CLI, and
 MCP over Streamable HTTP or stdio. All use the same 16-operation contract.
 
+When the operator enables [email triage](triage.md), message and thread responses
+include category, needs-reply, and urgency judgments. Lists and searches accept
+the same triage filters across REST, SDKs, CLI, and MCP.
+
 This release needs the migration and Worker/dashboard rollout below. The npm
 and Python packages are built from this repository; they have not been published
 to a package registry. Installation examples here use the checkout.

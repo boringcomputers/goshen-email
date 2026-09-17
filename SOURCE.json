@@ -78,6 +78,7 @@
     "apps/email/src/database.ts",
     "apps/email/src/mail-clients.ts",
     "apps/email/src/mail-service.ts",
+    "apps/email/src/mailbox-store.ts",
     "apps/email/src/schema.ts",
     "apps/email/src/worker.ts",
     "apps/email/test/cloudflare.test.ts",

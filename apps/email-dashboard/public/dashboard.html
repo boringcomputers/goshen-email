@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/setup.css">
   <link rel="stylesheet" href="/developer.css">
+  <link rel="stylesheet" href="/triage.css">
   <script src="/app.js" type="module"></script>
 </head>
 <body>
@@ -94,6 +95,14 @@
         <div class="mail-workspace">
           <section class="mail-list" aria-label="Messages">
             <header class="list-header"><div><h2>Conversations <span id="thread-count" class="count" hidden></span></h2><p id="mailbox-address">Choose a mailbox to get started</p></div><button id="refresh" class="icon-button" title="Refresh messages" aria-label="Refresh messages"><span data-icon="refresh"></span></button></header>
+            <fieldset id="triage-filters" class="triage-filters" aria-label="Filter email triage">
+              <div class="triage-filter-heading"><p>Email triage</p><button id="clear-triage" type="button" hidden>Clear filters</button></div>
+              <div class="triage-filter-fields">
+                <label>Category<select id="triage-category"><option value="">All</option><option value="billing">Billing</option><option value="support">Support</option><option value="sales">Sales</option><option value="personal">Personal</option><option value="notification">Notification</option><option value="other">Other</option></select></label>
+                <label>Response<select id="triage-needs-reply"><option value="">Any</option><option value="yes">Needs reply</option><option value="no">No reply</option><option value="uncertain">Unclear</option></select></label>
+                <label>Urgency<select id="triage-urgency"><option value="">Any</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select></label>
+              </div>
+            </fieldset>
             <div id="threads" class="threads"></div>
             <button id="load-more" class="load-more" hidden>Load more</button>
           </section>
