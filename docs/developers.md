@@ -13,7 +13,7 @@ to a package registry. Installation examples here use the checkout.
 
 ## Get an API key
 
-Sign in to the dashboard and open **Developers**. Name a key, select its
+Sign in to the dashboard, open **API keys**, and choose **Create API key**. Name a key, select its
 permissions, and choose its expiration. Copy the key immediately: it is shown
 once and only its SHA-256 hash is stored. **Revoke** stops future requests.
 Disabling a customer also revokes their keys; re-enabling them does not restore

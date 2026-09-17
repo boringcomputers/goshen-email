@@ -83,7 +83,7 @@ and counts toward the customer limit. It appears as **setup pending**; use
 **Finish inbox setup** or retry creating the same address to complete delivery.
 Deleted addresses cannot be reused. Customers can
 read, compose, reply, search, label, delete, review quarantine, and copy or replace
-their own mailbox API keys. The Developers panel creates account keys for
+their own mailbox API keys. The API keys page creates account keys for
 managing multiple inboxes and groups through the API, SDKs, CLI, and MCP.
 Each mailbox initially has a 250-send daily limit.
 Custom-domain administration remains an owner operation in the dashboard.

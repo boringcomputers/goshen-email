@@ -24,6 +24,7 @@ test('one account key manages grouped inboxes across SDK, CLI and Python and sto
   await page.goto(base + '/app')
   await page.locator('#developers').click()
   await page.getByText('No account API keys yet.', { exact: true }).waitFor()
+  await page.locator('#new-api-key').click()
   assert.equal(await page.locator('#developer-form input:checked').count(), 2)
   await page.locator('#developer-form [name=name]').fill('Research agent')
   for (const checkbox of await page.locator('#developer-form [name=scope]').all()) await checkbox.check()
@@ -50,7 +51,7 @@ test('one account key manages grouped inboxes across SDK, CLI and Python and sto
   assert.deepEqual(JSON.parse(python.stdout), { inboxes: 52, research: 51 })
   const sends = await (await context.request.get(control + '/sends')).json()
   assert.equal(sends.filter(message => message.to.includes('receiver@example.net') && message.text === payload.text).length, 1)
-  await page.getByRole('button', { name: 'Close developers', exact: true }).click()
+  await page.getByRole('button', { name: 'Close API key creation', exact: true }).click()
   await page.waitForFunction(() => document.querySelector('#developer-token').value === '')
   await page.reload()
   await page.waitForFunction(() => document.querySelectorAll('#inboxes option').length === 52)
@@ -65,7 +66,7 @@ test('one account key manages grouped inboxes across SDK, CLI and Python and sto
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
-    assert.equal(await page.locator('#developer-dialog').evaluate(element => element.scrollWidth > element.clientWidth), false)
+    assert.equal(await page.locator('#api-keys-page').evaluate(element => element.scrollWidth > element.clientWidth), false)
   }
   await page.setViewportSize({ width: 390, height: 844 })
   if (artifacts) await page.screenshot({ path: resolve(artifacts, 'developers-mobile.png') })
