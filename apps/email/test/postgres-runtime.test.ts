@@ -41,12 +41,12 @@ it("the migration command preserves postgres ownership and application grants fo
           and has_table_privilege($1,c.oid,'DELETE') as writable
         from pg_class c join pg_namespace n on n.oid=c.relnamespace
         where n.nspname='mail' and c.relkind='r'`, [application])
-    expect(tables).toHaveLength(17)
+    expect(tables).toHaveLength(18)
     for (const table of tables) expect(table).toEqual({ owner: "postgres", readable: true, writable: true })
     const functions = await database.db.query<{ owner: string; executable: boolean }>(
       `select pg_get_userbyid(p.proowner) as owner, has_function_privilege($1,p.oid,'EXECUTE') as executable
         from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='mail'`, [application])
-    expect(functions).toHaveLength(11)
+    expect(functions).toHaveLength(12)
     for (const routine of functions) expect(routine).toEqual({ owner: "postgres", executable: true })
   } finally {
     await database.pg.close()
@@ -116,6 +116,19 @@ describe("Hyperdrive in the Workers runtime with PostgreSQL", () => {
     expect(cookie).toContain('session_token=')
     const session = await worker.fetch('http://localhost/account-rpc/session', { method: 'POST', headers: { ...headers, cookie }, body: '{}' })
     expect(session.status, await session.clone().text()).toBe(200)
+    const createdKey = await worker.fetch('http://localhost/account-rpc/createApiKey', { method: 'POST', headers: { ...headers, cookie },
+      body: JSON.stringify({ name: 'Runtime developer', scopes: ['inboxes:read', 'inboxes:write'] }) })
+    expect(createdKey.status).toBe(200)
+    const key = (await createdKey.json() as { result: { apiKey: string; keyId: string } }).result
+    const apiHeaders = { authorization: `Bearer ${key.apiKey}`, 'content-type': 'application/json' }
+    const createdInbox = await worker.fetch('http://localhost/v1/inboxes', { method: 'POST', headers: apiHeaders, body: JSON.stringify({ username: 'runtime-agent' }) })
+    expect(createdInbox.status, await createdInbox.clone().text()).toBe(200)
+    const mcp = await worker.fetch('http://localhost/mcp', { method: 'POST', headers: { ...apiHeaders, accept: 'application/json, text/event-stream' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'list_inboxes', arguments: {} } }) })
+    expect(mcp.status, await mcp.clone().text()).toBe(200)
+    expect(await mcp.json()).toMatchObject({ result: { structuredContent: { result: { inboxes: [expect.objectContaining({ inboxId: 'runtime-agent@example.com' })] } } } })
+    await worker.fetch('http://localhost/account-rpc/revokeApiKey', { method: 'POST', headers: { ...headers, cookie }, body: JSON.stringify({ keyId: key.keyId }) })
+    expect((await worker.fetch('http://localhost/v1/inboxes', { headers: apiHeaders })).status).toBe(401)
     const signedOut = await worker.fetch('http://localhost/api/auth/sign-out', { method: 'POST', headers: { ...headers, cookie }, body: '{}' })
     expect(signedOut.status).toBe(200)
     const denied = await worker.fetch('http://localhost/account-rpc/session', { method: 'POST', headers: { ...headers, cookie }, body: '{}' })

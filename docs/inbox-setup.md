@@ -16,7 +16,10 @@ message contents.
 
 ## Connect an agent
 
-**Connect an agent** opens the existing mailbox key dialog. The key stays masked
+Open **Developers** for an account API key that works across all of the account's
+inboxes through the API, SDKs, CLI, and MCP. See the [developer guide](developers.md).
+
+For optional single-inbox access, **Get a mailbox key** opens the mailbox key dialog. The key stays masked
 and is copied only when the user chooses **Copy key**. The user saves it as
 `BEZALEL_MAILBOX_KEY` in the agent's environment. **Copy command** copies a curl
 request to `/inbox-rpc/getInbox` with that environment variable, never the key.

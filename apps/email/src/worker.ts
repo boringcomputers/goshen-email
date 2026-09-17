@@ -1,3 +1,5 @@
+import { handleDeveloperMcp } from "./developer-mcp.js"
+import { handleDeveloperRequest } from "./developer-api.js"
 import { accountConfig, postgresAccountAuth, handleAccountRequest, collectAccountGarbage } from "./account-auth.js"
 import { handleClientAdmin, handleInboxRequest } from "./mail-clients.js"
 import { handleCustomerRequest } from "./customer-api.js"
@@ -150,6 +152,8 @@ export const handleRequest = async (
   try {
     if (request.method === "GET" && url.pathname === "/healthz")
       return json({ status: "ok", service: "bezalel-email" })
+    if (url.pathname === "/mcp") return await handleDeveloperMcp(request, service)
+    if (url.pathname.startsWith("/v1/") || url.pathname === "/openapi.json") return await handleDeveloperRequest(request, service)
     if (url.pathname.startsWith("/dashboard-rpc/")) return await handleCustomerRequest(request, service, customerAccess, accessKey)
     if (request.method === "GET" && url.pathname.startsWith("/attachments/")) {
       const match =

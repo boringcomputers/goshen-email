@@ -60,7 +60,7 @@ describe("Public accounts", () => {
     expect(cookie).toContain('__Secure-bezalel.session_token=')
     expect(response2.headers.get('set-cookie')).toContain('HttpOnly')
     expect(response2.headers.get('set-cookie')).toContain('Secure')
-    expect(await (await rpc('session', cookie)).json()).toMatchObject({ result: { customer: { email: 'a@example.net', role: 'customer', inboxLimit: 5 } } })
+    expect(await (await rpc('session', cookie)).json()).toMatchObject({ result: { customer: { email: 'a@example.net', role: 'customer', inboxLimit: null } } })
     expect(await f.db.query('select * from mail.auth_accounts')).toHaveLength(0)
     expect((await rpc('session', cookie + 'forged')).status).toBe(401)
     const replay = await verifyLink(url)

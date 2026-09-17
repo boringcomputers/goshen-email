@@ -1,3 +1,4 @@
+import { createDeveloperPanel } from "./developer.js"
 import { createInboxSetup, connectionCommand } from './setup.js'
 const $ = (selector) => document.querySelector(selector)
 const accountEvents = new BroadcastChannel('bezalel-account')
@@ -93,7 +94,7 @@ function updateAccount() {
   $('#account-name').textContent = name
   $('#account-name').title = name
   $('#account-avatar').textContent = initials(name)
-  $('#account').textContent = customer ? `${customer.email} · ${customer.role === 'admin' ? 'Owner' : `${customer.inboxLimit} inboxes`}` : 'Owner'
+  $('#account').textContent = customer ? `${customer.email} · ${customer.role === 'admin' ? 'Owner' : customer.inboxLimit === null ? 'No inbox limit' : `${customer.inboxLimit} inboxes`}` : 'Owner'
   $('#account').title = $('#account').textContent
   $('#mailbox-address').textContent = state.inbox || 'Choose a mailbox to get started'
   $('#mailbox-address').title = state.inbox
@@ -155,11 +156,12 @@ const action = (element, task) => element.addEventListener('click', async () => 
   element.disabled = true
   try { await task() } catch (error) { notify(error.message) } finally { element.disabled = false }
 })
+const developers = createDeveloperPanel({ rpc, notify, getSession: () => state.session })
 function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
-  setup.reset()
+  setup.reset(); developers.reset()
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#customer-list').replaceChildren(); $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)
@@ -179,11 +181,20 @@ function emptyReader() {
 }
 async function loadInboxes(preferred = state.inbox) {
   const epoch = state.epoch
-  const { inboxes } = await rpc('listInboxes')
+  const inboxes = [], seen = new Set()
+  let pageToken
+  do {
+    const page = await rpc('listInboxes', pageToken ? { pageToken } : {})
+    if (epoch !== state.epoch) return
+    inboxes.push(...page.inboxes)
+    pageToken = page.nextPageToken
+    if (pageToken && seen.has(pageToken)) throw new Error('The inbox list could not finish loading. Try again.')
+    if (pageToken) seen.add(pageToken)
+  } while (pageToken)
   if (epoch !== state.epoch) return
   state.inboxes = inboxes
   $('#inboxes').replaceChildren(...inboxes.map((inbox) => {
-    const option = node('option', `${inbox.inboxId}${inbox.deliveryStatus === 'pending' ? ' (setup pending)' : ''}`)
+    const option = node('option', `${inbox.group ? `[${inbox.group}] ` : ''}${inbox.inboxId}${inbox.deliveryStatus === 'pending' ? ' (setup pending)' : ''}`)
     option.value = inbox.inboxId
     return option
   }))
@@ -511,6 +522,7 @@ void request('/api/session').then(async (session) => {
   state.session = session
   updateAccount()
   $('#customers').hidden = session.customer?.role !== 'admin'
+  $('#developers').hidden = !['access', 'account'].includes(session.authMode)
   $('#credentials').hidden = !['access', 'account'].includes(session.authMode)
   $('#domains').hidden = ['access', 'account'].includes(session.authMode) && !session.customDomainsEnabled
   $('#app').hidden = false
@@ -521,7 +533,7 @@ async function loadCustomers() {
   const { customers } = await rpc('listCustomers')
   $('#customer-list').replaceChildren(...customers.map((customer) => {
     const card = node('section', undefined, 'domain-card customer-row'), copy = node('div', undefined, 'customer-copy')
-    copy.append(node('strong', customer.email), node('p', `${customer.inboxCount} inbox${customer.inboxCount === 1 ? '' : 'es'}${customer.role === 'admin' ? ' · Owner' : ` / ${customer.inboxLimit} allowed`}`))
+    copy.append(node('strong', customer.email), node('p', `${customer.inboxCount} inbox${customer.inboxCount === 1 ? '' : 'es'}${customer.role === 'admin' ? ' · Owner' : customer.inboxLimit === null ? ' · No inbox limit' : ` / ${customer.inboxLimit} allowed`}`))
     card.append(avatar(customer.displayName || customer.email), copy, statusBadge(customer.status))
     if (customer.role !== 'admin') {
       const button = node('button', customer.status === 'disabled' ? 'Enable access' : 'Disable access')
@@ -544,7 +556,7 @@ $('#customer-form').addEventListener('submit', async (event) => {
   try {
     await rpc('inviteCustomer', { email: form.elements.email.value.trim(),
       ...(form.elements.displayName.value.trim() ? { displayName: form.elements.displayName.value.trim() } : {}),
-      inboxLimit: Number(form.elements.inboxLimit.value) })
+      inboxLimit: form.elements.inboxLimit.value ? Number(form.elements.inboxLimit.value) : null })
     form.reset(); await loadCustomers(); notify('Access added. Share the dashboard link with your customer.')
   } catch (error) { $('#customer-error').textContent = error.message } finally { button.disabled = false }
 })

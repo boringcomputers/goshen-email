@@ -19,6 +19,8 @@ Changes to the copied code:
 - The standalone Worker uses PostgreSQL through a Hyperdrive binding. Migrations
   use a direct PostgreSQL connection; the Neon driver is removed here.
 - Test fixtures can use dedicated local PostgreSQL databases through the production driver.
+- The Worker also serves the standalone account REST API, OpenAPI, and MCP.
+  The developer clients and API-key schema are new standalone additions.
 - Documentation describes the standalone owner dashboard and deployment.
 
 There is no automatic synchronization. When taking a fix from Bezalel, inspect

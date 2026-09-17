@@ -1,5 +1,9 @@
 # Email API
 
+For account API keys, versioned REST endpoints, SDKs, CLI, and MCP, see the
+[developer guide](developers.md) and [OpenAPI specification](openapi.json).
+The existing RPC interface below remains supported.
+
 The Worker accepts JSON POST requests with `Authorization: Bearer <token>`.
 Successful operations return `{ "result": ... }`. Errors return
 `{ "error": { "message", "code", "transient" } }` and a non-2xx status.
