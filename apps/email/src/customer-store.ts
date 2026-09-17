@@ -6,12 +6,14 @@ import { inboxGroup, listAccountInboxes } from "./account-inbox-contract.js"
 
 interface CustomerRow {
   id: string; email: string; display_name: string | null; access_subject: string | null;
+  organization_name: string;
   created_at: string; signed_in_at: string | null; disabled_at: string | null; inbox_limit: number | null
 }
 export type CustomerInbox = InboxRow & { route_ready: boolean | null; group_name: string | null }
-export interface Customer { id: string; email: string; displayName?: string; role: "admin" | "customer"; inboxLimit: number | null }
+export interface Customer { id: string; email: string; displayName?: string; organizationName?: string; role: "admin" | "customer"; inboxLimit: number | null }
 const view = (row: CustomerRow, adminEmails: string[]): Customer => ({
   id: row.id, email: row.email, displayName: row.display_name ?? undefined,
+  organizationName: row.organization_name ?? "Your workspace",
   role: adminEmails.includes(row.email) ? "admin" : "customer", inboxLimit: adminEmails.includes(row.email) ? null : row.inbox_limit,
 })
 export const inviteInput = z.object({
@@ -19,6 +21,11 @@ export const inviteInput = z.object({
   displayName: z.string().trim().min(1).max(200).optional(),
   inboxLimit: z.number().int().min(1).max(100).nullable().default(null),
 }).strict()
+const settingsName = (max: number) => z.string().trim().min(1).max(max).regex(/^[^\u0000-\u001f\u007f]+$/u)
+export const updateSettingsInput = z.object({
+  organizationName: settingsName(100).optional(),
+  displayName: settingsName(200).optional(),
+}).strict().refine(input => input.organizationName !== undefined || input.displayName !== undefined)
 const inboxCursor = z.object({ customer: z.uuid(), all: z.boolean(), group: inboxGroup.nullable(),
   createdAt: z.iso.datetime({ precision: 6 }), id: z.uuid() }).strict()
 
@@ -64,6 +71,20 @@ export class CustomerStore {
        from mail.customers c order by c.created_at desc, c.id limit 200`)
     return { customers: rows.map((row) => ({ ...view(row, this.adminEmails), inboxCount: row.inbox_count,
       status: row.disabled_at ? "disabled" : row.signed_in_at ? "active" : "invited" })) }
+  }
+
+  async updateSettings(customer: Customer, input: z.infer<typeof updateSettingsInput>): Promise<{ customer: Customer }> {
+    const [row] = await this.db.query<CustomerRow>(
+      `with updated as (
+         update mail.customers set organization_name = coalesce($2, organization_name),
+           display_name = coalesce($3, display_name)
+         where id = $1 and disabled_at is null returning *
+       ), profile as (
+         update mail.auth_users u set name = updated.display_name, "updatedAt" = now()
+         from updated where u.id = updated.auth_user_id and $3::text is not null returning u.id
+       ) select * from updated`, [customer.id, input.organizationName ?? null, input.displayName ?? null])
+    if (!row) throw new MailError("Your dashboard access has been disabled", "access_denied", 403)
+    return { customer: view(row, this.adminEmails) }
   }
 
   async setAccess(customerId: string, enabled: boolean) {

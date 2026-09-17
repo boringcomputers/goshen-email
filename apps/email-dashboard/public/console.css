@@ -7,6 +7,8 @@ button, .button-link { border-radius: 7px; }
 .sidebar > .brand { padding: 0 8px; }
 .workspace-label { display: flex; gap: 10px; align-items: center; padding: 0 8px; }
 .workspace-label .avatar { background: #222; color: #fff; border-radius: 7px; }
+.workspace-label > div { min-width: 0; }
+#workspace-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-label strong, .workspace-label div > span { display: block; font-size: 12px; line-height: 19px; }
 .workspace-label div > span { color: var(--color-text-muted); font-size: 11px; }
 .resource-nav > .section-label { padding: 0 10px 8px; font-size: 11px; }
@@ -19,6 +21,7 @@ button, .button-link { border-radius: 7px; }
 .topbar { min-height: 60px; height: 60px; flex: 0 0 60px; padding: 0 32px; border-bottom: 1px solid var(--color-border); }
 .breadcrumbs { display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--color-text-muted); }
 .breadcrumbs a { text-decoration: none; color: var(--color-text-secondary); }
+#workspace-breadcrumb { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .breadcrumbs [aria-current] { color: var(--color-text); font-weight: 500; }
 .workspace-content { overflow: auto; padding: 36px 40px; }
 .resource-page, .mail-page { max-width: 1280px; margin: 0 auto; width: 100%; }
@@ -119,12 +122,29 @@ button, .button-link { border-radius: 7px; }
 .integration-card a { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 12px; }
 .resource-page > .error:empty { display: none; }
 .resource-page > .error { margin-bottom: 16px; }
+.settings-content { max-width: 800px; display: grid; gap: 24px; }
+.settings-card { border: 1px solid var(--color-border); border-radius: 9px; overflow: hidden; }
+.settings-card fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.settings-card-body { padding: 24px; }
+.settings-card h2 { font-size: 15px; font-weight: 550; margin: 0 0 6px; }
+.settings-card p, .settings-loading { font-size: 13px; line-height: 20px; color: var(--color-text-muted); }
+.settings-card label { display: block; margin: 24px 0 8px; font-size: 12px; }
+.settings-card input { max-width: 460px; font-size: 13px; }
+.settings-card input[readonly] { background: #fafafa; color: var(--color-text-secondary); }
+.settings-card .settings-hint { margin: 8px 0 0; font-size: 11px; }
+.settings-card-footer { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 14px 24px; border-top: 1px solid var(--color-border); background: #fafafa; }
+.settings-card-footer [role=status] { font-size: 12px; color: #267243; }
+.settings-card-footer button { flex-shrink: 0; margin-left: auto; min-height: 36px; }
+.settings-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 12px; }
 @media (max-width: 1199px) { .workspace-content { padding: 28px 24px; } .mail-toolbar { flex-wrap: wrap; } .mail-toolbar .search { flex: 1; } }
 @media (max-width: 1023px) { .mail-workspace { grid-template-columns: minmax(0, 1fr); } .inbox-created-cell, #inboxes-page th:nth-child(4) { display: none; } .integration-grid { grid-template-columns: 1fr; } }
 @media (max-width: 767px) {
   #app { grid-template-columns: minmax(0, 1fr); }
   .topbar { min-height: 56px; height: 56px; flex-basis: 56px; padding: 0 16px; }
   .workspace-content { padding: 24px 16px; }
+  #workspace-breadcrumb { max-width: 140px; }
+  .settings-card-body { padding: 20px; }
+  .settings-card-footer { padding: 14px 20px; flex-wrap: wrap; }
   .resource-heading { align-items: flex-start; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
   .resource-heading h1 { font-size: 24px; line-height: 32px; }
   .resource-heading p { font-size: 12px; }

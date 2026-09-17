@@ -32,6 +32,9 @@ and mailbox ownership on every request. Administrator emails come only from
 `DASHBOARD_ADMIN_EMAILS`. Administrators can manage existing mailboxes without
 an account inbox limit. Account administration is not part of the dashboard.
 
+Each account can change its own organization and profile names in
+[Settings](settings.md). The verified sign-in email stays read-only.
+
 ## Configuration
 
 | Worker | Variable | Purpose |

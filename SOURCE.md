@@ -12,6 +12,9 @@ dashboard, root workspace files, CI, and new tests are additions.
 
 Changes to the copied code:
 
+- The schema includes an organization name on standalone dashboard accounts.
+  Settings and profile updates are implemented in independently added files.
+
 - `MAIL_EVENTS_URL` accepts a shared webhook at any supported URL path.
   `BEZALEL_EVENTS_URL` remains an alias. Shared webhooks can be disabled without
   disabling product-mailbox webhooks or mailbox storage.

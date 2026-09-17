@@ -32,7 +32,7 @@
     <button id="sidebar-backdrop" tabindex="-1" aria-label="Close navigation" hidden></button>
     <aside id="sidebar" class="sidebar" aria-label="Workspace navigation">
       <div class="brand"><span data-icon="brand" class="brand-mark"></span><span>Bezalel <span class="brand-secondary">Email</span></span><button id="close-menu" class="icon-button mobile-only" aria-label="Close navigation"><span data-icon="close"></span></button></div>
-      <div class="workspace-label"><span class="avatar" aria-hidden="true">B</span><div><strong>Your workspace</strong><span>Bezalel Email</span></div></div>
+      <div class="workspace-label"><span id="workspace-avatar" class="avatar" aria-hidden="true">B</span><div><strong id="workspace-name">Your workspace</strong><span>Bezalel Email</span></div></div>
       <nav aria-label="Resources" class="resource-nav">
         <span class="section-label">Resources</span>
         <a href="#/inboxes" data-page="inboxes"><span data-icon="inbox"></span>Inboxes</a>
@@ -41,13 +41,14 @@
         <a id="integrations" href="#/integrations" data-page="integrations" hidden><span data-icon="code"></span>Integrations</a>
       </nav>
       <div class="sidebar-bottom">
+        <nav class="resource-nav" aria-label="Workspace"><a id="settings" href="#/settings" data-page="settings" hidden><span data-icon="settings"></span>Settings</a></nav>
         <button id="get-started" hidden><span data-icon="arrow-right"></span><span>Get started</span></button>
         <div class="account-row"><span id="account-avatar" class="avatar" aria-hidden="true">B</span><div class="account-copy"><strong id="account-name">Your workspace</strong><p id="account" class="account">Owner</p></div><button id="logout" class="icon-button" aria-label="Sign out" title="Sign out"><span data-icon="logout"></span></button></div>
       </div>
     </aside>
     <section class="workspace" aria-label="Email workspace">
       <header class="topbar">
-        <div class="page-heading"><button id="open-menu" class="icon-button mobile-only" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><span data-icon="menu"></span></button><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="#/inboxes">Workspace</a><span aria-hidden="true">/</span><span id="page-title" aria-current="page">Inboxes</span></nav></div>
+        <div class="page-heading"><button id="open-menu" class="icon-button mobile-only" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><span data-icon="menu"></span></button><nav class="breadcrumbs" aria-label="Breadcrumb"><a id="workspace-breadcrumb" href="#/inboxes">Your workspace</a><span aria-hidden="true">/</span><span id="page-title" aria-current="page">Inboxes</span></nav></div>
       </header>
       <div class="workspace-content">
         <section id="inboxes-page" class="resource-page" aria-labelledby="inboxes-heading">
@@ -111,6 +112,27 @@
         <section id="api-keys-page" class="resource-page" aria-labelledby="api-keys-heading" hidden><header class="resource-heading"><div><h1 id="api-keys-heading" tabindex="-1">API keys</h1><p>Connect your agents to every inbox in your account.</p></div><button id="new-api-key" class="primary"><span data-icon="plus"></span>Create API key</button></header><p id="api-keys-error" class="error" role="alert"></p><div id="developer-key-list"></div></section>
         <section id="integrations-page" class="resource-page" aria-labelledby="integrations-heading" hidden><header class="resource-heading"><div><h1 id="integrations-heading" tabindex="-1">Integrations</h1><p>One account key. All your inboxes.</p></div><a class="button-link" href="#/api-keys">Manage API keys <span data-icon="arrow-right"></span></a></header><div class="integration-grid"><section class="integration-card"><span data-icon="code"></span><h2>REST API</h2><p>Create inboxes, read mail, and send messages from your application.</p><label>API URL<code id="developer-base-url"></code></label><a id="developer-api-docs" target="_blank" rel="noopener">View API specification <span data-icon="arrow-right"></span></a></section><section class="integration-card"><span data-icon="stack"></span><h2>MCP</h2><p>Give an MCP client access to your email tools. Connect with an account API key.</p><label>Server URL<code id="developer-mcp-url"></code></label></section><section class="integration-card"><span data-icon="terminal"></span><h2>SDKs &amp; CLI</h2><p>Use the TypeScript SDK, Python SDK, or CLI to work with your inboxes and named groups.</p><a href="https://github.com/boringcomputers/bezalel-email/blob/main/docs/developers.md" target="_blank" rel="noopener">Setup and examples <span data-icon="arrow-right"></span></a></section></div></section>
         <section id="domains-page" class="resource-page" aria-labelledby="domains-heading" hidden><header class="resource-heading"><div><h1 id="domains-heading" tabindex="-1">Domains</h1><p>Send and receive email on your own domain.</p></div><button id="new-domain" class="primary"><span data-icon="plus"></span>Add domain</button></header><p id="domains-error" class="error" role="alert"></p><div id="domain-list"></div></section>
+        <section id="settings-page" class="resource-page" aria-labelledby="settings-heading" hidden>
+          <header class="resource-heading"><div><h1 id="settings-heading" tabindex="-1">Settings</h1><p>Make this workspace yours.</p></div></header>
+          <p id="settings-loading" class="settings-loading" role="status" hidden>Loading settings…</p>
+          <p id="settings-error" class="error" role="alert"></p>
+          <button id="settings-retry" hidden>Try again</button>
+          <div id="settings-content" class="settings-content" hidden>
+            <form id="organization-form" class="settings-card" aria-labelledby="organization-heading">
+              <fieldset>
+                <div class="settings-card-body"><h2 id="organization-heading">Organization</h2><p>Give your workspace a name your team will recognize.</p><label for="organization-name">Organization name</label><input id="organization-name" name="organizationName" required maxlength="100" autocomplete="organization" aria-describedby="organization-name-hint"><p id="organization-name-hint" class="settings-hint">Shown in the sidebar and page header.</p></div>
+                <footer class="settings-card-footer"><span role="status"></span><button class="primary" type="submit" disabled>Save changes</button></footer>
+              </fieldset>
+            </form>
+            <form id="profile-form" class="settings-card" aria-labelledby="profile-heading">
+              <fieldset>
+                <div class="settings-card-body"><h2 id="profile-heading">Your profile</h2><p>Manage how your name appears in Bezalel Email.</p><label for="profile-name">Full name</label><input id="profile-name" name="displayName" required maxlength="200" autocomplete="name"><label for="settings-email">Sign-in email</label><input id="settings-email" type="email" readonly aria-describedby="settings-email-hint"><p id="settings-email-hint" class="settings-hint">This is the verified email address for your account.</p></div>
+                <footer class="settings-card-footer"><span role="status"></span><button class="primary" type="submit" disabled>Save changes</button></footer>
+              </fieldset>
+            </form>
+            <section class="settings-card settings-card-body" aria-labelledby="settings-access-heading"><h2 id="settings-access-heading">Account access</h2><p id="settings-sign-in-method">Sign in with an email link or a one-time code.</p><a class="settings-link" href="#/api-keys">Manage API keys <span data-icon="arrow-right"></span></a></section>
+          </div>
+        </section>
       </div>
     </section>
   </main>
