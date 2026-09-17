@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bezalel-email",
+  "account_id": "c340deebb91d89c14d17239b7658dc81",
+  "main": "src/native-worker.ts",
+  "compatibility_date": "2026-09-06",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "hyperdrive": [{
+    "binding": "HYPERDRIVE",
+    // Replace only after verifying a dedicated binding to the existing native database.
+    // This placeholder is for local builds, not a provisioned resource.
+    "id": "00000000000000000000000000000000",
+    "localConnectionString": "postgres://postgres:postgres@127.0.0.1:5434/bezalel_email_native_test"
+  }],
+  "vars": {
+    "WORKER_NAME": "bezalel-email",
+    "CLOUDFLARE_ACCOUNT_ID": "c340deebb91d89c14d17239b7658dc81",
+    "DEFAULT_EMAIL_DOMAIN": "goshenemail.com",
+    "EMAIL_DOMAINS": "{\"goshenemail.com\":\"35ea2f533f87f566600d95300aba1475\"}",
+    "PUBLIC_EMAIL_URL": "https://bezalel-email.michaelwasihun96.workers.dev",
+    "MAIL_EVENTS_URL": "https://mcp.bezalel.sh/events/cloudflare"
+  },
+  "r2_buckets": [{ "binding": "MAIL_OBJECTS", "bucket_name": "bezalel-email" }],
+  "queues": { "consumers": [{
+    "queue": "bezalel-email-delivery", "max_batch_size": 10,
+    "max_batch_timeout": 5, "max_retries": 100,
+    "dead_letter_queue": "bezalel-email-delivery-dead"
+  }] },
+  "triggers": { "crons": ["* * * * *"] },
+  "observability": { "enabled": false }
+}
