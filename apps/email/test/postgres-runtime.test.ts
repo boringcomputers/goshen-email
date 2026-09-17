@@ -41,7 +41,7 @@ it("the migration command preserves postgres ownership and application grants fo
           and has_table_privilege($1,c.oid,'DELETE') as writable
         from pg_class c join pg_namespace n on n.oid=c.relnamespace
         where n.nspname='mail' and c.relkind='r'`, [application])
-    expect(tables).toHaveLength(18)
+    expect(tables).toHaveLength(19)
     for (const table of tables) expect(table).toEqual({ owner: "postgres", readable: true, writable: true })
     const functions = await database.db.query<{ owner: string; executable: boolean }>(
       `select pg_get_userbyid(p.proowner) as owner, has_function_privilege($1,p.oid,'EXECUTE') as executable

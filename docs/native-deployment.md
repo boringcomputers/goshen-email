@@ -1,5 +1,9 @@
 # Bezalel native deployment preparation
 
+The production profile and activation procedure are now in the
+[September 17 release record](native-release-2026-09-17.md). The preparation
+evidence below describes the earlier implementation and its original gates.
+
 This profile prepares Bezalel's existing native mail Worker to run from this
 repository. Merging it does not deploy the Worker, change a database, move mail,
 or complete the migration. AgentMail and the standalone service keep their
