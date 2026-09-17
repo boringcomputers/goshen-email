@@ -8,9 +8,7 @@
   "workers_dev": true,
   "hyperdrive": [{
     "binding": "HYPERDRIVE",
-    // Replace only after verifying a dedicated binding to the existing native database.
-    // This placeholder is for local builds, not a provisioned resource.
-    "id": "00000000000000000000000000000000",
+    "id": "REQUIRES_PROVISIONED_NATIVE_HYPERDRIVE_ID",
     "localConnectionString": "postgres://postgres:postgres@127.0.0.1:5434/bezalel_email_native_test"
   }],
   "vars": {

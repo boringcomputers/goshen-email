@@ -65,13 +65,14 @@ comparison. Production grants were not imported or tested by this restore.
 | Uncertain send | Pending reservation | Reservation stays pending; transport called zero times |
 | Pending webhooks | Existing IDs, payloads, attempts, direct/shared targets | 503 retains pending state; later 200 acknowledges each once with the same IDs and valid signatures |
 | Standalone features | Account, Access, or Typesafe settings present | Native configuration rejects them before handling mail |
+| Deployment configuration | An all-zero binding in `wrangler.native.jsonc` let local bundling pass despite a missing remote resource | Production profile removed; preparation template requires a real ID in the release change. The build script only creates an ephemeral dry-run configuration and rejects extra CLI flags. |
 
 These checks use synthetic mail, a memory object store, and captured webhook
 requests. They do not contact recipients or agents. The frozen schema fixture
 records its original source and license.
 
 The repository build, type checks, generated API check, test suites, and source
-provenance check passed locally. The native Wrangler dry run also built the
-profile without deployment. See the PR for final test counts and hosted CI
+provenance check passed locally. The native build script also bundled the
+Worker without deployment. See the PR for final test counts and hosted CI
 status. Production canaries, Bezalel UI parity, rollback/overlap testing, R2
 backup restoration, and the pending-event diagnosis remain release gates.

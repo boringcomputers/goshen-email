@@ -32,7 +32,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: pnpm --filter @bezalel/email exec wrangler deploy --config wrangler.native.jsonc --dry-run --outdir dist/native
+      - run: pnpm --filter @bezalel/email exec tsx scripts/build-native.ts
       - run: pnpm check
       - run: pnpm test
       - run: pnpm test:postgres

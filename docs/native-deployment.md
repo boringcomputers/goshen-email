@@ -11,7 +11,8 @@ for the remaining release gates.
 
 ## Deployment profile
 
-[`wrangler.native.jsonc`](../apps/email/wrangler.native.jsonc) selects
+[`wrangler.native.template.json`](../apps/email/wrangler.native.template.json) describes
+the future deployment configuration and selects
 [`native-worker.ts`](../apps/email/src/native-worker.ts). The wrapper delegates
 mail handling to the shared implementation. It exposes the existing health,
 admin RPC, test RPC, direct-client, attachment, and gateway routes. Account,
@@ -34,13 +35,18 @@ The underlying service still validates credentials and the database binding.
 | Dead-letter queue | `bezalel-email-delivery-dead` |
 | Shared webhook | `https://mcp.bezalel.sh/events/cloudflare` |
 | Cron | Every minute |
-| Hyperdrive | Unprovisioned placeholder; must connect to the existing native database |
+| Hyperdrive | Required at release preparation; must connect to the existing native database |
 
-The all-zero Hyperdrive ID is for local builds only. It is not a production
-connection. The existing `bezalel-email-standalone` Hyperdrive points to the
-standalone database and must not be substituted here. Provision and verify a
-dedicated native connection with query caching disabled and TLS verification
-before preparing the production artifact.
+The template is not a deployable Wrangler profile. Its
+`REQUIRES_PROVISIONED_NATIVE_HYPERDRIVE_ID` marker must become a verified resource
+ID in a separate release change. That change will add `apps/email/wrangler.native.jsonc`
+using the template's configuration and the provisioned native binding. This PR
+does not create that production file.
+
+The existing `bezalel-email-standalone` Hyperdrive points to the standalone
+database and must not be substituted here. Provision and verify a dedicated
+native connection with query caching disabled and TLS verification before
+preparing the production artifact.
 
 Keep `MAIL_API_TOKEN`, `MAIL_WEBHOOK_SECRET`, and all applicable domain/gateway
 secrets unchanged. Preserve `CLOUDFLARE_API_TOKEN` for the native sending account.
@@ -54,11 +60,17 @@ Use Node 24 and pnpm 10.15.1. These commands build without deploying:
 
 ```sh
 pnpm build
-pnpm --filter @bezalel/email exec wrangler deploy --config wrangler.native.jsonc --dry-run --outdir dist/native
+pnpm --filter @bezalel/email exec tsx scripts/build-native.ts
 pnpm check
 pnpm test
 pnpm source:check
 ```
+
+The native build script accepts no arguments and always passes `--dry-run` to
+Wrangler. It gives an ephemeral build configuration a separate Worker name and
+an all-zero local Hyperdrive ID, then removes that configuration on exit. It
+never provisions a connection or deploys a Worker. A successful local bundle
+does not verify Cloudflare resource existence or production readiness.
 
 Use `homelab-job` for the full checks on a shared homelab host. With a dedicated
 local PostgreSQL test database, also run:
