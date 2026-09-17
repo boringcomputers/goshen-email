@@ -116,6 +116,50 @@ describe("Public accounts", () => {
     await f.db.query('update mail.auth_sessions set "expiresAt" = now() - interval \'1 second\'')
     expect((await rpc('session', cookies(login))).status).toBe(401)
   })
+  it('persists workspace and profile settings across sign-in without changing other accounts', async () => {
+    const a = await verified(), b = await verified('b@example.net')
+    const original = await (await rpc('getSettings', a)).json() as any
+    expect(original.result.customer.organizationName).toBe('Your workspace')
+    const updated = await rpc('updateSettings', a, { organizationName: "  O'Reilly & Partners  ", displayName: '  Alex Rivera  ' })
+    expect(updated.status, await updated.clone().text()).toBe(200)
+    expect(await updated.json()).toMatchObject({ result: { customer: { id: original.result.customer.id,
+      email: 'a@example.net', organizationName: "O'Reilly & Partners", displayName: 'Alex Rivera', role: 'customer', inboxLimit: null } } })
+    expect(await f.db.query('select name from mail.auth_users where email = $1', ['a@example.net'])).toEqual([{ name: 'Alex Rivera' }])
+    expect(await (await rpc('getSettings', b)).json()).toMatchObject({ result: { customer: { organizationName: 'Your workspace', displayName: 'A Person' } } })
+    expect((await rpc('updateSettings', a, { organizationName: 'Renamed workspace' })).status).toBe(200)
+    expect((await request('/api/auth/sign-out', {}, a)).status).toBe(200)
+    await sendCode()
+    const login = await useCode()
+    expect(login.status).toBe(200)
+    const fresh = createAccountAuth(config, dialect, f.service)
+    expect(await (await request('/account-rpc/session', {}, cookies(login), {}, fresh)).json())
+      .toMatchObject({ result: { customer: { organizationName: 'Renamed workspace', displayName: 'Alex Rivera' } } })
+  })
+  it('rejects anonymous, cross-origin, invalid, and disabled account settings updates', async () => {
+    expect((await rpc('getSettings', '')).status).toBe(401)
+    expect((await rpc('updateSettings', '', { organizationName: 'Anonymous' })).status).toBe(401)
+    const a = await verified(), owner = await verified('owner@example.net')
+    const { result: { customer } } = await (await rpc('getSettings', a)).json() as any
+    for (const input of [{}, { organizationName: '' }, { organizationName: '   ' }, { organizationName: 'x'.repeat(101) },
+      { organizationName: '\u0000' }, { organizationName: null }, { displayName: '\n' }, { displayName: 'x'.repeat(201) },
+      { organizationName: 'Forged', customerId: customer.id }, { organizationName: 'Forged', role: 'admin' },
+      { email: 'owner@example.net' }, { inboxLimit: 100 }])
+      expect((await rpc('updateSettings', a, input)).status).toBe(400)
+    expect((await request('/account-rpc/updateSettings', { organizationName: 'Cross-origin' }, a, { origin: 'https://evil.example' })).status).toBe(403)
+    expect((await rpc('updateSettings', owner, { organizationName: 'Owner workspace' })).status).toBe(200)
+    expect(await (await rpc('getSettings', a)).json()).toMatchObject({ result: { customer: { organizationName: 'Your workspace', displayName: 'A Person' } } })
+    expect((await rpc('setCustomerAccess', owner, { customerId: customer.id, enabled: false })).status).toBe(200)
+    expect((await rpc('getSettings', a)).status).toBe(403)
+    expect((await rpc('updateSettings', a, { organizationName: 'Disabled' })).status).toBe(403)
+  })
+  it('rolls back settings when the authentication profile update fails', async () => {
+    const cookie = await verified()
+    await f.db.query("alter table mail.auth_users add constraint fixture_name_check check (name <> 'Rejected name')")
+    try {
+      expect((await rpc('updateSettings', cookie, { organizationName: 'Must not persist', displayName: 'Rejected name' })).status).toBe(500)
+      expect(await (await rpc('getSettings', cookie)).json()).toMatchObject({ result: { customer: { organizationName: 'Your workspace', displayName: 'A Person' } } })
+    } finally { await f.db.query('alter table mail.auth_users drop constraint fixture_name_check') }
+  })
   it('locks out incorrect codes, binds them to an email, and expires old codes after resend', async () => {
     await sendCode(); const first = code()
     expect((await useCode(first, 'other@example.net')).status).toBe(400)

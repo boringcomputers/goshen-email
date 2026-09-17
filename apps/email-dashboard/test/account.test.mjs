@@ -34,6 +34,7 @@ test('rejects cross-origin mutations and private operations outside the allowlis
   const count = calls.length
   assert.equal((await request('/api/auth/sign-in/magic-link', {}, { origin: 'https://evil.example' })).status, 403)
   assert.equal((await request('/api/logout', {}, { origin: '' })).status, 403)
+  assert.equal((await request('/api/rpc/updateSettings', { organizationName: 'Forged' }, { origin: 'https://evil.example' })).status, 403)
   assert.equal((await request('/api/rpc/anything', {})).status, 404)
   assert.equal((await request('/api/rpc/session', {})).status, 404)
   assert.equal(calls.length, count)

@@ -10,6 +10,11 @@ and Integrations. Inbox folders and mailbox keys live inside the inbox view.
 The reader's Filter messages button expands the
 existing Jev category, response, and urgency controls.
 
+Settings sits above the account controls. It edits notification preferences and the organization and profile
+names, shows the verified sign-in email, and links to API keys. The saved
+organization name appears in the sidebar and breadcrumb. See
+[workspace settings](settings.md) for persistence and rollout details.
+
 API keys and domains have dedicated list pages with separate creation dialogs.
 Integrations provides the configured API and MCP URLs plus SDK and CLI setup
 documentation. Account keys still appear once, remain masked, and clear when
@@ -60,5 +65,6 @@ Existing browser tests also cover setup, SDK/CLI use, revocation, and triage.
 The fixture uses PGlite and test doubles for routing, domain verification,
 sending, object storage, and Jev. It does not send live mail.
 
-This change needs only a dashboard deployment. There are no database migrations,
-Worker, SMTP, DNS, or credential changes.
+The navigation redesign needed only a dashboard deployment. Workspace settings
+adds a database column and Worker operations; follow its rollout guide before
+deploying the Settings page.

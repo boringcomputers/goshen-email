@@ -1,3 +1,4 @@
+import { sendNotifications } from "../src/notifications.js"
 import { fixtureTriage } from "./triage-fixture.js"
 import { KyselyPGlite } from "kysely-pglite"
 import { createAccountAuth, handleAccountRequest } from "../src/account-auth.js"
@@ -14,7 +15,10 @@ const { dashboardServer } = await import(new URL('../../email-dashboard/src/serv
 const { accountDashboardHandler } = await import(new URL('../../email-dashboard/src/account-handler.mjs', import.meta.url).href)
 const { mailClient } = await import(new URL('../../email-dashboard/src/service.mjs', import.meta.url).href)
 const pg = new PGlite()
-const db: Database = { query: async <T>(sql: string, params: unknown[] = []) => (await pg.query<T>(sql, params)).rows }
+const db: Database = {
+  query: async <T>(sql: string, params: unknown[] = []) => (await pg.query<T>(sql, params)).rows,
+  transaction: task => pg.transaction(tx => task({ query: async <T>(sql: string, params: unknown[] = []) => (await tx.query<T>(sql, params)).rows })),
+}
 await migrate(db)
 const blobs = new Map<string, Uint8Array>()
 const objects: ObjectStore = {
@@ -71,6 +75,7 @@ const control = createServer(async (req, res) => {
       res.writeHead(response.status, { 'content-type': 'application/json' }).end(await response.text()); return
     }
     const input = JSON.parse(Buffer.concat(chunks).toString())
+    if (req.url === '/notifications') { await sendNotifications(db, service.transport, accountConfig.from, accountConfig.publicUrl); res.end('{}'); return }
     if (req.url === '/triage') { await service.processTriage(); res.end('{}'); return }
     if (req.url === '/routing') { routingAvailable = input.available === true; res.end('{}'); return }
     if (req.url !== '/receive') { res.writeHead(404).end(); return }

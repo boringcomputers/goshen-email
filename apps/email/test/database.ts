@@ -50,7 +50,8 @@ export async function testDatabase(): Promise<{
   const pg = new PGlite()
   const db: Database = {
     query: async <T>(text: string, params: unknown[] = []) =>
-      (await pg.query<T>(text, params)).rows
+      (await pg.query<T>(text, params)).rows,
+    transaction: task => pg.transaction(tx => task({ query: async <T>(text: string, params: unknown[] = []) => (await tx.query<T>(text, params)).rows })),
   }
   return { pg, db }
 }

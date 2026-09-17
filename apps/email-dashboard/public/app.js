@@ -1,7 +1,9 @@
+import { createDesktopNotifications } from "/notifications.js"
 import { triageBadges, triageDetails } from "./triage.js"
 import { createDeveloperPanel } from "./developer.js"
 import { createInboxSetup, connectionCommand } from './setup.js'
 import { createDashboardConsole } from './console.js'
+import { createSettingsPanel } from './settings.js'
 const $ = (selector) => document.querySelector(selector)
 const accountEvents = new BroadcastChannel('bezalel-account')
 accountEvents.addEventListener('message', (event) => { if (event.data === 'signed-out' && state.authMode === 'account') showLogin() })
@@ -23,6 +25,7 @@ const iconPaths = {
   shield: '<path d="M8 1.5l5.5 2v4c0 3-3 5.5-5.5 7-2.5-1.5-5.5-4-5.5-7v-4zM8 5v3M8 10.5h.01"/>',
   trash: '<path d="M2 4h12M6 4V2h4v2M4 4l.7 10h6.6L12 4M6.5 7v4M9.5 7v4"/>',
   key: '<circle cx="5" cy="6" r="3.5"/><path d="M8 8l5.5 5.5M11 11l2-2M12.5 12.5l2-2"/>',
+  settings: '<path d="M6 2l.5-1h3l.5 1 1.5 1 1.2-.1 1.5 2.6-.7 1.1v1.8l.7 1.1-1.5 2.6-1.2-.1-1.5 1-.5 1h-3l-.5-1-1.5-1-1.2.1-1.5-2.6.7-1.1V6.6l-.7-1.1 1.5-2.6 1.2.1z"/><circle cx="8" cy="7.5" r="2"/>',
   plus: '<path d="M8 3v10M3 8h10"/>',
   globe: '<circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.5" ry="6"/><path d="M2 8h12"/>',
   logout: '<path d="M6 2H2v12h4M6 8h8M11 5l3 3-3 3"/>',
@@ -94,7 +97,12 @@ $('#sidebar').addEventListener('keydown', (event) => {
 mobileViewport.addEventListener('change', () => setMenu(false, false))
 setMenu(false, false)
 function updateAccount() {
+  notifications.start(state.session?.customer)
   const customer = state.session?.customer
+  const organization = customer?.organizationName || 'Your workspace'
+  $('#workspace-name').textContent = organization; $('#workspace-name').title = organization
+  $('#workspace-avatar').textContent = initials(organization)
+  $('#workspace-breadcrumb').textContent = organization; $('#workspace-breadcrumb').title = organization
   const inbox = state.inboxes.find((item) => item.inboxId === state.inbox)
   const name = customer ? (customer.displayName || customer.email) : (inbox?.displayName || 'Your workspace')
   $('#account-name').textContent = name
@@ -161,22 +169,37 @@ const action = (element, task) => element.addEventListener('click', async () => 
   try { await task() } catch (error) { notify(error.message) } finally { element.disabled = false }
 })
 const developers = createDeveloperPanel({ rpc, notify, getSession: () => state.session })
+const notifications = createDesktopNotifications({ rpc, async openInbox(inboxId) {
+  const epoch = state.epoch
+  try {
+    if (!state.inboxes.some(inbox => inbox.inboxId === inboxId)) await loadInboxes()
+    if (epoch === state.epoch) dashboard.openInbox(inboxId)
+  } catch (error) { if (epoch === state.epoch) notify(error.message) }
+} })
+const settings = createSettingsPanel({ rpc, getAuthMode: () => state.authMode, onChange(customer) {
+  if (state.session?.customer?.id !== customer.id) return
+  state.session.customer = customer
+  updateAccount()
+} })
 const dashboard = createDashboardConsole({ state, icon, rpc, notify, selectInbox, loadInboxes,
   closeSetup: () => setup.close(), openSetup: () => setup.open(), closeNavigation: () => setMenu(false, false),
   loadPage: async page => {
     if (page === 'api-keys') await developers.load()
     if (page === 'domains') { $('#domains-error').textContent = ''; await loadDomains() }
+    if (page === 'settings') await settings.load()
   },
 })
 function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
-  dashboard.reset(); setup.reset(); developers.reset(); resetTriageFilters()
+  dashboard.reset(); setup.reset(); developers.reset(); settings.reset(); notifications.reset(); resetTriageFilters()
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)
   $('#account-name').textContent = 'Your workspace'; $('#account-avatar').textContent = 'B'
+  $('#workspace-name').textContent = 'Your workspace'; $('#workspace-name').removeAttribute('title'); $('#workspace-avatar').textContent = 'B'
+  $('#workspace-breadcrumb').textContent = 'Your workspace'; $('#workspace-breadcrumb').removeAttribute('title')
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close()
   if (mode === 'account') { state.redirecting = true; $('#app').hidden = true; location.replace(reason ? `/sign-in?reason=${encodeURIComponent(reason)}` : '/sign-in'); return }
@@ -554,6 +577,7 @@ void request('/api/session').then(async (session) => {
   state.session = session
   updateAccount()
   $('#developers').hidden = !['access', 'account'].includes(session.authMode)
+  $('#settings').hidden = $('#developers').hidden
   $('#integrations').hidden = $('#developers').hidden
   $('#credentials').hidden = !['access', 'account'].includes(session.authMode)
   $('#domains').hidden = ['access', 'account'].includes(session.authMode) && !session.customDomainsEnabled

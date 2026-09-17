@@ -331,7 +331,8 @@ export class MailboxStore {
   async commitMessage(
     row: MessageRow,
     event: unknown,
-    send?: { key: string; result: SendResult; deliveryEvent?: unknown }
+    send?: { key: string; result: SendResult; deliveryEvent?: unknown },
+    notifyEmail = true
   ): Promise<MessageRow> {
     const [saved] = await this.db.query<MessageRow>(
       `with active as (
@@ -346,6 +347,18 @@ export class MailboxStore {
     ), event as (
       insert into mail.outbox(id, inbox_id, payload)
       select saved.id::text, saved.inbox_id, $9::jsonb from saved where saved.id = $1 and $9::jsonb is not null
+      on conflict do nothing
+    ), notifications as (
+      insert into mail.notifications(customer_id, message_id, desktop_requested, email_requested)
+      select c.id, saved.id, c.desktop_notifications, c.email_notifications and $16::boolean
+      from saved join mail.customer_inboxes ci on ci.inbox_id = saved.inbox_id
+        join mail.customers c on c.id = ci.customer_id join mail.inboxes i on i.id = saved.inbox_id
+      where saved.id = $1 and saved.direction = 'received' and not i.testing
+        and c.disabled_at is null and c.signed_in_at is not null
+        and (c.desktop_notifications or (c.email_notifications and $16::boolean))
+        and not saved.labels && array['quarantined','spam','trash']::text[]
+        and coalesce(saved.protection->>'status', '') <> 'quarantined'
+        and coalesce(saved.protection->'antivirus'->>'status', 'clean') = 'clean'
       on conflict do nothing
     ), delivery_event as (
       insert into mail.outbox(id, inbox_id, payload)
@@ -371,6 +384,7 @@ export class MailboxStore {
         send?.deliveryEvent ? JSON.stringify(send.deliveryEvent) : null,
         row.protection ? JSON.stringify(row.protection) : null,
         row.triage ? JSON.stringify(row.triage) : null,
+        notifyEmail,
       ]
     )
     if (!saved) throw new MailError("Inbox not found", "not_found", 404)

@@ -1,3 +1,4 @@
+import { sendNotifications } from "./notifications.js"
 import { jevAnalyzer } from "./triage.js"
 import { handleDeveloperMcp } from "./developer-mcp.js"
 import { handleDeveloperRequest } from "./developer-api.js"
@@ -345,6 +346,7 @@ export default {
     const service = serviceFor(env)
     ctx.waitUntil(service.processIncoming().then(() => service.flushEvents()))
     ctx.waitUntil(service.processTriage())
+    if (env.AUTH_PUBLIC_URL && env.AUTH_FROM) ctx.waitUntil(sendNotifications(service.store.db, service.transport, env.AUTH_FROM, env.AUTH_PUBLIC_URL))
     ctx.waitUntil(service.collectGarbage())
     if (env.AUTH_PUBLIC_URL) ctx.waitUntil(collectAccountGarbage(service))
   }

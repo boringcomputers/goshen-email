@@ -4,6 +4,7 @@ import { accountMigrations } from "./account-schema.js"
 import { clientDomainMigrations } from "./client-domains-schema.js"
 import { customerMigrations } from "./customer-schema.js"
 import { onboardingMigrations } from "./onboarding-schema.js"
+import { settingsMigrations } from "./settings-schema.js"
 
 const searchExpression = `
   setweight(to_tsvector('simple', left(coalesce(data->>'subject', ''), 4096)), 'A') ||
@@ -213,4 +214,5 @@ export const migrations = [
   ...onboardingMigrations,
   ...apiKeyMigrations,
   ...triageMigrations,
+  ...settingsMigrations,
 ]

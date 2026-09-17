@@ -1,10 +1,11 @@
+import { desktopNotifications } from "./notifications.js"
 import { manageApiKeys } from "./api-keys.js"
 import type { JWTVerifyGetKey } from "jose"
 import { z } from "zod"
 import { accessIdentity, type AccessConfig } from "./access-auth.js"
 import { address, MailError, type Operation, type InboxRow } from "./contracts.js"
 import { createAccountInbox, listAccountInboxes, updateAccountInbox } from "./account-inbox-contract.js"
-import { CustomerStore, inviteInput, type CustomerInbox, type Customer } from "./customer-store.js"
+import { CustomerStore, inviteInput, updateSettingsInput, type CustomerInbox, type Customer } from "./customer-store.js"
 import { mailboxCredentials } from "./mail-clients.js"
 import type { MailService } from "./mail-service.js"
 import { readBytes } from "./security.js"
@@ -57,6 +58,17 @@ export async function executeCustomerRequest(request: Request, service: MailServ
     if (["createApiKey", "listApiKeys", "revokeApiKey"].includes(operation)) return manageApiKeys(service.store.db, customer, operation, raw)
     if (operation === "session") return { customer, defaultDomain: service.config.defaultDomain, apiUrl: service.config.publicUrl,
       customDomainsEnabled: customer.role === "admin" && Boolean(service.customDomains) }
+    if (operation === "getNotifications") {
+      const input = z.object({ since: z.iso.datetime() }).strict().safeParse(raw)
+      if (!input.success) throw new MailError("Use the notification cursor from your account session")
+      return desktopNotifications(service.store.db, customer.id, input.data.since)
+    }
+    if (operation === "getSettings") return { customer }
+    if (operation === "updateSettings") {
+      const input = updateSettingsInput.safeParse(raw)
+      if (!input.success) throw new MailError("Enter valid names and boolean notification preferences")
+      return store.updateSettings(customer, input.data)
+    }
     if (["listCustomers", "inviteCustomer", "setCustomerAccess"].includes(operation)) {
       if (customer.role !== "admin") throw new MailError("Administrator access required", "forbidden", 403)
       if (operation === "listCustomers") return store.list()

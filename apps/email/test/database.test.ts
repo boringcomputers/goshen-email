@@ -39,4 +39,25 @@ describe("PostgreSQL connection failures", () => {
     expect(fake.query).not.toHaveBeenCalled()
     expect(fake.end).toHaveBeenCalledTimes(1)
   })
+  it("keeps transaction queries on one connection and commits before disconnecting", async () => {
+    fake.end.mockRejectedValue(new Error("disconnected"))
+    const result = await db.transaction(async tx => {
+      await tx.query("select id from mail.customers where id = $1 for update", ["customer"])
+      return tx.query("select 2")
+    })
+    expect(result).toEqual([{ reserved: true }])
+    expect(fake.connect).toHaveBeenCalledTimes(1)
+    expect(fake.query.mock.calls.map(call => call[0])).toEqual([
+      "begin", "select id from mail.customers where id = $1 for update", "select 2", "commit",
+    ])
+    expect(fake.end).toHaveBeenCalledTimes(1)
+  })
+  it("rolls back a failed transaction without retrying its callback", async () => {
+    const failure = new Error("lookup failed"), task = vi.fn(async () => { throw failure })
+    await expect(db.transaction(task)).rejects.toBe(failure)
+    expect(task).toHaveBeenCalledTimes(1)
+    expect(fake.query.mock.calls.map(call => call[0])).toEqual(["begin", "rollback"])
+    expect(fake.end).toHaveBeenCalledTimes(1)
+  })
+
 })

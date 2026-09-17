@@ -15,7 +15,10 @@ import type { ObjectStore } from '../src/contracts.js'
 const { accessDashboardHandler } = await import(new URL('../../email-dashboard/src/access-handler.mjs', import.meta.url).href)
 const { customerMailClient } = await import(new URL('../../email-dashboard/src/service.mjs', import.meta.url).href)
 const pg = new PGlite()
-const db: Database = { query: async <T>(sql: string, params: unknown[] = []) => (await pg.query<T>(sql, params)).rows }
+const db: Database = {
+  query: async <T>(sql: string, params: unknown[] = []) => (await pg.query<T>(sql, params)).rows,
+  transaction: task => pg.transaction(tx => task({ query: async <T>(sql: string, params: unknown[] = []) => (await tx.query<T>(sql, params)).rows })),
+}
 await migrate(db)
 const access = { teamDomain: 'fixture.cloudflareaccess.com', audience: 'a'.repeat(64), adminEmails: ['owner@example.net'] }
 const keys = await generateKeyPair('RS256')
