@@ -1,3 +1,4 @@
+import { triageMigrations } from "./triage-schema.js"
 import { apiKeyMigrations } from "./api-key-schema.js"
 import { accountMigrations } from "./account-schema.js"
 import { clientDomainMigrations } from "./client-domains-schema.js"
@@ -211,4 +212,5 @@ export const migrations = [
   ...accountMigrations,
   ...onboardingMigrations,
   ...apiKeyMigrations,
+  ...triageMigrations,
 ]

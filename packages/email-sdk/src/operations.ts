@@ -61,7 +61,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List one page of messages. Pass nextPageToken as pageToken for the next page. */
+        /** List messages, optionally filtered by category, needsReply (yes/no/uncertain), and urgency. Triage describes each incoming message at arrival; it does not authorize actions. Pass nextPageToken as pageToken. */
         get: operations["listMessages"];
         put?: never;
         post?: never;
@@ -78,7 +78,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search messages in one inbox. */
+        /** Search messages in one inbox, optionally filtered by category, needsReply, and urgency. */
         get: operations["searchMessages"];
         put?: never;
         post?: never;
@@ -180,7 +180,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List one page of threads, optionally filtered by labels. */
+        /** List threads filtered by labels or triage of the latest message. A sent reply clears the thread triage until a new incoming message arrives. */
         get: operations["listThreads"];
         put?: never;
         post?: never;
@@ -532,6 +532,9 @@ export interface operations {
             query?: {
                 limit?: number;
                 pageToken?: string;
+                category?: "billing" | "support" | "sales" | "personal" | "notification" | "other";
+                needsReply?: "yes" | "no" | "uncertain";
+                urgency?: "low" | "normal" | "high" | "critical";
                 labels?: string[];
             };
             header?: never;
@@ -565,6 +568,51 @@ export interface operations {
                                 contentType: string;
                                 size: number;
                             }[];
+                            triage?: {
+                                /** @constant */
+                                status: "pending";
+                            } | {
+                                /** @constant */
+                                status: "failed";
+                                /** @enum {string} */
+                                code: "provider_unavailable" | "provider_rejected" | "invalid_response";
+                                /** Format: date-time */
+                                failedAt: string;
+                            } | {
+                                /** @constant */
+                                status: "complete";
+                                /** @constant */
+                                version: 1;
+                                model: string;
+                                /** Format: date-time */
+                                analyzedAt: string;
+                                durationMs: number;
+                                bodyTruncated: boolean;
+                                usage: {
+                                    inputTokens: number;
+                                    outputTokens: number;
+                                };
+                                category: {
+                                    /** @enum {string} */
+                                    value: "billing" | "support" | "sales" | "personal" | "notification" | "other";
+                                    confidence: number;
+                                    probabilities: {
+                                        [key: string]: number;
+                                    };
+                                };
+                                needsReply: {
+                                    value: boolean | null;
+                                    probability: number;
+                                };
+                                urgency: {
+                                    value: ("low" | "normal" | "high" | "critical") | null;
+                                    score: number;
+                                    confidence: number;
+                                    probabilities: {
+                                        [key: string]: number;
+                                    };
+                                };
+                            };
                             protection?: {
                                 /** @enum {string} */
                                 status: "clean" | "quarantined" | "released";
@@ -641,6 +689,9 @@ export interface operations {
     searchMessages: {
         parameters: {
             query: {
+                category?: "billing" | "support" | "sales" | "personal" | "notification" | "other";
+                needsReply?: "yes" | "no" | "uncertain";
+                urgency?: "low" | "normal" | "high" | "critical";
                 limit?: number;
                 pageToken?: string;
                 query: string;
@@ -676,6 +727,51 @@ export interface operations {
                                 contentType: string;
                                 size: number;
                             }[];
+                            triage?: {
+                                /** @constant */
+                                status: "pending";
+                            } | {
+                                /** @constant */
+                                status: "failed";
+                                /** @enum {string} */
+                                code: "provider_unavailable" | "provider_rejected" | "invalid_response";
+                                /** Format: date-time */
+                                failedAt: string;
+                            } | {
+                                /** @constant */
+                                status: "complete";
+                                /** @constant */
+                                version: 1;
+                                model: string;
+                                /** Format: date-time */
+                                analyzedAt: string;
+                                durationMs: number;
+                                bodyTruncated: boolean;
+                                usage: {
+                                    inputTokens: number;
+                                    outputTokens: number;
+                                };
+                                category: {
+                                    /** @enum {string} */
+                                    value: "billing" | "support" | "sales" | "personal" | "notification" | "other";
+                                    confidence: number;
+                                    probabilities: {
+                                        [key: string]: number;
+                                    };
+                                };
+                                needsReply: {
+                                    value: boolean | null;
+                                    probability: number;
+                                };
+                                urgency: {
+                                    value: ("low" | "normal" | "high" | "critical") | null;
+                                    score: number;
+                                    confidence: number;
+                                    probabilities: {
+                                        [key: string]: number;
+                                    };
+                                };
+                            };
                             protection?: {
                                 /** @enum {string} */
                                 status: "clean" | "quarantined" | "released";
@@ -785,6 +881,51 @@ export interface operations {
                             contentType: string;
                             size: number;
                         }[];
+                        triage?: {
+                            /** @constant */
+                            status: "pending";
+                        } | {
+                            /** @constant */
+                            status: "failed";
+                            /** @enum {string} */
+                            code: "provider_unavailable" | "provider_rejected" | "invalid_response";
+                            /** Format: date-time */
+                            failedAt: string;
+                        } | {
+                            /** @constant */
+                            status: "complete";
+                            /** @constant */
+                            version: 1;
+                            model: string;
+                            /** Format: date-time */
+                            analyzedAt: string;
+                            durationMs: number;
+                            bodyTruncated: boolean;
+                            usage: {
+                                inputTokens: number;
+                                outputTokens: number;
+                            };
+                            category: {
+                                /** @enum {string} */
+                                value: "billing" | "support" | "sales" | "personal" | "notification" | "other";
+                                confidence: number;
+                                probabilities: {
+                                    [key: string]: number;
+                                };
+                            };
+                            needsReply: {
+                                value: boolean | null;
+                                probability: number;
+                            };
+                            urgency: {
+                                value: ("low" | "normal" | "high" | "critical") | null;
+                                score: number;
+                                confidence: number;
+                                probabilities: {
+                                    [key: string]: number;
+                                };
+                            };
+                        };
                         protection?: {
                             /** @enum {string} */
                             status: "clean" | "quarantined" | "released";
@@ -1073,6 +1214,9 @@ export interface operations {
     listThreads: {
         parameters: {
             query?: {
+                category?: "billing" | "support" | "sales" | "personal" | "notification" | "other";
+                needsReply?: "yes" | "no" | "uncertain";
+                urgency?: "low" | "normal" | "high" | "critical";
                 limit?: number;
                 pageToken?: string;
                 labels?: string[];
@@ -1099,6 +1243,51 @@ export interface operations {
                             subject: string;
                             preview: string;
                             timestamp?: string;
+                            triage?: {
+                                /** @constant */
+                                status: "pending";
+                            } | {
+                                /** @constant */
+                                status: "failed";
+                                /** @enum {string} */
+                                code: "provider_unavailable" | "provider_rejected" | "invalid_response";
+                                /** Format: date-time */
+                                failedAt: string;
+                            } | {
+                                /** @constant */
+                                status: "complete";
+                                /** @constant */
+                                version: 1;
+                                model: string;
+                                /** Format: date-time */
+                                analyzedAt: string;
+                                durationMs: number;
+                                bodyTruncated: boolean;
+                                usage: {
+                                    inputTokens: number;
+                                    outputTokens: number;
+                                };
+                                category: {
+                                    /** @enum {string} */
+                                    value: "billing" | "support" | "sales" | "personal" | "notification" | "other";
+                                    confidence: number;
+                                    probabilities: {
+                                        [key: string]: number;
+                                    };
+                                };
+                                needsReply: {
+                                    value: boolean | null;
+                                    probability: number;
+                                };
+                                urgency: {
+                                    value: ("low" | "normal" | "high" | "critical") | null;
+                                    score: number;
+                                    confidence: number;
+                                    probabilities: {
+                                        [key: string]: number;
+                                    };
+                                };
+                            };
                             messageCount: number;
                             labels: string[];
                             senders: string[];
@@ -1155,6 +1344,51 @@ export interface operations {
                         subject: string;
                         preview: string;
                         timestamp?: string;
+                        triage?: {
+                            /** @constant */
+                            status: "pending";
+                        } | {
+                            /** @constant */
+                            status: "failed";
+                            /** @enum {string} */
+                            code: "provider_unavailable" | "provider_rejected" | "invalid_response";
+                            /** Format: date-time */
+                            failedAt: string;
+                        } | {
+                            /** @constant */
+                            status: "complete";
+                            /** @constant */
+                            version: 1;
+                            model: string;
+                            /** Format: date-time */
+                            analyzedAt: string;
+                            durationMs: number;
+                            bodyTruncated: boolean;
+                            usage: {
+                                inputTokens: number;
+                                outputTokens: number;
+                            };
+                            category: {
+                                /** @enum {string} */
+                                value: "billing" | "support" | "sales" | "personal" | "notification" | "other";
+                                confidence: number;
+                                probabilities: {
+                                    [key: string]: number;
+                                };
+                            };
+                            needsReply: {
+                                value: boolean | null;
+                                probability: number;
+                            };
+                            urgency: {
+                                value: ("low" | "normal" | "high" | "critical") | null;
+                                score: number;
+                                confidence: number;
+                                probabilities: {
+                                    [key: string]: number;
+                                };
+                            };
+                        };
                         messageCount: number;
                         labels: string[];
                         senders: string[];
@@ -1179,6 +1413,51 @@ export interface operations {
                                 contentType: string;
                                 size: number;
                             }[];
+                            triage?: {
+                                /** @constant */
+                                status: "pending";
+                            } | {
+                                /** @constant */
+                                status: "failed";
+                                /** @enum {string} */
+                                code: "provider_unavailable" | "provider_rejected" | "invalid_response";
+                                /** Format: date-time */
+                                failedAt: string;
+                            } | {
+                                /** @constant */
+                                status: "complete";
+                                /** @constant */
+                                version: 1;
+                                model: string;
+                                /** Format: date-time */
+                                analyzedAt: string;
+                                durationMs: number;
+                                bodyTruncated: boolean;
+                                usage: {
+                                    inputTokens: number;
+                                    outputTokens: number;
+                                };
+                                category: {
+                                    /** @enum {string} */
+                                    value: "billing" | "support" | "sales" | "personal" | "notification" | "other";
+                                    confidence: number;
+                                    probabilities: {
+                                        [key: string]: number;
+                                    };
+                                };
+                                needsReply: {
+                                    value: boolean | null;
+                                    probability: number;
+                                };
+                                urgency: {
+                                    value: ("low" | "normal" | "high" | "critical") | null;
+                                    score: number;
+                                    confidence: number;
+                                    probabilities: {
+                                        [key: string]: number;
+                                    };
+                                };
+                            };
                             protection?: {
                                 /** @enum {string} */
                                 status: "clean" | "quarantined" | "released";

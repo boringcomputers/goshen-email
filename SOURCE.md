@@ -21,6 +21,8 @@ Changes to the copied code:
 - Test fixtures can use dedicated local PostgreSQL databases through the production driver.
 - The Worker also serves the standalone account REST API, OpenAPI, and MCP.
   The developer clients and API-key schema are new standalone additions.
+- Messages can carry optional Jev triage. The standalone analyzer and retry
+  processor are new files; message storage, reads, and Worker scheduling call them.
 - Documentation describes the standalone owner dashboard and deployment.
 
 There is no automatic synchronization. When taking a fix from Bezalel, inspect

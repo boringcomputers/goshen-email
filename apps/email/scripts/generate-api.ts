@@ -1,3 +1,4 @@
+import { triageMigrations } from "../src/triage-schema.js"
 import { URL } from "node:url"
 import { apiKeyMigrations } from "../src/api-key-schema.js"
 import { readFile, writeFile, mkdir } from "node:fs/promises"
@@ -11,6 +12,7 @@ const manifest = Object.fromEntries(Object.entries(developerOperations).map(([id
 }]))
 const types = astToString(await openapiTS(document as unknown as OpenAPI3))
 const files = {
+  "ops/email/triage.sql": "-- Apply after developer-api.sql as the schema owner.\nBEGIN;\nSET LOCAL ROLE postgres;\n" + triageMigrations.join(";\n\n") + ";\nCOMMIT;\n",
   "ops/email/developer-api.sql": "-- Apply after inbox-onboarding.sql as the schema owner, with migration approval.\nBEGIN;\nSET LOCAL ROLE postgres;\n" + apiKeyMigrations.join(";\n\n") + ";\nCOMMIT;\n",
   "docs/openapi.json": JSON.stringify(document, null, 2) + "\n",
   "packages/email-sdk/src/operations.ts": generated + types,

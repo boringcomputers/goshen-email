@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { triageFilters, type MessageTriage } from "./triage-contract.js"
 import type { MessageDelivery } from "./delivery.js"
 import type { MessageProtection } from "./protection.js"
 
@@ -111,12 +112,13 @@ export const inputs = {
     })
     .refine(hasBody, "Email body is required")
     .refine((v) => Buffer.byteLength(v.text ?? "") + Buffer.byteLength(v.html ?? "") <= 512 * 1024, "Email bodies must fit within 512 KiB"),
-  listMessages: z.object({ ...inbox, ...page, labels: labels.optional() }),
+  listMessages: z.object({ ...inbox, ...page, ...triageFilters, labels: labels.optional() }),
   getMessage: z.object({
     ...message,
     includeHtml: z.boolean().default(false)
   }),
   listThreads: z.object({
+    ...triageFilters,
     ...inbox,
     ...page,
     labels: labels.optional(),
@@ -141,6 +143,7 @@ export const inputs = {
     removeLabels: labels.default([])
   }),
   searchMessages: z.object({
+    ...triageFilters,
     ...inbox,
     ...page,
     query: pgText.min(1).max(1000)
@@ -196,6 +199,7 @@ export interface MessageRow {
   data: MailData
   delivery?: MessageDelivery | null
   protection?: MessageProtection | null
+  triage?: MessageTriage | null
 }
 export interface DomainInfo {
   domainId: string

@@ -7,6 +7,7 @@ import {
   type MessageRow,
   type SendResult
 } from "./contracts.js"
+import { triageFilterSql, triageFilterParams, type TriageFilters } from "./triage-contract.js"
 import type { Database } from "./database.js"
 
 export interface SendReservation {
@@ -158,15 +159,16 @@ export class MailboxStore {
       offset: number
       labels?: string[]
       query?: string
-    }
+    } & TriageFilters
   ): Promise<MessageRow[]> {
     const rows = await this.db.query<MessageRow>(
       `
-      select id, inbox_id, wire_id, thread_id, timestamp, direction, labels, protection,
+      select id, inbox_id, wire_id, thread_id, timestamp, direction, labels, protection, triage,
         (data - 'html') || jsonb_build_object('text', left(data->>'text', 200)) as data
       from mail.messages where inbox_id = $1 and labels @> $2::text[]
         and ($3::text is null or search @@ websearch_to_tsquery('simple', $3))
         and (coalesce(protection->>'status', '') <> 'quarantined' or 'quarantined' = any($2::text[]))
+      ${triageFilterSql('triage')}
       order by case when $3::text is not null then ts_rank(search, websearch_to_tsquery('simple', $3)) else 0 end desc,
         timestamp desc, id desc limit $4 offset $5`,
       [
@@ -174,7 +176,8 @@ export class MailboxStore {
         options.labels ?? [],
         options.query ?? null,
         options.limit + 1,
-        options.offset
+        options.offset,
+        ...triageFilterParams(options)
       ]
     )
     return rows.map(messageRow)
@@ -198,7 +201,7 @@ export class MailboxStore {
         )
     }
     const rows = await this.db.query<MessageRow>(
-      `select id, inbox_id, wire_id, thread_id, timestamp, direction, labels, protection,
+      `select id, inbox_id, wire_id, thread_id, timestamp, direction, labels, protection, triage,
       case when $3::boolean then delivery else null end as delivery,
       case when $3::boolean then data else (data - 'html') || jsonb_build_object('text', left(data->>'text', 200)) end as data
       from mail.messages where inbox_id = $1 and thread_id = $2 order by timestamp, id limit 501`,
@@ -222,7 +225,7 @@ export class MailboxStore {
       offset: number
       labels?: string[]
       includeTrash: boolean
-    }
+    } & TriageFilters
   ): Promise<Array<Record<string, unknown>>> {
     return this.db.query(
       `with grouped as (
@@ -231,6 +234,7 @@ export class MailboxStore {
         (array_agg(case when protection->>'status' = 'quarantined' then '' else left(data->>'text', 200) end
           order by timestamp desc, id desc))[1] as preview,
         (array_agg(wire_id order by timestamp desc, id desc))[1] as last_message_id,
+        (array_agg(case when protection->>'status' = 'quarantined' then null else triage end order by timestamp desc, id desc))[1] as triage,
         array_agg(distinct data->>'from') as senders,
         (array_agg(data->'to' order by timestamp desc, id desc))[1] as recipients,
         max(timestamp) filter (where direction = 'received') as received_timestamp,
@@ -244,13 +248,15 @@ export class MailboxStore {
       from mail.messages, unnest(labels) label where inbox_id = $1 group by thread_id
     ) select g.*, coalesce(l.labels, '{}') as labels from grouped g left join thread_labels l using (thread_id)
       where coalesce(l.labels, '{}') @> $2::text[] and ($3::boolean or not ('trash' = any(coalesce(l.labels, '{}'))))
+      ${triageFilterSql("g.triage")}
       order by timestamp desc, thread_id desc limit $4 offset $5`,
       [
         inboxId,
         options.labels ?? [],
         options.includeTrash,
         options.limit + 1,
-        options.offset
+        options.offset,
+        ...triageFilterParams(options)
       ]
     )
   }
@@ -331,8 +337,8 @@ export class MailboxStore {
       `with active as (
       select id from mail.inboxes where id = $2 and deleted_at is null for update
     ), saved as (
-      insert into mail.messages(id, inbox_id, wire_id, thread_id, timestamp, direction, labels, data, delivery, protection)
-      select $1, id, $3, $4, $5::timestamptz, $6, $7::text[], $8::jsonb, $12::jsonb, $14::jsonb from active
+      insert into mail.messages(id, inbox_id, wire_id, thread_id, timestamp, direction, labels, data, delivery, protection, triage)
+      select $1, id, $3, $4, $5::timestamptz, $6, $7::text[], $8::jsonb, $12::jsonb, $14::jsonb, $15::jsonb from active
       on conflict (inbox_id, wire_id) do update set wire_id = excluded.wire_id returning *
     ), sent as (
       update mail.sends set state = 'sent', result = $11::jsonb
@@ -364,6 +370,7 @@ export class MailboxStore {
         row.delivery ? JSON.stringify(row.delivery) : null,
         send?.deliveryEvent ? JSON.stringify(send.deliveryEvent) : null,
         row.protection ? JSON.stringify(row.protection) : null,
+        row.triage ? JSON.stringify(row.triage) : null,
       ]
     )
     if (!saved) throw new MailError("Inbox not found", "not_found", 404)

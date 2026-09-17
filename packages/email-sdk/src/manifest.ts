@@ -172,7 +172,7 @@ export const manifest = {
     "method": "GET",
     "path": "/v1/inboxes/{inboxId}/messages",
     "scope": "messages:read",
-    "description": "List one page of messages. Pass nextPageToken as pageToken for the next page.",
+    "description": "List messages, optionally filtered by category, needsReply (yes/no/uncertain), and urgency. Triage describes each incoming message at arrival; it does not authorize actions. Pass nextPageToken as pageToken.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -192,6 +192,34 @@ export const manifest = {
         "pageToken": {
           "type": "string",
           "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "billing",
+            "support",
+            "sales",
+            "personal",
+            "notification",
+            "other"
+          ]
+        },
+        "needsReply": {
+          "type": "string",
+          "enum": [
+            "yes",
+            "no",
+            "uncertain"
+          ]
+        },
+        "urgency": {
+          "type": "string",
+          "enum": [
+            "low",
+            "normal",
+            "high",
+            "critical"
+          ]
         },
         "labels": {
           "maxItems": 50,
@@ -213,11 +241,39 @@ export const manifest = {
     "method": "GET",
     "path": "/v1/inboxes/{inboxId}/messages/search",
     "scope": "messages:read",
-    "description": "Search messages in one inbox.",
+    "description": "Search messages in one inbox, optionally filtered by category, needsReply, and urgency.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "billing",
+            "support",
+            "sales",
+            "personal",
+            "notification",
+            "other"
+          ]
+        },
+        "needsReply": {
+          "type": "string",
+          "enum": [
+            "yes",
+            "no",
+            "uncertain"
+          ]
+        },
+        "urgency": {
+          "type": "string",
+          "enum": [
+            "low",
+            "normal",
+            "high",
+            "critical"
+          ]
+        },
         "inboxId": {
           "type": "string",
           "maxLength": 254,
@@ -591,11 +647,39 @@ export const manifest = {
     "method": "GET",
     "path": "/v1/inboxes/{inboxId}/threads",
     "scope": "messages:read",
-    "description": "List one page of threads, optionally filtered by labels.",
+    "description": "List threads filtered by labels or triage of the latest message. A sent reply clears the thread triage until a new incoming message arrives.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "billing",
+            "support",
+            "sales",
+            "personal",
+            "notification",
+            "other"
+          ]
+        },
+        "needsReply": {
+          "type": "string",
+          "enum": [
+            "yes",
+            "no",
+            "uncertain"
+          ]
+        },
+        "urgency": {
+          "type": "string",
+          "enum": [
+            "low",
+            "normal",
+            "high",
+            "critical"
+          ]
+        },
         "inboxId": {
           "type": "string",
           "maxLength": 254,

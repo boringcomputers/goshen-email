@@ -1,3 +1,4 @@
+import { jevAnalyzer } from "./triage.js"
 import { handleDeveloperMcp } from "./developer-mcp.js"
 import { handleDeveloperRequest } from "./developer-api.js"
 import { accountConfig, postgresAccountAuth, handleAccountRequest, collectAccountGarbage } from "./account-auth.js"
@@ -28,6 +29,8 @@ import {
 } from "./security.js"
 
 export interface Env {
+  TYPESAFE_API_KEY?: string
+  TYPESAFE_MODEL?: string
   HYPERDRIVE: Hyperdrive
   MAIL_API_TOKEN: string
   MAIL_WEBHOOK_SECRET: string
@@ -132,6 +135,7 @@ export const serviceFor = (env: Env): MailService => {
   return new MailService({
     config,
     store,
+    ...(env.TYPESAFE_API_KEY?.trim() ? { triageAnalyzer: jevAnalyzer(env.TYPESAFE_API_KEY.trim(), env.TYPESAFE_MODEL?.trim() || "jev-latest") } : {}),
     objects: env.MAIL_OBJECTS,
     transport: customDomains ? gatewayTransport(transport, customDomains) : transport,
     customDomains,
@@ -317,7 +321,7 @@ export default {
     try {
       const raw = await readBytes(message.raw, 25 * 1024 * 1024)
       await service.acceptIncoming(message.to, raw, message.from)
-      ctx.waitUntil(service.processIncoming())
+      ctx.waitUntil(service.processIncoming().then(() => service.processTriage()))
     } catch (error) {
       if (error instanceof MailError && [404, 413].includes(error.status)) {
         message.setReject(
@@ -340,6 +344,7 @@ export default {
   ): Promise<void> {
     const service = serviceFor(env)
     ctx.waitUntil(service.processIncoming().then(() => service.flushEvents()))
+    ctx.waitUntil(service.processTriage())
     ctx.waitUntil(service.collectGarbage())
     if (env.AUTH_PUBLIC_URL) ctx.waitUntil(collectAccountGarbage(service))
   }

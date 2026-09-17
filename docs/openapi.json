@@ -759,7 +759,7 @@
     "/v1/inboxes/{inboxId}/messages": {
       "get": {
         "operationId": "listMessages",
-        "summary": "List one page of messages. Pass nextPageToken as pageToken for the next page.",
+        "summary": "List messages, optionally filtered by category, needsReply (yes/no/uncertain), and urgency. Triage describes each incoming message at arrival; it does not authorize actions. Pass nextPageToken as pageToken.",
         "security": [
           {
             "bearerAuth": []
@@ -796,6 +796,49 @@
             "schema": {
               "type": "string",
               "maxLength": 200
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "billing",
+                "support",
+                "sales",
+                "personal",
+                "notification",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "needsReply",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no",
+                "uncertain"
+              ]
+            }
+          },
+          {
+            "name": "urgency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "critical"
+              ]
             }
           },
           {
@@ -885,6 +928,248 @@
                                 "size"
                               ]
                             }
+                          },
+                          "triage": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "pending"
+                                  }
+                                },
+                                "required": [
+                                  "status"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "failed"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "enum": [
+                                      "provider_unavailable",
+                                      "provider_rejected",
+                                      "invalid_response"
+                                    ]
+                                  },
+                                  "failedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "code",
+                                  "failedAt"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "complete"
+                                  },
+                                  "version": {
+                                    "type": "number",
+                                    "const": 1
+                                  },
+                                  "model": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                  },
+                                  "analyzedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  },
+                                  "durationMs": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "bodyTruncated": {
+                                    "type": "boolean"
+                                  },
+                                  "usage": {
+                                    "type": "object",
+                                    "properties": {
+                                      "inputTokens": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "outputTokens": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9007199254740991
+                                      }
+                                    },
+                                    "required": [
+                                      "inputTokens",
+                                      "outputTokens"
+                                    ]
+                                  },
+                                  "category": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "type": "string",
+                                        "enum": [
+                                          "billing",
+                                          "support",
+                                          "sales",
+                                          "personal",
+                                          "notification",
+                                          "other"
+                                        ]
+                                      },
+                                      "confidence": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "probabilities": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string",
+                                          "enum": [
+                                            "billing",
+                                            "support",
+                                            "sales",
+                                            "personal",
+                                            "notification",
+                                            "other"
+                                          ]
+                                        },
+                                        "additionalProperties": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "required": [
+                                          "billing",
+                                          "support",
+                                          "sales",
+                                          "personal",
+                                          "notification",
+                                          "other"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "confidence",
+                                      "probabilities"
+                                    ]
+                                  },
+                                  "needsReply": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "anyOf": [
+                                          {
+                                            "type": "boolean"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "probability": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "probability"
+                                    ]
+                                  },
+                                  "urgency": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "low",
+                                              "normal",
+                                              "high",
+                                              "critical"
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "score": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 3
+                                      },
+                                      "confidence": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "probabilities": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string",
+                                          "enum": [
+                                            "0",
+                                            "1",
+                                            "2",
+                                            "3"
+                                          ]
+                                        },
+                                        "additionalProperties": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "required": [
+                                          "0",
+                                          "1",
+                                          "2",
+                                          "3"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "score",
+                                      "confidence",
+                                      "probabilities"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "version",
+                                  "model",
+                                  "analyzedAt",
+                                  "durationMs",
+                                  "bodyTruncated",
+                                  "usage",
+                                  "category",
+                                  "needsReply",
+                                  "urgency"
+                                ]
+                              }
+                            ]
                           },
                           "protection": {
                             "type": "object",
@@ -1186,7 +1471,7 @@
     "/v1/inboxes/{inboxId}/messages/search": {
       "get": {
         "operationId": "searchMessages",
-        "summary": "Search messages in one inbox.",
+        "summary": "Search messages in one inbox, optionally filtered by category, needsReply, and urgency.",
         "security": [
           {
             "bearerAuth": []
@@ -1194,6 +1479,49 @@
         ],
         "x-required-scope": "messages:read",
         "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "billing",
+                "support",
+                "sales",
+                "personal",
+                "notification",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "needsReply",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no",
+                "uncertain"
+              ]
+            }
+          },
+          {
+            "name": "urgency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "critical"
+              ]
+            }
+          },
           {
             "name": "inboxId",
             "in": "path",
@@ -1308,6 +1636,248 @@
                                 "size"
                               ]
                             }
+                          },
+                          "triage": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "pending"
+                                  }
+                                },
+                                "required": [
+                                  "status"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "failed"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "enum": [
+                                      "provider_unavailable",
+                                      "provider_rejected",
+                                      "invalid_response"
+                                    ]
+                                  },
+                                  "failedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "code",
+                                  "failedAt"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "complete"
+                                  },
+                                  "version": {
+                                    "type": "number",
+                                    "const": 1
+                                  },
+                                  "model": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                  },
+                                  "analyzedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  },
+                                  "durationMs": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "bodyTruncated": {
+                                    "type": "boolean"
+                                  },
+                                  "usage": {
+                                    "type": "object",
+                                    "properties": {
+                                      "inputTokens": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "outputTokens": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9007199254740991
+                                      }
+                                    },
+                                    "required": [
+                                      "inputTokens",
+                                      "outputTokens"
+                                    ]
+                                  },
+                                  "category": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "type": "string",
+                                        "enum": [
+                                          "billing",
+                                          "support",
+                                          "sales",
+                                          "personal",
+                                          "notification",
+                                          "other"
+                                        ]
+                                      },
+                                      "confidence": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "probabilities": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string",
+                                          "enum": [
+                                            "billing",
+                                            "support",
+                                            "sales",
+                                            "personal",
+                                            "notification",
+                                            "other"
+                                          ]
+                                        },
+                                        "additionalProperties": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "required": [
+                                          "billing",
+                                          "support",
+                                          "sales",
+                                          "personal",
+                                          "notification",
+                                          "other"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "confidence",
+                                      "probabilities"
+                                    ]
+                                  },
+                                  "needsReply": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "anyOf": [
+                                          {
+                                            "type": "boolean"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "probability": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "probability"
+                                    ]
+                                  },
+                                  "urgency": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "low",
+                                              "normal",
+                                              "high",
+                                              "critical"
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "score": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 3
+                                      },
+                                      "confidence": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "probabilities": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string",
+                                          "enum": [
+                                            "0",
+                                            "1",
+                                            "2",
+                                            "3"
+                                          ]
+                                        },
+                                        "additionalProperties": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "required": [
+                                          "0",
+                                          "1",
+                                          "2",
+                                          "3"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "score",
+                                      "confidence",
+                                      "probabilities"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "version",
+                                  "model",
+                                  "analyzedAt",
+                                  "durationMs",
+                                  "bodyTruncated",
+                                  "usage",
+                                  "category",
+                                  "needsReply",
+                                  "urgency"
+                                ]
+                              }
+                            ]
                           },
                           "protection": {
                             "type": "object",
@@ -1715,6 +2285,248 @@
                           "size"
                         ]
                       }
+                    },
+                    "triage": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "const": "pending"
+                            }
+                          },
+                          "required": [
+                            "status"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "const": "failed"
+                            },
+                            "code": {
+                              "type": "string",
+                              "enum": [
+                                "provider_unavailable",
+                                "provider_rejected",
+                                "invalid_response"
+                              ]
+                            },
+                            "failedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "code",
+                            "failedAt"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "const": "complete"
+                            },
+                            "version": {
+                              "type": "number",
+                              "const": 1
+                            },
+                            "model": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "analyzedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                            },
+                            "durationMs": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "bodyTruncated": {
+                              "type": "boolean"
+                            },
+                            "usage": {
+                              "type": "object",
+                              "properties": {
+                                "inputTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "outputTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "inputTokens",
+                                "outputTokens"
+                              ]
+                            },
+                            "category": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "enum": [
+                                    "billing",
+                                    "support",
+                                    "sales",
+                                    "personal",
+                                    "notification",
+                                    "other"
+                                  ]
+                                },
+                                "confidence": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                },
+                                "probabilities": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string",
+                                    "enum": [
+                                      "billing",
+                                      "support",
+                                      "sales",
+                                      "personal",
+                                      "notification",
+                                      "other"
+                                    ]
+                                  },
+                                  "additionalProperties": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "required": [
+                                    "billing",
+                                    "support",
+                                    "sales",
+                                    "personal",
+                                    "notification",
+                                    "other"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "confidence",
+                                "probabilities"
+                              ]
+                            },
+                            "needsReply": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "anyOf": [
+                                    {
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "probability": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "probability"
+                              ]
+                            },
+                            "urgency": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "low",
+                                        "normal",
+                                        "high",
+                                        "critical"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "score": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 3
+                                },
+                                "confidence": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                },
+                                "probabilities": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string",
+                                    "enum": [
+                                      "0",
+                                      "1",
+                                      "2",
+                                      "3"
+                                    ]
+                                  },
+                                  "additionalProperties": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "required": [
+                                    "0",
+                                    "1",
+                                    "2",
+                                    "3"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "score",
+                                "confidence",
+                                "probabilities"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "version",
+                            "model",
+                            "analyzedAt",
+                            "durationMs",
+                            "bodyTruncated",
+                            "usage",
+                            "category",
+                            "needsReply",
+                            "urgency"
+                          ]
+                        }
+                      ]
                     },
                     "protection": {
                       "type": "object",
@@ -2633,7 +3445,7 @@
     "/v1/inboxes/{inboxId}/threads": {
       "get": {
         "operationId": "listThreads",
-        "summary": "List one page of threads, optionally filtered by labels.",
+        "summary": "List threads filtered by labels or triage of the latest message. A sent reply clears the thread triage until a new incoming message arrives.",
         "security": [
           {
             "bearerAuth": []
@@ -2641,6 +3453,49 @@
         ],
         "x-required-scope": "messages:read",
         "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "billing",
+                "support",
+                "sales",
+                "personal",
+                "notification",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "needsReply",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no",
+                "uncertain"
+              ]
+            }
+          },
+          {
+            "name": "urgency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "critical"
+              ]
+            }
+          },
           {
             "name": "inboxId",
             "in": "path",
@@ -2724,6 +3579,248 @@
                           },
                           "timestamp": {
                             "type": "string"
+                          },
+                          "triage": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "pending"
+                                  }
+                                },
+                                "required": [
+                                  "status"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "failed"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "enum": [
+                                      "provider_unavailable",
+                                      "provider_rejected",
+                                      "invalid_response"
+                                    ]
+                                  },
+                                  "failedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "code",
+                                  "failedAt"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "complete"
+                                  },
+                                  "version": {
+                                    "type": "number",
+                                    "const": 1
+                                  },
+                                  "model": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                  },
+                                  "analyzedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  },
+                                  "durationMs": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "bodyTruncated": {
+                                    "type": "boolean"
+                                  },
+                                  "usage": {
+                                    "type": "object",
+                                    "properties": {
+                                      "inputTokens": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "outputTokens": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9007199254740991
+                                      }
+                                    },
+                                    "required": [
+                                      "inputTokens",
+                                      "outputTokens"
+                                    ]
+                                  },
+                                  "category": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "type": "string",
+                                        "enum": [
+                                          "billing",
+                                          "support",
+                                          "sales",
+                                          "personal",
+                                          "notification",
+                                          "other"
+                                        ]
+                                      },
+                                      "confidence": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "probabilities": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string",
+                                          "enum": [
+                                            "billing",
+                                            "support",
+                                            "sales",
+                                            "personal",
+                                            "notification",
+                                            "other"
+                                          ]
+                                        },
+                                        "additionalProperties": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "required": [
+                                          "billing",
+                                          "support",
+                                          "sales",
+                                          "personal",
+                                          "notification",
+                                          "other"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "confidence",
+                                      "probabilities"
+                                    ]
+                                  },
+                                  "needsReply": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "anyOf": [
+                                          {
+                                            "type": "boolean"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "probability": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "probability"
+                                    ]
+                                  },
+                                  "urgency": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "low",
+                                              "normal",
+                                              "high",
+                                              "critical"
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "score": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 3
+                                      },
+                                      "confidence": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "probabilities": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string",
+                                          "enum": [
+                                            "0",
+                                            "1",
+                                            "2",
+                                            "3"
+                                          ]
+                                        },
+                                        "additionalProperties": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "required": [
+                                          "0",
+                                          "1",
+                                          "2",
+                                          "3"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "score",
+                                      "confidence",
+                                      "probabilities"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "version",
+                                  "model",
+                                  "analyzedAt",
+                                  "durationMs",
+                                  "bodyTruncated",
+                                  "usage",
+                                  "category",
+                                  "needsReply",
+                                  "urgency"
+                                ]
+                              }
+                            ]
                           },
                           "messageCount": {
                             "type": "number"
@@ -2885,6 +3982,248 @@
                     "timestamp": {
                       "type": "string"
                     },
+                    "triage": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "const": "pending"
+                            }
+                          },
+                          "required": [
+                            "status"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "const": "failed"
+                            },
+                            "code": {
+                              "type": "string",
+                              "enum": [
+                                "provider_unavailable",
+                                "provider_rejected",
+                                "invalid_response"
+                              ]
+                            },
+                            "failedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "code",
+                            "failedAt"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "const": "complete"
+                            },
+                            "version": {
+                              "type": "number",
+                              "const": 1
+                            },
+                            "model": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "analyzedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                            },
+                            "durationMs": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "bodyTruncated": {
+                              "type": "boolean"
+                            },
+                            "usage": {
+                              "type": "object",
+                              "properties": {
+                                "inputTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "outputTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "inputTokens",
+                                "outputTokens"
+                              ]
+                            },
+                            "category": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "enum": [
+                                    "billing",
+                                    "support",
+                                    "sales",
+                                    "personal",
+                                    "notification",
+                                    "other"
+                                  ]
+                                },
+                                "confidence": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                },
+                                "probabilities": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string",
+                                    "enum": [
+                                      "billing",
+                                      "support",
+                                      "sales",
+                                      "personal",
+                                      "notification",
+                                      "other"
+                                    ]
+                                  },
+                                  "additionalProperties": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "required": [
+                                    "billing",
+                                    "support",
+                                    "sales",
+                                    "personal",
+                                    "notification",
+                                    "other"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "confidence",
+                                "probabilities"
+                              ]
+                            },
+                            "needsReply": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "anyOf": [
+                                    {
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "probability": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "probability"
+                              ]
+                            },
+                            "urgency": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "low",
+                                        "normal",
+                                        "high",
+                                        "critical"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "score": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 3
+                                },
+                                "confidence": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                },
+                                "probabilities": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string",
+                                    "enum": [
+                                      "0",
+                                      "1",
+                                      "2",
+                                      "3"
+                                    ]
+                                  },
+                                  "additionalProperties": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "required": [
+                                    "0",
+                                    "1",
+                                    "2",
+                                    "3"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "score",
+                                "confidence",
+                                "probabilities"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "version",
+                            "model",
+                            "analyzedAt",
+                            "durationMs",
+                            "bodyTruncated",
+                            "usage",
+                            "category",
+                            "needsReply",
+                            "urgency"
+                          ]
+                        }
+                      ]
+                    },
                     "messageCount": {
                       "type": "number"
                     },
@@ -2981,6 +4320,248 @@
                                 "size"
                               ]
                             }
+                          },
+                          "triage": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "pending"
+                                  }
+                                },
+                                "required": [
+                                  "status"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "failed"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "enum": [
+                                      "provider_unavailable",
+                                      "provider_rejected",
+                                      "invalid_response"
+                                    ]
+                                  },
+                                  "failedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "code",
+                                  "failedAt"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "complete"
+                                  },
+                                  "version": {
+                                    "type": "number",
+                                    "const": 1
+                                  },
+                                  "model": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                  },
+                                  "analyzedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  },
+                                  "durationMs": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "bodyTruncated": {
+                                    "type": "boolean"
+                                  },
+                                  "usage": {
+                                    "type": "object",
+                                    "properties": {
+                                      "inputTokens": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "outputTokens": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9007199254740991
+                                      }
+                                    },
+                                    "required": [
+                                      "inputTokens",
+                                      "outputTokens"
+                                    ]
+                                  },
+                                  "category": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "type": "string",
+                                        "enum": [
+                                          "billing",
+                                          "support",
+                                          "sales",
+                                          "personal",
+                                          "notification",
+                                          "other"
+                                        ]
+                                      },
+                                      "confidence": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "probabilities": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string",
+                                          "enum": [
+                                            "billing",
+                                            "support",
+                                            "sales",
+                                            "personal",
+                                            "notification",
+                                            "other"
+                                          ]
+                                        },
+                                        "additionalProperties": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "required": [
+                                          "billing",
+                                          "support",
+                                          "sales",
+                                          "personal",
+                                          "notification",
+                                          "other"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "confidence",
+                                      "probabilities"
+                                    ]
+                                  },
+                                  "needsReply": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "anyOf": [
+                                          {
+                                            "type": "boolean"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "probability": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "probability"
+                                    ]
+                                  },
+                                  "urgency": {
+                                    "type": "object",
+                                    "properties": {
+                                      "value": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "low",
+                                              "normal",
+                                              "high",
+                                              "critical"
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "score": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 3
+                                      },
+                                      "confidence": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "probabilities": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string",
+                                          "enum": [
+                                            "0",
+                                            "1",
+                                            "2",
+                                            "3"
+                                          ]
+                                        },
+                                        "additionalProperties": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "required": [
+                                          "0",
+                                          "1",
+                                          "2",
+                                          "3"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "value",
+                                      "score",
+                                      "confidence",
+                                      "probabilities"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "version",
+                                  "model",
+                                  "analyzedAt",
+                                  "durationMs",
+                                  "bodyTruncated",
+                                  "usage",
+                                  "category",
+                                  "needsReply",
+                                  "urgency"
+                                ]
+                              }
+                            ]
                           },
                           "protection": {
                             "type": "object",

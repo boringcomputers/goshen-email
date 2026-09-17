@@ -1,3 +1,4 @@
+import { fixtureTriage } from "./triage-fixture.js"
 import { KyselyPGlite } from "kysely-pglite"
 import { createAccountAuth, handleAccountRequest } from "../src/account-auth.js"
 import { PGlite } from '@electric-sql/pglite'
@@ -24,7 +25,9 @@ const objects: ObjectStore = {
 }
 const sends: unknown[] = []
 let routingAvailable = true
-const service = new MailService({ store: new MailboxStore(db), objects,
+const service = new MailService({
+  ...(process.env.FIXTURE_TRIAGE === "true" ? { triageAnalyzer: fixtureTriage } : {}),
+  store: new MailboxStore(db), objects,
   config: { defaultDomain: 'example.com', domains: { 'example.com': 'a'.repeat(32) }, publicUrl: 'https://fixture.example.com', apiToken: 'fixture-worker-token-'.repeat(3), webhookSecret: `whsec_${Buffer.from('fixture-webhook-secret-'.repeat(3)).toString('base64')}` },
   transport: {
     ensureInboxRoute: async () => { if (!routingAvailable) throw new Error('Fixture routing unavailable') },
@@ -68,6 +71,7 @@ const control = createServer(async (req, res) => {
       res.writeHead(response.status, { 'content-type': 'application/json' }).end(await response.text()); return
     }
     const input = JSON.parse(Buffer.concat(chunks).toString())
+    if (req.url === '/triage') { await service.processTriage(); res.end('{}'); return }
     if (req.url === '/routing') { routingAvailable = input.available === true; res.end('{}'); return }
     if (req.url !== '/receive') { res.writeHead(404).end(); return }
     const raw = new TextEncoder().encode([
@@ -80,6 +84,7 @@ const control = createServer(async (req, res) => {
       status: 'quarantined', scannedAt: new Date().toISOString(), authentication: { spf: 'pass', dkim: 'pass', dmarc: 'pass', signingDomains: ['example.net'] },
       spam: { score: 8, threshold: 6 }, antivirus: { status: 'clean', signatures: [] }, reasons: ['spam'],
     } : undefined)
+    if (!input.deferTriage) await service.processTriage()
     res.end(JSON.stringify(result))
   } catch { res.writeHead(500).end('Fixture operation failed') }
 })
