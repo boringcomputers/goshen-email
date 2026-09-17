@@ -1,56 +1,97 @@
 # Workspace settings
 
-Open **Settings** at `/app#/settings` to change the organization name or your
-profile name. Each section saves separately. The organization name appears in
-the sidebar and breadcrumb; the profile name appears in the account menu.
-Names persist across browsers and sign-ins. Sign-in email is read-only.
+Open **Settings** at `/app#/settings` to change your organization name, profile
+name, and notification preferences. Each section saves separately. The
+organization name appears in the sidebar and breadcrumb; the profile name
+appears in the account menu. Names and preferences persist across sign-ins.
+The verified sign-in email is read-only. One account owns one workspace.
 
-The current account owns one workspace. Settings do not add shared membership,
-invitations, billing, or notification preferences. Account access links to the
-existing API keys page and describes the configured passwordless sign-in method.
-Settings are available in account and Cloudflare Access modes.
+Settings are available in account and Cloudflare Access modes. The Worker
+uses the authenticated customer ID. `updateSettings` accepts optional
+`organizationName`, `displayName`, `desktopNotifications`, and
+`emailNotifications` fields. Names are trimmed and limited to 100 and 200
+characters respectively; notification values must be booleans. Empty requests,
+unknown fields, blank names, and control characters are rejected. Callers
+cannot change their email, role, quota, or another account. These operations
+are excluded from the public account-key API and MCP.
 
-The Worker reads settings from the authenticated account. `getSettings` returns
-its customer record; `updateSettings` accepts an organization name, a profile
-name, or both. Unknown fields, blank names, control characters, organization
-names longer than 100 characters, and profile names longer than 200 characters
-are rejected. Callers cannot supply another account's ID or change their email,
-role, or quota. Account API keys do not expose these dashboard operations.
+Profile saves update both the customer and linked authentication profile in
+one database statement. Disabled accounts cannot read or change settings.
+Dashboard requests retain the existing session and origin checks.
 
-Profile saves update the customer record and its linked authentication profile
-in one database statement. A failure rolls back both updates. Disabled accounts
-cannot read or change settings. Dashboard requests retain the existing session
-and origin checks.
+## Notifications
+
+Both channels default off and apply to future mail in the account's own
+inboxes, including for administrators. They exclude test inboxes, quarantined,
+spam, and trashed messages. Enabling them does not replay historical mail.
+New arrivals create notification records in the message commit statement;
+duplicate inbound messages cannot create duplicate records. Ownership,
+account access, inbox deletion, and protection are checked again on delivery.
+Opt-out cancels queued notifications for that channel.
+
+Desktop alerts require a supported browser, permission, and an open dashboard.
+The **Allow in this browser** button requests permission only on a click,
+following the [Notifications API permission requirements](https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API).
+The dashboard polls every 30 seconds without refreshing the reader. It groups
+new arrivals into one alert and omits subjects, senders, and bodies. Alerts
+open the relevant inbox. Web Locks and local storage deduplicate across tabs;
+browsers without Web Locks only show alerts in the focused tab. Polling stops
+on sign-out. Preference changes in another browser take effect on reload;
+the server always rechecks opt-out when answering a notification request.
+This does not implement push notifications when the dashboard is closed.
+
+Email notifications go only to the verified sign-in address. The existing
+minute cron groups up to 100 arrivals per summary, processing at most ten
+summaries per invocation. It uses `AUTH_FROM`, `AUTH_PUBLIC_URL`, and the
+existing transport. Email summaries contain a count and dashboard/settings
+links, never message contents. Automated messages with `Auto-Submitted` or
+`X-Bezalel-Notification` headers do not trigger email alerts, preventing loops.
+The notification queue does not alter mailbox send idempotency or webhooks.
+
+The existing transport accepts no notification idempotency key. Each summary is reserved
+before sending and attempted once; errors and interrupted sends are not
+retried automatically because delivery may already have happened. Inspect
+`mail.notifications.email_state` for pending, attempted, accepted, or failed
+records. An accepted receipt means queued or delivered by the transport,
+not confirmed arrival in the recipient's mailbox. Pending notifications
+expire after a day; all notification records are removed after seven days.
+Email notifications require the account sender configuration even when the
+user signs in through Cloudflare Access.
 
 ## Rollout
 
-1. Apply [workspace-settings.sql](../ops/email/workspace-settings.sql) with the
-   schema-owner role after production migration approval. It adds one column
-   to `mail.customers`, defaults existing accounts to **Your workspace**, and
-   preserves saved names when rerun. Existing application table grants apply
-   to the new column.
-2. Deploy the email Worker, then the dashboard. The API must support settings
-   before the dashboard offers them.
-3. Verify an account can rename its workspace, reload Settings, and see the
-   saved name in the sidebar and page header.
+1. Apply [workspace-settings.sql](../ops/email/workspace-settings.sql) as the
+   schema owner before deploying. It adds the organization name, two opt-in
+   columns, the notification queue, and indexes. It preserves saved values
+   when rerun. Ensure the application's existing default table grants cover
+   the new table, as for the account-auth migration.
+2. Deploy the email Worker, then the dashboard. No SMTP or DNS changes are
+   needed. Confirm `AUTH_FROM`, `AUTH_PUBLIC_URL`, and the minute cron exist.
+3. Verify saved names and preferences survive a reload. Opt in on a test
+   account and confirm a new arrival produces a browser alert and an email
+   summary; then opt out and confirm further arrivals do not notify.
 
-Rolling back the application can leave this additive column in place. Do not
-drop account data during rollback. No SMTP or DNS changes are needed.
+An application rollback can leave the additive schema in place. Do not drop
+account data during rollback.
 
 ## Verification
 
-Backend tests cover account isolation, rejected fields, disabled accounts,
-profile update rollback, persistence after sign-in, Access profiles, and
-migration reruns. The browser regression covers failed saves, duplicate
-submissions, navigation during a save, load retries, sign-out and sign-in,
-account isolation, and desktop/mobile layouts.
+Backend tests cover persistence, account isolation, validation, migration
+reruns, profile rollback, duplicate arrivals, opt-out, quarantine, deleted
+inboxes, disabled accounts, automatic-mail suppression, concurrent workers,
+and uncertain sends. Browser checks cover saves and failures, navigation,
+permission prompts, alert deduplication, grouped email transport, isolation,
+sign-out/in, and responsive layouts.
 
 Start `apps/email/test/dashboard-fixture.ts` with `FIXTURE_AUTH_MODE=account`
 and `FIXTURE_PORT=3194`, then run
 `node --test apps/email-dashboard/test/browser/settings.mjs`.
 Set `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` for externally installed Playwright
 and Chromium. `DASHBOARD_EVIDENCE_DIR` optionally saves screenshots.
-Use `homelab-job` for the browser checks on the homelab.
+Use `homelab-job` for browser checks on the homelab.
 
-The fixture uses local PGlite storage. Email sending, routing, domain
-verification, object storage, and Jev use test doubles. It sends no live email.
+The fixture uses local PGlite. Email sending, routing, domain verification,
+object storage, Jev, and the browser Notification API use test doubles. The
+loopback-only `/notifications` fixture endpoint runs the real email queue
+processor against the transport double. No live email or native OS alert is
+claimed by these checks.

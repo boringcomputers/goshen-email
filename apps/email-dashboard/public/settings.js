@@ -1,22 +1,29 @@
 export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
   const $ = selector => document.querySelector(selector)
-  const forms = [$('#organization-form'), $('#profile-form')]
+  const forms = [$('#organization-form'), $('#profile-form'), $('#notifications-form')]
   let customer = null, version = 0, pending = false, saveTask = null
-  const field = form => form.querySelector('input[name]')
+  const fields = form => [...form.querySelectorAll('input[name]')]
+  const value = input => input.type === 'checkbox' ? input.checked : input.value.trim()
   function sync() {
     for (const form of forms) {
-      const input = field(form)
+      const inputs = fields(form)
       form.querySelector('fieldset').disabled = pending || !customer
-      form.querySelector('button[type=submit]').disabled = pending || !customer || input.value.trim() === (customer[input.name] ?? '')
+      form.querySelector('button[type=submit]').disabled = pending || !customer || inputs.every(input => value(input) === (customer[input.name] ?? (input.type === 'checkbox' ? false : '')))
     }
   }
   function render(value, savedField) {
     customer = value
     for (const form of forms) {
-      const input = field(form)
-      if (!savedField || input.name === savedField) input.value = customer[input.name] ?? ''
+      for (const input of fields(form)) {
+        if (!savedField || form.id === savedField) {
+          if (input.type === 'checkbox') input.checked = customer[input.name] ?? false
+          else input.value = customer[input.name] ?? ''
+        }
+      }
     }
     $('#settings-email').value = customer.email
+    $('#notification-email').textContent = customer.email
+    permissionStatus()
     $('#settings-sign-in-method').textContent = getAuthMode() === 'access'
       ? 'Sign in with an email code through Cloudflare Access.'
       : 'Sign in with an email link or a one-time code.'
@@ -29,7 +36,7 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
     $('#settings-loading').hidden = false
     $('#settings-content').hidden = true
     $('#settings-retry').hidden = true
-    for (const form of forms) { form.querySelector('[role=status]').textContent = ''; form.querySelector('button[type=submit]').textContent = 'Save changes' }
+    for (const form of forms) { form.querySelector('footer [role=status]').textContent = ''; form.querySelector('button[type=submit]').textContent = 'Save changes' }
     sync()
     try {
       await saveTask?.catch(() => {})
@@ -45,23 +52,23 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
     } finally { if (version === requestVersion) $('#settings-loading').hidden = true }
   }
   for (const form of forms) {
-    form.addEventListener('input', () => { form.querySelector('[role=status]').textContent = ''; sync() })
+    form.addEventListener('input', () => { form.querySelector('footer [role=status]').textContent = ''; sync() })
     form.addEventListener('submit', async event => {
       event.preventDefault()
       if (pending || !customer) return
-      const requestVersion = version, input = field(form), name = input.name
-      const button = form.querySelector('button[type=submit]'), status = form.querySelector('[role=status]')
-      const value = input.value.trim()
-      if (!value) { input.setCustomValidity('Enter a name.'); input.reportValidity(); input.setCustomValidity(''); return }
+      const requestVersion = version, inputs = fields(form), name = form.id
+      const button = form.querySelector('button[type=submit]'), status = form.querySelector('footer [role=status]')
+      const input = inputs.find(input => input.type !== 'checkbox' && !value(input))
+      if (input) { input.setCustomValidity('Enter a name.'); input.reportValidity(); input.setCustomValidity(''); return }
       pending = true; sync(); status.textContent = ''; $('#settings-error').textContent = ''
       button.textContent = 'Saving…'
-      const task = rpc('updateSettings', { [name]: value })
+      const task = rpc('updateSettings', Object.fromEntries(inputs.map(input => [input.name, value(input)])))
       saveTask = task
       try {
         const result = await task
         if (version !== requestVersion) return
         render(result.customer, name); onChange(result.customer)
-        status.textContent = name === 'organizationName' ? 'Organization name saved.' : 'Profile name saved.'
+        status.textContent = name === 'organization-form' ? 'Organization name saved.' : name === 'profile-form' ? 'Profile name saved.' : 'Notification preferences saved.'
       } catch (error) {
         if (version === requestVersion) $('#settings-error').textContent = error.message
       } finally {
@@ -70,12 +77,27 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
       }
     })
   }
+  function permissionStatus() {
+    const permission = 'Notification' in window ? Notification.permission : 'unsupported'
+    $('#desktop-permission').textContent = {
+      granted: 'This browser can show desktop notifications.',
+      denied: 'Notifications are blocked. Allow them in your browser’s site settings.',
+      default: 'Allow notifications in this browser to receive desktop alerts.',
+      unsupported: 'This browser does not support desktop notifications.',
+    }[permission]
+    $('#allow-notifications').hidden = permission !== 'default'
+  }
+  $('#allow-notifications').addEventListener('click', async () => {
+    try { await Notification.requestPermission(); permissionStatus() }
+    catch { $('#desktop-permission').textContent = 'Enable notifications in your browser’s site settings.' }
+  })
+  window.addEventListener('focus', permissionStatus)
   $('#settings-retry').addEventListener('click', load)
   return {
     load,
     reset() {
       version++; customer = null; pending = false; saveTask = null
-      for (const form of forms) { form.reset(); form.querySelector('button[type=submit]').textContent = 'Save changes'; form.querySelector('[role=status]').textContent = '' }
+      for (const form of forms) { form.reset(); form.querySelector('button[type=submit]').textContent = 'Save changes'; form.querySelector('footer [role=status]').textContent = '' }
       $('#settings-error').textContent = ''; $('#settings-content').hidden = true
       $('#settings-loading').hidden = true; $('#settings-retry').hidden = true
       sync()

@@ -1,3 +1,4 @@
+import { desktopNotifications } from "./notifications.js"
 import { manageApiKeys } from "./api-keys.js"
 import type { JWTVerifyGetKey } from "jose"
 import { z } from "zod"
@@ -57,10 +58,11 @@ export async function executeCustomerRequest(request: Request, service: MailServ
     if (["createApiKey", "listApiKeys", "revokeApiKey"].includes(operation)) return manageApiKeys(service.store.db, customer, operation, raw)
     if (operation === "session") return { customer, defaultDomain: service.config.defaultDomain, apiUrl: service.config.publicUrl,
       customDomainsEnabled: customer.role === "admin" && Boolean(service.customDomains) }
+    if (operation === "getNotifications") return desktopNotifications(service.store.db, customer.id)
     if (operation === "getSettings") return { customer }
     if (operation === "updateSettings") {
       const input = updateSettingsInput.safeParse(raw)
-      if (!input.success) throw new MailError("Enter an organization name of 1–100 characters or a profile name of 1–200 characters")
+      if (!input.success) throw new MailError("Enter valid names and boolean notification preferences")
       return store.updateSettings(customer, input.data)
     }
     if (["listCustomers", "inviteCustomer", "setCustomerAccess"].includes(operation)) {

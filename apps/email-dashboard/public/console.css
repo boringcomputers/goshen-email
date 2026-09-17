@@ -174,3 +174,9 @@ button, .button-link { border-radius: 7px; }
   #developer-key-list .resource-table th:nth-child(4), #developer-key-list .resource-table td:nth-child(4), #developer-key-list .resource-table th:nth-child(2), #developer-key-list .resource-table td:nth-child(2) { display: none; }
   .integration-card { padding: 20px; }
 }
+
+.settings-card .notification-option { display: flex; flex-direction: row; align-items: flex-start; gap: 12px; font-size: 13px; cursor: pointer; }
+.settings-card .notification-option input { width: 16px; height: 16px; flex: 0 0 16px; margin: 2px 0 0; accent-color: #262626; }
+.notification-option strong { display: block; font-weight: 550; margin-bottom: 4px; }
+.notification-option span span { color: var(--color-text-muted); line-height: 20px; overflow-wrap: anywhere; }
+#allow-notifications { margin-top: 10px; font-size: 12px; }

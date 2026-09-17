@@ -1,3 +1,4 @@
+import { sendNotifications } from "../src/notifications.js"
 import { fixtureTriage } from "./triage-fixture.js"
 import { KyselyPGlite } from "kysely-pglite"
 import { createAccountAuth, handleAccountRequest } from "../src/account-auth.js"
@@ -71,6 +72,7 @@ const control = createServer(async (req, res) => {
       res.writeHead(response.status, { 'content-type': 'application/json' }).end(await response.text()); return
     }
     const input = JSON.parse(Buffer.concat(chunks).toString())
+    if (req.url === '/notifications') { await sendNotifications(db, service.transport, accountConfig.from, accountConfig.publicUrl); res.end('{}'); return }
     if (req.url === '/triage') { await service.processTriage(); res.end('{}'); return }
     if (req.url === '/routing') { routingAvailable = input.available === true; res.end('{}'); return }
     if (req.url !== '/receive') { res.writeHead(404).end(); return }

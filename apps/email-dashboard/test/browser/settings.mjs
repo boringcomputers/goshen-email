@@ -12,6 +12,16 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   let release = () => {}
   t.after(async () => { release(); await browser.close() })
   const context = await browser.newContext({ viewport: { width: 1440, height: 1100 } }), page = await context.newPage(), errors = []
+  await context.addInitScript(() => {
+    window.notificationAlerts = []
+    window.notificationPermissionRequests = 0
+    window.Notification = class {
+      static permission = 'default'
+      static async requestPermission() { window.notificationPermissionRequests++; this.permission = 'granted'; return this.permission }
+      constructor(title, options) { this.title = title; this.options = options; window.notificationAlerts.push(this) }
+      close() { this.onclose?.() }
+    }
+  })
   page.on('pageerror', error => errors.push(error.message))
   const signIn = async (client, email) => {
     assert.equal((await client.request.post(base + '/api/auth/email-otp/send-verification-otp', { headers: { origin: base }, data: { email, type: 'sign-in' } })).status(), 200)
@@ -79,6 +89,48 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   await organization.waitFor()
   assert.equal(await organization.inputValue(), 'Boring Computers')
 
+  assert.equal(await page.locator('#desktop-notifications').isChecked(), false)
+  assert.equal(await page.locator('#email-notifications').isChecked(), false)
+  assert.equal(await page.evaluate(() => window.notificationPermissionRequests), 0, 'No unsolicited permission prompt')
+  await page.locator('#allow-notifications').click()
+  assert.equal(await page.evaluate(() => window.notificationPermissionRequests), 1)
+  await page.locator('#desktop-notifications').check()
+  await page.locator('#email-notifications').check()
+  const baseline = page.waitForResponse('**/api/rpc/getNotifications')
+  await page.locator('#notifications-form button[type=submit]').click()
+  await page.getByText('Notification preferences saved.', { exact: true }).waitFor()
+  const rpc = async (operation, data = {}) => {
+    const response = await context.request.post(base + '/api/rpc/' + operation, { headers: { origin: base }, data })
+    assert.equal(response.status(), 200)
+    return (await response.json()).result
+  }
+  await baseline
+  const { inboxId } = await rpc('createInbox', { username: 'notifications' })
+  await page.clock.install()
+  assert.equal((await context.request.post(control + '/receive', { data: { inboxId, subject: 'Private content stays private' } })).status(), 200)
+  await page.clock.runFor(30_000)
+  await page.waitForFunction(() => window.notificationAlerts.length === 1)
+  assert.equal(await page.evaluate(() => window.notificationAlerts[0].options.body), `New mail in ${inboxId}`)
+  await page.clock.runFor(30_000)
+  assert.equal(await page.evaluate(() => window.notificationAlerts.length), 1, 'The next poll does not repeat an alert')
+  assert.equal((await context.request.post(control + '/notifications', { data: {} })).status(), 200)
+  const delivered = await (await context.request.get(control + '/sends')).json()
+  const mail = delivered.filter(message => message.subject === 'New mail in Bezalel Email')
+  assert.equal(mail.length, 1)
+  assert.deepEqual(mail[0].to, ['owner@example.net'])
+  assert.equal(mail[0].text.includes('Private content'), false)
+  await page.evaluate(() => window.notificationAlerts[0].onclick())
+  await page.locator('#mail-page').waitFor()
+  assert.equal(await page.locator('#mail-heading').textContent(), inboxId, 'An alert opens an inbox created outside this tab')
+  await page.locator('#settings').click()
+  await organization.waitFor()
+  await page.evaluate(() => { Notification.permission = 'denied'; window.dispatchEvent(new Event('focus')) })
+  await page.getByText('Notifications are blocked. Allow them in your browser’s site settings.', { exact: true }).waitFor()
+  assert.equal(await page.locator('#allow-notifications').isVisible(), false)
+  await page.reload()
+  await organization.waitFor()
+  assert.equal(await page.locator('#desktop-notifications').isChecked(), true)
+  assert.equal(await page.locator('#email-notifications').isChecked(), true)
   await page.locator('#logout').click()
   await page.waitForURL('**/sign-in')
   await signIn(context, 'owner@example.net')
@@ -92,10 +144,12 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   await otherPage.goto(base + '/app#/settings')
   await otherPage.locator('#organization-name').waitFor()
   assert.equal(await otherPage.locator('#organization-name').inputValue(), 'Your workspace')
+  assert.equal(await otherPage.locator('#desktop-notifications').isChecked(), false)
+  assert.equal(await otherPage.locator('#email-notifications').isChecked(), false)
   await other.close()
 
   const evidence = process.env.DASHBOARD_EVIDENCE_DIR
-  if (evidence) { await mkdir(evidence, { recursive: true }); await page.screenshot({ path: evidence + '/settings-desktop.png', fullPage: true }) }
+  if (evidence) { await mkdir(evidence, { recursive: true }); await page.setViewportSize({ width: 1440, height: 1500 }); await page.screenshot({ path: evidence + '/settings-desktop.png', fullPage: true }) }
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1100 })
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `No overflow at ${width}`)
@@ -107,6 +161,6 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   await page.locator('#settings').click()
   await organization.waitFor()
   assert.equal(await page.locator('#sidebar').evaluate(element => element.inert), true)
-  if (evidence) await page.screenshot({ path: evidence + '/settings-mobile.png', fullPage: true })
+  if (evidence) { await page.setViewportSize({ width: 390, height: 1800 }); await page.screenshot({ path: evidence + '/settings-mobile.png', fullPage: true }) }
   assert.deepEqual(errors, [])
 })

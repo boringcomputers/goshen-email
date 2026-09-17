@@ -1,3 +1,4 @@
+import { createDesktopNotifications } from "/notifications.js"
 import { triageBadges, triageDetails } from "./triage.js"
 import { createDeveloperPanel } from "./developer.js"
 import { createInboxSetup, connectionCommand } from './setup.js'
@@ -96,6 +97,7 @@ $('#sidebar').addEventListener('keydown', (event) => {
 mobileViewport.addEventListener('change', () => setMenu(false, false))
 setMenu(false, false)
 function updateAccount() {
+  notifications.start(state.session?.customer)
   const customer = state.session?.customer
   const organization = customer?.organizationName || 'Your workspace'
   $('#workspace-name').textContent = organization; $('#workspace-name').title = organization
@@ -167,6 +169,13 @@ const action = (element, task) => element.addEventListener('click', async () => 
   try { await task() } catch (error) { notify(error.message) } finally { element.disabled = false }
 })
 const developers = createDeveloperPanel({ rpc, notify, getSession: () => state.session })
+const notifications = createDesktopNotifications({ rpc, async openInbox(inboxId) {
+  const epoch = state.epoch
+  try {
+    if (!state.inboxes.some(inbox => inbox.inboxId === inboxId)) await loadInboxes()
+    if (epoch === state.epoch) dashboard.openInbox(inboxId)
+  } catch (error) { if (epoch === state.epoch) notify(error.message) }
+} })
 const settings = createSettingsPanel({ rpc, getAuthMode: () => state.authMode, onChange(customer) {
   if (state.session?.customer?.id !== customer.id) return
   state.session.customer = customer
@@ -184,7 +193,7 @@ function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
-  dashboard.reset(); setup.reset(); developers.reset(); settings.reset(); resetTriageFilters()
+  dashboard.reset(); setup.reset(); developers.reset(); settings.reset(); notifications.reset(); resetTriageFilters()
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)

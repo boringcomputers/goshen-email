@@ -20,6 +20,7 @@ export const assets = new Map([
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/console.js', ['console.js', 'text/javascript; charset=utf-8']],
   ['/console.css', ['console.css', 'text/css; charset=utf-8']],
+  ['/notifications.js', ['notifications.js', 'text/javascript; charset=utf-8']],
   ['/settings.js', ['settings.js', 'text/javascript; charset=utf-8']],
   ['/setup.js', ['setup.js', 'text/javascript; charset=utf-8']],
   ['/setup.css', ['setup.css', 'text/css; charset=utf-8']],

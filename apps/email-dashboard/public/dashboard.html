@@ -130,6 +130,17 @@
                 <footer class="settings-card-footer"><span role="status"></span><button class="primary" type="submit" disabled>Save changes</button></footer>
               </fieldset>
             </form>
+            <form id="notifications-form" class="settings-card" aria-labelledby="notifications-heading">
+              <fieldset>
+                <div class="settings-card-body"><h2 id="notifications-heading">Notifications</h2><p>Choose how you hear about new mail in your inboxes.</p>
+                  <label class="notification-option"><input type="checkbox" name="desktopNotifications" id="desktop-notifications"><span><strong>Desktop notifications</strong><span>Show alerts while Bezalel Email is open. Message contents stay private.</span></span></label>
+                  <p id="desktop-permission" class="settings-hint" role="status"></p><button id="allow-notifications" type="button" hidden>Allow in this browser</button>
+                  <label class="notification-option"><input type="checkbox" name="emailNotifications" id="email-notifications"><span><strong>Email notifications</strong><span>Get a summary of new arrivals, grouped each minute, at <span id="notification-email"></span>.</span></span></label>
+                  <p class="settings-hint">Applies to new mail after you enable notifications. Quarantined mail is excluded.</p>
+                </div>
+                <footer class="settings-card-footer"><span role="status"></span><button class="primary" type="submit" disabled>Save changes</button></footer>
+              </fieldset>
+            </form>
             <section class="settings-card settings-card-body" aria-labelledby="settings-access-heading"><h2 id="settings-access-heading">Account access</h2><p id="settings-sign-in-method">Sign in with an email link or a one-time code.</p><a class="settings-link" href="#/api-keys">Manage API keys <span data-icon="arrow-right"></span></a></section>
           </div>
         </section>

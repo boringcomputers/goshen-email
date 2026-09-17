@@ -6,14 +6,15 @@ import { inboxGroup, listAccountInboxes } from "./account-inbox-contract.js"
 
 interface CustomerRow {
   id: string; email: string; display_name: string | null; access_subject: string | null;
-  organization_name: string;
+  organization_name: string; desktop_notifications: boolean; email_notifications: boolean;
   created_at: string; signed_in_at: string | null; disabled_at: string | null; inbox_limit: number | null
 }
 export type CustomerInbox = InboxRow & { route_ready: boolean | null; group_name: string | null }
-export interface Customer { id: string; email: string; displayName?: string; organizationName?: string; role: "admin" | "customer"; inboxLimit: number | null }
+export interface Customer { id: string; email: string; displayName?: string; organizationName?: string; desktopNotifications?: boolean; emailNotifications?: boolean; role: "admin" | "customer"; inboxLimit: number | null }
 const view = (row: CustomerRow, adminEmails: string[]): Customer => ({
   id: row.id, email: row.email, displayName: row.display_name ?? undefined,
   organizationName: row.organization_name ?? "Your workspace",
+  desktopNotifications: row.desktop_notifications ?? false, emailNotifications: row.email_notifications ?? false,
   role: adminEmails.includes(row.email) ? "admin" : "customer", inboxLimit: adminEmails.includes(row.email) ? null : row.inbox_limit,
 })
 export const inviteInput = z.object({
@@ -25,7 +26,9 @@ const settingsName = (max: number) => z.string().trim().min(1).max(max).regex(/^
 export const updateSettingsInput = z.object({
   organizationName: settingsName(100).optional(),
   displayName: settingsName(200).optional(),
-}).strict().refine(input => input.organizationName !== undefined || input.displayName !== undefined)
+  desktopNotifications: z.boolean().optional(),
+  emailNotifications: z.boolean().optional(),
+}).strict().refine(input => Object.values(input).some(value => value !== undefined))
 const inboxCursor = z.object({ customer: z.uuid(), all: z.boolean(), group: inboxGroup.nullable(),
   createdAt: z.iso.datetime({ precision: 6 }), id: z.uuid() }).strict()
 
@@ -77,12 +80,17 @@ export class CustomerStore {
     const [row] = await this.db.query<CustomerRow>(
       `with updated as (
          update mail.customers set organization_name = coalesce($2, organization_name),
-           display_name = coalesce($3, display_name)
+           display_name = coalesce($3, display_name),
+           desktop_notifications = coalesce($4, desktop_notifications), email_notifications = coalesce($5, email_notifications)
          where id = $1 and disabled_at is null returning *
+       ), notifications as (
+         update mail.notifications set desktop_requested = case when $4 = false then false else desktop_requested end,
+           email_requested = case when $5 = false then false else email_requested end
+         where customer_id = $1 and ($4 = false or $5 = false) and exists(select 1 from updated)
        ), profile as (
          update mail.auth_users u set name = updated.display_name, "updatedAt" = now()
          from updated where u.id = updated.auth_user_id and $3::text is not null returning u.id
-       ) select * from updated`, [customer.id, input.organizationName ?? null, input.displayName ?? null])
+       ) select * from updated`, [customer.id, input.organizationName ?? null, input.displayName ?? null, input.desktopNotifications ?? null, input.emailNotifications ?? null])
     if (!row) throw new MailError("Your dashboard access has been disabled", "access_denied", 403)
     return { customer: view(row, this.adminEmails) }
   }

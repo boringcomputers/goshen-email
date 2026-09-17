@@ -10,7 +10,7 @@ and Integrations. Inbox folders and mailbox keys live inside the inbox view.
 The reader's Filter messages button expands the
 existing Jev category, response, and urgency controls.
 
-Settings sits above the account controls. It edits the organization and profile
+Settings sits above the account controls. It edits notification preferences and the organization and profile
 names, shows the verified sign-in email, and links to API keys. The saved
 organization name appears in the sidebar and breadcrumb. See
 [workspace settings](settings.md) for persistence and rollout details.

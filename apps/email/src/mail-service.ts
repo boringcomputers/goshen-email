@@ -607,7 +607,9 @@ export class MailService {
       data
     }
     const saved = await this.store.commitMessage(row,
-      inbox.testing || protection?.status === "quarantined" ? null : this.receivedEvent(row, inbox.address))
+      inbox.testing || protection?.status === "quarantined" ? null : this.receivedEvent(row, inbox.address), undefined,
+      !parsed.headers.some(header => header.key.toLowerCase() === "auto-submitted" && header.value.toLowerCase() !== "no") &&
+      !parsed.headers.some(header => header.key.toLowerCase() === "x-bezalel-notification"))
     return { messageId: saved.wire_id, threadId: saved.thread_id }
   }
 

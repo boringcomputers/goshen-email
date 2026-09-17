@@ -12,8 +12,10 @@ dashboard, root workspace files, CI, and new tests are additions.
 
 Changes to the copied code:
 
-- The schema includes an organization name on standalone dashboard accounts.
-  Settings and profile updates are implemented in independently added files.
+- The schema includes organization names and notification preferences on standalone
+  dashboard accounts. Message commits queue opted-in notifications, and the Worker
+  schedules email summaries. Settings, profiles, and notification delivery are
+  implemented in independently added files. Original source hashes are preserved.
 
 - `MAIL_EVENTS_URL` accepts a shared webhook at any supported URL path.
   `BEZALEL_EVENTS_URL` remains an alias. Shared webhooks can be disabled without
