@@ -32,7 +32,9 @@ Opt-out cancels queued notifications for that channel.
 Desktop alerts require a supported browser, permission, and an open dashboard.
 The **Allow in this browser** button requests permission only on a click,
 following the [Notifications API permission requirements](https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API).
-The dashboard polls every 30 seconds without refreshing the reader. It groups
+The dashboard polls every 30 seconds without refreshing the reader. It starts
+tracking arrivals when the preference is enabled, even while browser permission
+is pending, so granting permission does not discard the first new arrival. It groups
 new arrivals into one alert and omits subjects, senders, and bodies. Alerts
 open the relevant inbox. Web Locks and local storage deduplicate across tabs;
 browsers without Web Locks only show alerts in the focused tab. Polling stops
@@ -81,7 +83,9 @@ reruns, profile rollback, duplicate arrivals, opt-out, quarantine, deleted
 inboxes, disabled accounts, automatic-mail suppression, concurrent workers,
 and uncertain sends. Browser checks cover saves and failures, navigation,
 permission prompts, alert deduplication, grouped email transport, isolation,
-sign-out/in, and responsive layouts.
+sign-out/in, and responsive layouts. Focused notification tests also cover granting
+permission after opt-in, cross-tab deduplication, delayed responses after
+sign-out, opt-out cleanup, and recovery after a failed poll.
 
 Start `apps/email/test/dashboard-fixture.ts` with `FIXTURE_AUTH_MODE=account`
 and `FIXTURE_PORT=3194`, then run

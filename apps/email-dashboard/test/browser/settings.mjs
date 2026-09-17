@@ -92,8 +92,6 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   assert.equal(await page.locator('#desktop-notifications').isChecked(), false)
   assert.equal(await page.locator('#email-notifications').isChecked(), false)
   assert.equal(await page.evaluate(() => window.notificationPermissionRequests), 0, 'No unsolicited permission prompt')
-  await page.locator('#allow-notifications').click()
-  assert.equal(await page.evaluate(() => window.notificationPermissionRequests), 1)
   await page.locator('#desktop-notifications').check()
   await page.locator('#email-notifications').check()
   const baseline = page.waitForResponse('**/api/rpc/getNotifications')
@@ -106,6 +104,8 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   }
   await baseline
   const { inboxId } = await rpc('createInbox', { username: 'notifications' })
+  await page.locator('#allow-notifications').click()
+  assert.equal(await page.evaluate(() => window.notificationPermissionRequests), 1)
   await page.clock.install()
   assert.equal((await context.request.post(control + '/receive', { data: { inboxId, subject: 'Private content stays private' } })).status(), 200)
   await page.clock.runFor(30_000)

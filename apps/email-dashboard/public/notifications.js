@@ -2,15 +2,21 @@ export function createDesktopNotifications({ rpc, openInbox }) {
   let account = null, timer = null, generation = 0, busy = false, initialized = false
   let enabled = false
   const seen = new Set(), visible = new Set()
+  function remember(ids) {
+    for (const id of ids) seen.add(id)
+    while (seen.size > 500) seen.delete(seen.values().next().value)
+  }
   async function poll() {
-    if (!account || !enabled || busy || !('Notification' in window) || Notification.permission !== 'granted') return
+    if (!account || !enabled || busy || !('Notification' in window)) return
     const current = generation, key = `bezalel-notifications:${account}`
     busy = true
     try {
       const { notifications } = await rpc('getNotifications')
       if (current !== generation) return
-      if (!initialized) {
-        for (const item of notifications) seen.add(item.id)
+      // Establish the baseline before permission is granted so the first
+      // allowed poll can distinguish new arrivals from older messages.
+      if (!initialized || Notification.permission !== 'granted') {
+        remember(notifications.map(item => item.id))
         initialized = true
         return
       }
@@ -28,10 +34,8 @@ export function createDesktopNotifications({ rpc, openInbox }) {
         visible.add(alert)
         alert.onclose = () => visible.delete(alert)
         alert.onclick = () => { if (current !== generation) return; window.focus(); openInbox(fresh[0].inboxId); alert.close() }
-        for (const item of fresh) seen.add(item.id)
-        const recent = [...seen].slice(-500)
-        seen.clear(); for (const id of recent) seen.add(id)
-        try { localStorage.setItem(key, JSON.stringify(recent)) } catch {}
+        remember(fresh.map(item => item.id))
+        try { localStorage.setItem(key, JSON.stringify([...seen])) } catch {}
       }
       if (navigator.locks) await navigator.locks.request(key, show)
       else if (document.hasFocus()) show()
