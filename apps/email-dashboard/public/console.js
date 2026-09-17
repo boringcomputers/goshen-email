@@ -9,9 +9,9 @@ const element = (tag, text, className) => {
 export function createDashboardConsole({ state, icon, rpc, notify, selectInbox, loadInboxes, closeSetup, openSetup, loadPage, closeNavigation }) {
   let page = 'inboxes', ready = false, pageNumber = 0, routeVersion = 0, deletion = null
   const pageSize = 10
-  const pages = ['inboxes', 'mail', 'api-keys', 'integrations', 'domains', 'customers', 'setup']
-  const titles = { inboxes: 'Inboxes', mail: 'Inboxes', 'api-keys': 'API keys', integrations: 'Integrations', domains: 'Domains', customers: 'Customers', setup: 'Get started' }
-  const allowed = name => !['api-keys', 'integrations', 'domains', 'customers'].includes(name) || !$(name === 'api-keys' ? '#developers' : `#${name}`).hidden
+  const pages = ['inboxes', 'mail', 'api-keys', 'integrations', 'domains', 'setup']
+  const titles = { inboxes: 'Inboxes', mail: 'Inboxes', 'api-keys': 'API keys', integrations: 'Integrations', domains: 'Domains', setup: 'Get started' }
+  const allowed = name => !['api-keys', 'integrations', 'domains'].includes(name) || !$(name === 'api-keys' ? '#developers' : `#${name}`).hidden
   const mailRoute = inboxId => `#/inboxes/${encodeURIComponent(inboxId)}`
   function navigate(hash, replace = false) {
     if (location.hash !== hash) history[replace ? 'replaceState' : 'pushState'](null, '', hash)

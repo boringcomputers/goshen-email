@@ -28,7 +28,7 @@ The original dashboard and current landing page use the [Fancy project in Paper]
 | Dialogs | 24px radius and padding; 20px title; Paper modal shadow |
 | Status badges | Original success, warning, danger, and neutral tokens |
 
-The message list, email reader, compose form, and customer list adapt these primitives to the existing email functions. Fancy does not contain complete email-specific screen artboards. At narrow widths, the navigation opens as a drawer and the message reader has a back button. Folder, mailbox, domain, credential, and customer actions remain available.
+The message list, email reader, and compose form adapt these primitives to the existing email functions. Fancy does not contain complete email-specific screen artboards. At narrow widths, the navigation opens as a drawer and the message reader has a back button. Folder, mailbox, domain, and credential actions remain available.
 
 Inter is served from `/fonts/InterVariable.woff2`; the security policy permits fonts only from the dashboard's own origin. The font and its SIL Open Font License come from the [Inter repository](https://github.com/rsms/inter). The bundled license is in `public/fonts/OFL.txt`.
 

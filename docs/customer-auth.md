@@ -59,7 +59,7 @@ visible to owners; customers start with no mailboxes and cannot claim old ones.
 3. Confirm Access protects `/app` and `/api` on the dashboard hostname and uses
    the intended identity provider. Deploy the dashboard with
    `DASHBOARD_AUTH_MODE=access`, then verify `/` loads without a sign-in prompt.
-4. Sign in as an owner. Confirm the Customers button and expected inboxes appear.
+4. Sign in as an owner. Confirm the expected inboxes appear.
 5. Remove `DASHBOARD_PASSWORD` and `MAIL_API_TOKEN` from the dashboard Worker after
    successful verification. Customer mode ignores both. The old Durable Object
    binding stays for deployment compatibility and receives no customer requests.
@@ -68,11 +68,12 @@ Do not switch a live dashboard to customer mode before Access is configured.
 Unconfigured or invalid identity requests fail closed. Never protect the entire
 email API with Access, since agent keys and mail delivery use different credentials.
 
-## Manage customers
+## Account access
 
-Open **Customers**, add the customer's email and an optional inbox limit, then share the
-dashboard link ending in `/app`. Adding a customer does not send an invitation
-email. Cloudflare sends a sign-in code when the customer starts signing in.
+The dashboard has no customer administration page. Access mode requires an
+existing invitation, managed through the Worker's administrative operations.
+For public signup without invitations, use [passwordless accounts](accounts.md).
+Cloudflare sends a sign-in code when an invited customer starts signing in.
 
 After the [developer API migration](developers.md#rollout-and-verification),
 customers have no inbox-count cap unless an operator assigns one. Customers
@@ -88,9 +89,10 @@ managing multiple inboxes and groups through the API, SDKs, CLI, and MCP.
 Each mailbox initially has a 250-send daily limit.
 Custom-domain administration remains an owner operation in the dashboard.
 
-**Disable access** blocks future dashboard requests and invalidates the customer's
-mailbox keys. Re-enabling access requires customers to copy the new keys. An
-in-flight request may finish, and previously issued attachment links remain valid
+Disabling an account through the Worker blocks future dashboard requests and
+invalidates the customer's mailbox keys. Re-enabling access requires customers
+to copy the new keys. An in-flight request may finish, and previously issued
+attachment links remain valid
 until their short expiry. Disabling access retains inboxes and stored mail.
 
 Mailbox keys use `POST /inbox-rpc/<operation>` on the email API. Customer inboxes

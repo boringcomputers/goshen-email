@@ -6,8 +6,8 @@ matches names, addresses, and groups. Group filters and ten-row pages use the
 complete paginated account inventory.
 
 The resource sidebar contains Inboxes, Domains when enabled, API keys,
-Integrations, and Customers for administrators. Inbox folders and mailbox keys
-live inside the inbox view. The reader's Filter messages button expands the
+and Integrations. Inbox folders and mailbox keys live inside the inbox view.
+The reader's Filter messages button expands the
 existing Jev category, response, and urgency controls.
 
 API keys and domains have dedicated list pages with separate creation dialogs.
@@ -23,8 +23,9 @@ for retry. Success removes the inbox locally before refreshing the inventory,
 so a refresh failure cannot leave a deleted row actionable.
 
 Hash routes support browser Back and reloads, including individual inboxes.
-Missing inbox routes return to the inventory. Mobile navigation uses the existing
-focus trap; the mail reader keeps its back-to-conversations behavior.
+Missing inbox routes and the retired Customers route return to the inventory.
+Mobile navigation uses the existing focus trap; the mail reader keeps its
+back-to-conversations behavior.
 
 ## Design references
 

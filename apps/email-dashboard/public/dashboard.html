@@ -39,7 +39,6 @@
         <a id="domains" href="#/domains" data-page="domains"><span data-icon="globe"></span>Domains</a>
         <a id="developers" href="#/api-keys" data-page="api-keys" hidden><span data-icon="key"></span>API keys</a>
         <a id="integrations" href="#/integrations" data-page="integrations" hidden><span data-icon="code"></span>Integrations</a>
-        <a id="customers" href="#/customers" data-page="customers" hidden><span data-icon="users"></span>Customers</a>
       </nav>
       <div class="sidebar-bottom">
         <button id="get-started" hidden><span data-icon="arrow-right"></span><span>Get started</span></button>
@@ -112,7 +111,6 @@
         <section id="api-keys-page" class="resource-page" aria-labelledby="api-keys-heading" hidden><header class="resource-heading"><div><h1 id="api-keys-heading" tabindex="-1">API keys</h1><p>Connect your agents to every inbox in your account.</p></div><button id="new-api-key" class="primary"><span data-icon="plus"></span>Create API key</button></header><p id="api-keys-error" class="error" role="alert"></p><div id="developer-key-list"></div></section>
         <section id="integrations-page" class="resource-page" aria-labelledby="integrations-heading" hidden><header class="resource-heading"><div><h1 id="integrations-heading" tabindex="-1">Integrations</h1><p>One account key. All your inboxes.</p></div><a class="button-link" href="#/api-keys">Manage API keys <span data-icon="arrow-right"></span></a></header><div class="integration-grid"><section class="integration-card"><span data-icon="code"></span><h2>REST API</h2><p>Create inboxes, read mail, and send messages from your application.</p><label>API URL<code id="developer-base-url"></code></label><a id="developer-api-docs" target="_blank" rel="noopener">View API specification <span data-icon="arrow-right"></span></a></section><section class="integration-card"><span data-icon="stack"></span><h2>MCP</h2><p>Give an MCP client access to your email tools. Connect with an account API key.</p><label>Server URL<code id="developer-mcp-url"></code></label></section><section class="integration-card"><span data-icon="terminal"></span><h2>SDKs &amp; CLI</h2><p>Use the TypeScript SDK, Python SDK, or CLI to work with your inboxes and named groups.</p><a href="https://github.com/boringcomputers/bezalel-email/blob/main/docs/developers.md" target="_blank" rel="noopener">Setup and examples <span data-icon="arrow-right"></span></a></section></div></section>
         <section id="domains-page" class="resource-page" aria-labelledby="domains-heading" hidden><header class="resource-heading"><div><h1 id="domains-heading" tabindex="-1">Domains</h1><p>Send and receive email on your own domain.</p></div><button id="new-domain" class="primary"><span data-icon="plus"></span>Add domain</button></header><p id="domains-error" class="error" role="alert"></p><div id="domain-list"></div></section>
-        <section id="customers-page" class="resource-page" aria-labelledby="customers-heading" hidden><header class="resource-heading"><div><h1 id="customers-heading" tabindex="-1">Customers</h1><p>Manage customer access and inbox limits.</p></div><button id="new-customer" class="primary"><span data-icon="plus"></span>Add customer</button></header><p id="customers-error" class="error" role="alert"></p><div id="customer-list"></div></section>
       </div>
     </section>
   </main>
@@ -148,17 +146,6 @@
     <p class="dialog-description">Connect a domain by adding its DNS records. Custom domains require a configured SMTP gateway.</p>
     <form id="domain-form" class="domain-form"><label>Domain<input name="domain" required placeholder="agents.example.com"></label><button class="primary" type="submit">Add domain</button></form>
     <p id="domain-error" class="error" role="alert"></p>
-  </dialog>
-  <dialog id="customers-dialog" class="wide-dialog" aria-labelledby="customers-title">
-    <div class="dialog-header"><h2 id="customers-title">Add customer</h2><button class="icon-button" type="button" data-close="customers-dialog" aria-label="Close customer creation"><span data-icon="close"></span></button></div>
-    <p class="dialog-description">Add a customer's email, then share this dashboard's address. They sign in with an email code.</p>
-    <form id="customer-form">
-      <label>Email<input name="email" type="email" placeholder="alex@company.com" required maxlength="254" autocomplete="off"></label>
-      <label>Name<input name="displayName" placeholder="Alex Morgan" maxlength="200"></label>
-      <label>Inbox limit (optional)<input name="inboxLimit" type="number" min="1" max="100" placeholder="No limit"></label>
-      <button class="primary" type="submit">Add customer</button>
-    </form>
-    <p id="customer-error" class="error" role="alert"></p>
   </dialog>
   <dialog id="credentials-dialog" aria-labelledby="credentials-title">
     <div class="dialog-header"><h2 id="credentials-title">Mailbox API key</h2><button class="icon-button" type="button" data-close="credentials-dialog" aria-label="Close API key"><span data-icon="close"></span></button></div>

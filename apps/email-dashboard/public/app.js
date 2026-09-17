@@ -22,7 +22,6 @@ const iconPaths = {
   stack: '<rect x="3" y="2" width="10" height="10" rx="2"/><path d="M1 6v8h9M6 5h4M6 8h3"/>',
   shield: '<path d="M8 1.5l5.5 2v4c0 3-3 5.5-5.5 7-2.5-1.5-5.5-4-5.5-7v-4zM8 5v3M8 10.5h.01"/>',
   trash: '<path d="M2 4h12M6 4V2h4v2M4 4l.7 10h6.6L12 4M6.5 7v4M9.5 7v4"/>',
-  users: '<circle cx="6" cy="5" r="2.5"/><path d="M1.5 14v-1.5a4.5 4.5 0 019 0V14M11 2.5a2.5 2.5 0 010 5M12 9.5a4 4 0 012.5 3.5v1"/>',
   key: '<circle cx="5" cy="6" r="3.5"/><path d="M8 8l5.5 5.5M11 11l2-2M12.5 12.5l2-2"/>',
   plus: '<path d="M8 3v10M3 8h10"/>',
   globe: '<circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.5" ry="6"/><path d="M2 8h12"/>',
@@ -167,7 +166,6 @@ const dashboard = createDashboardConsole({ state, icon, rpc, notify, selectInbox
   loadPage: async page => {
     if (page === 'api-keys') await developers.load()
     if (page === 'domains') { $('#domains-error').textContent = ''; await loadDomains() }
-    if (page === 'customers') { $('#customers-error').textContent = ''; await loadCustomers() }
   },
 })
 function showLogin(mode = state.authMode, reason = '') {
@@ -176,7 +174,7 @@ function showLogin(mode = state.authMode, reason = '') {
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
   dashboard.reset(); setup.reset(); developers.reset(); resetTriageFilters()
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
-  $('#customer-list').replaceChildren(); $('#domain-list').replaceChildren(); $('#api-key').value = ''
+  $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)
   $('#account-name').textContent = 'Your workspace'; $('#account-avatar').textContent = 'B'
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
@@ -555,7 +553,6 @@ void request('/api/session').then(async (session) => {
   if (!session.authenticated) return showLogin()
   state.session = session
   updateAccount()
-  $('#customers').hidden = session.customer?.role !== 'admin'
   $('#developers').hidden = !['access', 'account'].includes(session.authMode)
   $('#integrations').hidden = $('#developers').hidden
   $('#credentials').hidden = !['access', 'account'].includes(session.authMode)
@@ -567,37 +564,6 @@ void request('/api/session').then(async (session) => {
   dashboard.start()
 }).catch((error) => { notify(error.message); if ($('#app').hidden) showLogin() })
 
-async function loadCustomers() {
-  const { customers } = await rpc('listCustomers')
-  $('#customer-list').replaceChildren(...customers.map((customer) => {
-    const card = node('section', undefined, 'domain-card customer-row'), copy = node('div', undefined, 'customer-copy')
-    copy.append(node('strong', customer.email), node('p', `${customer.inboxCount} inbox${customer.inboxCount === 1 ? '' : 'es'}${customer.role === 'admin' ? ' · Owner' : customer.inboxLimit === null ? ' · No inbox limit' : ` / ${customer.inboxLimit} allowed`}`))
-    card.append(avatar(customer.displayName || customer.email), copy, statusBadge(customer.status))
-    if (customer.role !== 'admin') {
-      const button = node('button', customer.status === 'disabled' ? 'Enable access' : 'Disable access')
-      action(button, async () => {
-        const enabled = customer.status === 'disabled'
-        if (!enabled && !confirm(`Disable ${customer.email}? Their dashboard and mailbox keys will stop working.`)) return
-        await rpc('setCustomerAccess', { customerId: customer.id, enabled })
-        await loadCustomers()
-      })
-      card.append(button)
-    }
-    return card
-  }))
-}
-action($('#new-customer'), () => { $('#customer-error').textContent = ''; $('#customers-dialog').showModal() })
-$('#customer-form').addEventListener('submit', async (event) => {
-  event.preventDefault()
-  const form = event.currentTarget, button = form.querySelector('button')
-  button.disabled = true; $('#customer-error').textContent = ''
-  try {
-    await rpc('inviteCustomer', { email: form.elements.email.value.trim(),
-      ...(form.elements.displayName.value.trim() ? { displayName: form.elements.displayName.value.trim() } : {}),
-      inboxLimit: form.elements.inboxLimit.value ? Number(form.elements.inboxLimit.value) : null })
-    form.reset(); $('#customers-dialog').close(); await loadCustomers(); notify('Access added. Share the dashboard link with your customer.')
-  } catch (error) { $('#customer-error').textContent = error.message } finally { button.disabled = false }
-})
 let credentialsInbox = ''
 async function loadCredentials(operation) {
   const result = await rpc(operation, { inboxId: credentialsInbox })

@@ -20,7 +20,7 @@ See [SOURCE.md](SOURCE.md) for the source revision and how to carry fixes betwee
 The Cloudflare dashboard supports public passwordless accounts with magic links,
 six-digit email codes, and sign-out. See the [account guide](docs/accounts.md) for
 configuration and rollout.
-Customers see their own inboxes. Owners can manage customers and all inboxes.
+Accounts see their own inboxes. Owners can manage all inboxes.
 Applications and agents use an account API key to manage their account's inboxes.
 Optional mailbox keys restrict an agent to a single inbox.
 New accounts get a guided inbox setup with routing retries, a copyable agent

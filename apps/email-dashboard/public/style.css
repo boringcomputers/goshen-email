@@ -192,14 +192,6 @@ input::file-selector-button { font: inherit; padding: 4px 8px; margin-right: 8px
 .domain-card th { background: var(--color-surface-subtle); color: var(--color-text-muted); font-weight: var(--font-weight-medium); }
 .domain-card th:first-child { width: 12%; }
 .domain-card th:last-child { width: 18%; }
-#customer-form { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 90px; column-gap: 12px; align-items: end; }
-#customer-form label { min-width: 0; margin: 0; }
-#customer-form button { justify-self: end; grid-column: 1 / -1; margin-top: 16px; }
-#customer-list { margin-top: 24px; }
-.customer-row { display: flex; align-items: center; gap: 12px; }
-.customer-copy { flex: 1; min-width: 0; }
-.customer-copy strong { font-size: var(--text-sm); font-weight: var(--font-weight-medium); overflow-wrap: anywhere; }
-.customer-copy p { font-size: var(--text-xs); line-height: 18px; color: var(--color-text-muted); margin-top: 2px; }
 .mobile-only, .reader-back { display: none; }
 @media (max-width: 1024px) {
   .topbar { padding-inline: 24px; }
@@ -237,11 +229,6 @@ input::file-selector-button { font: inherit; padding: 4px 8px; margin-right: 8px
   .reply-button { margin: 20px; }
   .thread { padding: 20px 16px; }
   dialog { max-height: calc(100dvh - 32px); padding: 24px; }
-  #customer-form { grid-template-columns: minmax(0, 1fr) 90px; row-gap: 16px; }
-  #customer-form label:first-child { grid-column: 1 / -1; }
-  #customer-form button { margin: 0; }
-  .customer-row { flex-wrap: wrap; }
-  .customer-row > button { margin-left: 44px; }
   .domain-form { flex-wrap: wrap; }
   .domain-form label { flex-basis: 100%; }
   .domain-form button { margin-left: auto; }

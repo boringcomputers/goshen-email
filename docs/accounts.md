@@ -29,8 +29,8 @@ use, and group multiple inboxes. Operators can set an optional account quota.
 Existing inbox ownership is retained when the verified email matches. New users
 cannot claim existing mailboxes. The API checks session validity, disabled status,
 and mailbox ownership on every request. Administrator emails come only from
-`DASHBOARD_ADMIN_EMAILS`. Administrators can manage customers and existing
-mailboxes without a customer inbox limit.
+`DASHBOARD_ADMIN_EMAILS`. Administrators can manage existing mailboxes without
+an account inbox limit. Account administration is not part of the dashboard.
 
 ## Configuration
 
@@ -81,8 +81,8 @@ The account feature is not enabled in production merely by merging this code.
    secrets and previous Worker version available until the owner has verified
    their account and confirmed access to existing inboxes.
 5. The owner signs in using an email in `DASHBOARD_ADMIN_EMAILS`, completes
-   the emailed link or code, and confirms their existing inboxes and Customers
-   controls. A normal account should see only its own inboxes.
+   the emailed link or code, and confirms their existing inboxes appear.
+   A normal account should see only its own inboxes.
 
 Rollback switches the dashboard back to its previous password-mode version.
 Leave the new tables in place; do not drop account data during rollback. Deploy
