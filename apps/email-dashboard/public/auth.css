@@ -1,4 +1,4 @@
-@font-face { font-family:Inter; src:url('/fonts/InterVariable.woff2') format('woff2'); font-weight:100 900; font-display:swap}
+@font-face { font-family:Inter; src:url('/fonts/InterVariable.woff2') format('woff2'); font-weight:100 900; font-display:optional}
 
 * { box-sizing:border-box}
 html { min-height:100%; background:var(--color-landing-background)}
@@ -29,8 +29,8 @@ button:hover:not(:disabled) { background:#444}
 .alternate a { color:#292929; font-weight:500}
 .footnote { border-top:1px solid #ebebe8; margin:36px 0 0; padding-top:24px; text-align:center}
 footer { font-size:11px; color:#888; border-top:1px solid #ebebe8}
-.skip { position:absolute; left:20px; top:-100px; background:white; padding:10px; z-index:1}
-.skip:focus { top:10px}
+.skip { position:absolute; left:20px; top:10px; transform:translateY(calc(-100% - 20px)); background:white; padding:10px; z-index:1}
+.skip:focus { transform:translateY(0)}
 :focus-visible { outline:2px solid #777; outline-offset:4px}
 [hidden] { display:none!important}
 @media(max-width:600px) { footer { padding:22px 20px}

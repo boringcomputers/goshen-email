@@ -1,4 +1,5 @@
-import { assets, dashboardOrigin, readBody, responseHeaders } from './handler.mjs'
+import { assetResponse, assets, dashboardOrigin, readBody, responseHeaders } from './handler.mjs'
+import { renderAccountPage } from './account-page.mjs'
 import { customerOperations, DashboardError } from './service.mjs'
 
 const pages = new Set(['/sign-in', '/sign-up', '/magic-link'])
@@ -15,7 +16,10 @@ export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, req
       if (url.origin !== origin.origin) throw new DashboardError('Invalid host', 403)
       if (request.method === 'GET') {
         const entry = pages.has(path) ? ['auth.html', 'text/html; charset=utf-8'] : accountAssets.get(path) ?? assets.get(path)
-        if (entry) { headers.set('content-type', entry[1]); return new Response(await asset(entry[0], request), { headers }) }
+        if (entry) {
+          const body = await asset(entry[0], request)
+          return assetResponse(pages.has(path) ? await renderAccountPage(body, url) : body, entry)
+        }
         if (path === '/healthz') return json({ status: 'ok', service: 'bezalel-email-dashboard' })
       }
       const session = path === '/api/session' && request.method === 'GET'

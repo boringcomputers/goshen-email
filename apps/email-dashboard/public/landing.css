@@ -1,6 +1,6 @@
 /* Fancy / Paper · AI Startup Landing. Typography and components come from the artboard export.
    Source: https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/1-0 */
-@font-face { font-family: Inter; src: url('/fonts/InterVariable.woff2') format('woff2'); font-style: normal; font-weight: 100 900; font-display: swap; }
+@font-face { font-family: Inter; src: url('/fonts/InterVariable.woff2') format('woff2'); font-style: normal; font-weight: 100 900; font-display: optional; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; font-family: var(--font-sans), sans-serif; color: var(--color-text); }
@@ -155,8 +155,8 @@ section[id], div[id] { scroll-margin-top: 24px; }
 /* Center the page and keep text blocks readable on smaller screens. */
 .landing { align-items: center; min-height: 100vh; }
 .hero-description, .closing-title, .customer-logos { max-width: 100%; }
-.skip-link { position: fixed; top: -100px; left: 24px; z-index: 1; padding: 12px 20px; border-radius: var(--radius-full); background: var(--color-ink); color: white; }
-.skip-link:focus { top: 16px; }
+.skip-link { position: fixed; top: 16px; transform: translateY(calc(-100% - 32px)); left: 24px; z-index: 1; padding: 12px 20px; border-radius: var(--radius-full); background: var(--color-ink); color: white; }
+.skip-link:focus { transform: translateY(0); }
 @media (max-width: 1439px) {
   .features-heading { width: 55%; }
   .features-description { width: 38%; }

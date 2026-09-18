@@ -9,13 +9,13 @@ const element = (tag, text, className) => {
 export function createDashboardConsole({ state, icon, rpc, notify, selectInbox, loadInboxes, closeSetup, openSetup, loadPage, closeNavigation }) {
   let page = 'inboxes', ready = false, pageNumber = 0, routeVersion = 0, deletion = null
   const pageSize = 10
-  const pages = ['inboxes', 'mail', 'api-keys', 'integrations', 'domains', 'setup', 'settings']
-  const titles = { inboxes: 'Inboxes', mail: 'Inboxes', 'api-keys': 'API keys', integrations: 'Integrations', domains: 'Domains', setup: 'Get started', settings: 'Settings' }
+  const { titles, parse } = window.BezalelDashboardRoutes
+  const pages = Object.keys(titles)
   const allowed = name => !['api-keys', 'integrations', 'domains', 'settings'].includes(name) || !$(name === 'api-keys' ? '#developers' : `#${name}`).hidden
   const mailRoute = inboxId => `#/inboxes/${encodeURIComponent(inboxId)}`
   function navigate(hash, replace = false) {
     if (location.hash !== hash) history[replace ? 'replaceState' : 'pushState'](null, '', hash)
-    if (ready) void route()
+    if (ready) return route()
   }
   function closeMenus(restoreFocus = false) {
     for (const menu of document.querySelectorAll('.actions-menu[open]')) {
@@ -34,12 +34,10 @@ export function createDashboardConsole({ state, icon, rpc, notify, selectInbox, 
   })
   async function route() {
     const version = ++routeVersion
-    let parts
-    try { parts = location.hash.slice(2).split('/').map(decodeURIComponent) } catch { parts = [] }
-    const requested = parts[0] || 'inboxes', inboxId = requested === 'inboxes' ? parts[1] : undefined
-    page = inboxId ? 'mail' : requested
-    if (!pages.includes(page) || !allowed(page)) { navigate('#/inboxes', true); return }
-    if (page === 'mail' && !state.inboxes.some(inbox => inbox.inboxId === inboxId)) { notify('This inbox is no longer available.'); navigate('#/inboxes', true); return }
+    const route = parse(location.hash), inboxId = route.inboxId
+    page = route.page
+    if (!pages.includes(page) || !allowed(page)) return navigate('#/inboxes', true)
+    if (page === 'mail' && !state.inboxes.some(inbox => inbox.inboxId === inboxId)) { notify('This inbox is no longer available.'); return navigate('#/inboxes', true) }
     closeMenus(); closeNavigation()
     if (page !== 'setup') closeSetup()
     for (const name of pages) $(name === 'setup' ? '#setup' : `#${name}-page`).hidden = name !== page
@@ -49,6 +47,8 @@ export function createDashboardConsole({ state, icon, rpc, notify, selectInbox, 
     }
     $('#page-title').textContent = titles[page]
     document.title = `${titles[page]} · Bezalel Email`
+    delete document.documentElement.dataset.initialPage
+    document.documentElement.style.removeProperty('--initial-page-title')
     $('.workspace-content').scrollTop = 0
     const heading = $(page === 'setup' ? '#setup-title' : `#${page}-heading`)
     heading?.focus({ preventScroll: true })
@@ -175,7 +175,7 @@ export function createDashboardConsole({ state, icon, rpc, notify, selectInbox, 
   window.addEventListener('hashchange', () => { if (ready) void route() })
   return {
     render, syncSelection, get page() { return page },
-    start() { ready = true; navigate(location.hash || '#/inboxes', true) },
+    start() { ready = true; return navigate(location.hash || '#/inboxes', true) },
     openInbox(inboxId) { navigate(mailRoute(inboxId)) },
     showSetup(open) { if (open && page !== 'setup') navigate('#/setup'); else if (!open && page === 'setup') navigate(state.inbox ? mailRoute(state.inbox) : '#/inboxes') },
     reset() { ready = false; routeVersion++; pageNumber = 0; deletion = null; closeMenus(); $('#inbox-search').value = ''; $('#inbox-group').value = ''; render() },

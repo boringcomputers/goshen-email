@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { unstable_dev } from 'wrangler'
@@ -94,6 +94,14 @@ test('Cloudflare customer mode forwards Access assertions without password secre
   const css = await worker.fetch(origin + '/landing.css')
   assert.equal(css.status, 200)
   assert.match(css.headers.get('content-type'), /text\/css/)
+  const headerCss = await worker.fetch(origin + '/site-header.css')
+  assert.equal(headerCss.status, 200)
+  assert.match(headerCss.headers.get('content-type'), /text\/css/)
+  assert.equal(await headerCss.text(), await readFile(resolve('public/site-header.css'), 'utf8'))
+  const boot = await worker.fetch(origin + '/dashboard-boot.js')
+  assert.equal(boot.status, 200)
+  assert.match(boot.headers.get('content-type'), /text\/javascript/)
+  assert.equal(await boot.text(), await readFile(resolve('public/dashboard-boot.js'), 'utf8'))
   for (const name of ['imessage', 'whatsapp', 'telegram', 'slack', 'teams', 'email']) {
     const icon = await worker.fetch(origin + `/images/${name}.png`)
     assert.equal(icon.status, 200)

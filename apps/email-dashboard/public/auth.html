@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sign in — Bezalel Email</title>
+  <title>{{page-title}} — Bezalel Email</title>
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/auth.css">
   <link rel="stylesheet" href="/site-header.css">
@@ -27,23 +28,23 @@
   </header>
   <main id="main">
     <div class="eyebrow">YOUR EMAIL, CONNECTED</div>
-    <h1 id="title">Welcome back.</h1>
-    <p id="description" class="description">Sign in to your email workspace.</p>
+    <h1 id="title">{{title}}</h1>
+    <p id="description" class="description">{{description}}</p>
     <form id="auth-form">
-      <div id="name-field" hidden><label for="name">Name</label><input id="name" name="name" autocomplete="name" maxlength="200"></div>
-      <div id="email-field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" required></div>
-      <fieldset id="method-field"><legend>How would you like to sign in?</legend><div class="methods">
+      <div id="name-field" {{name-hidden}}><label for="name">Name</label><input id="name" name="name" autocomplete="name" maxlength="200" {{name-required}}></div>
+      <div id="email-field" {{email-hidden}}><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" {{email-required}}></div>
+      <fieldset id="method-field" {{method-hidden}}><legend>How would you like to sign in?</legend><div class="methods">
         <label><input type="radio" name="method" value="link" checked> Magic link</label>
         <label><input type="radio" name="method" value="code"> Email code</label>
       </div></fieldset>
       <div id="code-field" hidden><label for="code">Six-digit code</label><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="code-hint"><p id="code-hint" class="hint">Use the latest code from your email. It expires in 10 minutes.</p></div>
-      <p id="error" class="error" role="alert"></p>
-      <button id="submit" type="submit">Email me a sign-in link <span aria-hidden="true">↗</span></button>
+      <p id="error" class="error" role="alert">{{error}}</p>
+      <button id="submit" type="submit" {{submit-disabled}}>{{submit-label}} <span aria-hidden="true">↗</span></button>
     </form>
     <div id="message" class="message" role="status" hidden></div>
     <button id="resend" class="secondary" type="button" hidden>Send another email</button>
     <button id="change-email" class="text-button" type="button" hidden>Use a different email or method</button>
-    <p id="alternate" class="alternate">New to Bezalel? <a href="/sign-up">Create an account</a></p>
+    <p id="alternate" class="alternate">{{alternate-copy}}<a href="{{alternate-href}}">{{alternate-label}}</a></p>
     <p class="footnote">One place for your inboxes, conversations, and email API.</p>
   </main>
   <footer><span>© Bezalel Email</span><span>A home for your email.</span></footer>

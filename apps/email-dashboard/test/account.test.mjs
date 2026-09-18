@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { accountDashboardHandler } from '../src/account-handler.mjs'
 
 const origin = 'https://dashboard.example.com'
@@ -12,13 +13,60 @@ const request = (path, body, headers = {}) => handle(new Request(origin + path, 
   ...(body === undefined ? {} : { body: JSON.stringify(body) }),
 }), { clientIdentity: () => '192.0.2.9' })
 
-test('serves the account pages and assets with the existing CSP', async () => {
-  for (const path of ['/sign-in', '/sign-up', '/magic-link']) {
-    const response = await request(path)
-    assert.equal(response.status, 200)
-    assert.equal(await response.text(), 'auth.html')
-    assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'none'/)
+function pageRequest(path, streamed = false) {
+  const handler = accountDashboardHandler({ publicUrl: origin, workerUrl: 'https://mail.example.com', proxySecret: 'fixture-proxy-secret-'.repeat(3),
+    asset: async (name) => {
+      const body = await readFile(new URL(`../public/${name}`, import.meta.url))
+      return streamed ? new Response(body).body : body
+    },
+    request: async () => { throw new Error('Rendering account pages must not call the account service') },
+  })
+  return handler(new Request(origin + path))
+}
+const tag = (html, id) => html.match(new RegExp(`<[^>]+\\bid="${id}"[^>]*>`))?.[0]
+
+test('serves final sign-in and sign-up layouts before JavaScript runs for Node and Worker assets', async () => {
+  for (const streamed of [false, true]) {
+    for (const signup of [false, true]) {
+      const response = await pageRequest(signup ? '/sign-up' : '/sign-in', streamed)
+      assert.equal(response.status, 200)
+      assert.equal(response.headers.get('cache-control'), 'no-store')
+      assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'none'/)
+      const html = await response.text()
+      assert.doesNotMatch(html, /\{\{[a-z-]+\}\}/)
+      assert.match(html, signup ? /<title>Sign up — Bezalel Email<\/title>/ : /<title>Sign in — Bezalel Email<\/title>/)
+      assert.match(html, signup ? /<h1 id="title">Make room for your email\.<\/h1>/ : /<h1 id="title">Welcome back\.<\/h1>/)
+      assert.match(html, signup ? /Create your account with a sign-in link or email code\./ : /A link or a code\. Your inbox is one email away\./)
+      assert.equal(/\bhidden\b/.test(tag(html, 'name-field')), !signup)
+      assert.equal(/\brequired\b/.test(tag(html, 'name')), signup)
+      assert.doesNotMatch(tag(html, 'email-field'), /\bhidden\b/)
+      assert.match(tag(html, 'email'), /\brequired\b/)
+      assert.doesNotMatch(tag(html, 'method-field'), /\bhidden\b/)
+      assert.doesNotMatch(tag(html, 'submit'), /\bdisabled\b/)
+      assert.match(html, signup ? /Already have an account\? <a href="\/sign-in">Sign in<\/a>/ : /New to Bezalel\? <a href="\/sign-up">Create an account<\/a>/)
+    }
   }
+})
+test('serves the magic-link confirmation layout with client verification still required', async () => {
+  const response = await pageRequest('/magic-link?token=do-not-reflect-this-token&email=private%40example.net', true)
+  const html = await response.text()
+  assert.match(html, /<h1 id="title">You’re one click away\.<\/h1>/)
+  assert.match(tag(html, 'name-field'), /\bhidden\b/)
+  assert.match(tag(html, 'email-field'), /\bhidden\b/)
+  assert.doesNotMatch(tag(html, 'email'), /\brequired\b/)
+  assert.match(tag(html, 'method-field'), /\bhidden\b/)
+  assert.match(tag(html, 'submit'), /\bdisabled\b/)
+  assert.match(html, /Continue to workspace <span/)
+  assert.match(html, /<a href="\/sign-in">Request a new sign-in email<\/a>/)
+  assert.doesNotMatch(html, /do-not-reflect-this-token|private@example\.net|\{\{[a-z-]+\}\}/)
+  assert.equal(response.headers.get('cache-control'), 'no-store')
+})
+test('renders known account errors initially without reflecting query values', async () => {
+  const denied = await (await pageRequest('/sign-in?reason=access_denied&error=invalid')).text()
+  assert.match(denied, /<p id="error" class="error" role="alert">Your account does not have access to this workspace\. Contact the owner\.<\/p>/)
+  const invalid = await (await pageRequest('/sign-in?error=%3Cscript%3Euntrusted%3C%2Fscript%3E')).text()
+  assert.match(invalid, /<p id="error" class="error" role="alert">This sign-in link is invalid, expired, or already used\. Request a new one below\.<\/p>/)
+  assert.doesNotMatch(invalid, /untrusted/)
 })
 test('replaces spoofed credentials and IP headers and keeps all session cookies', async () => {
   result = Response.json({ status: true }, { headers: [['set-cookie', 'one=1; HttpOnly'], ['set-cookie', 'two=2; HttpOnly']] })
