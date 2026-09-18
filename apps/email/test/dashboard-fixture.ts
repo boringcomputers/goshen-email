@@ -1,5 +1,6 @@
 import { sendNotifications } from "../src/notifications.js"
 import { fixtureTriage } from "./triage-fixture.js"
+import { nativeDashboardFixture } from './native-dashboard-fixture.js'
 import { KyselyPGlite } from "kysely-pglite"
 import { createAccountAuth, handleAccountRequest } from "../src/account-auth.js"
 import { PGlite } from '@electric-sql/pglite'
@@ -13,7 +14,7 @@ import type { ObjectStore } from '../src/contracts.js'
 // This fixture binds only to loopback and never contacts email providers.
 const { dashboardServer } = await import(new URL('../../email-dashboard/src/server.mjs', import.meta.url).href)
 const { accountDashboardHandler } = await import(new URL('../../email-dashboard/src/account-handler.mjs', import.meta.url).href)
-const { mailClient } = await import(new URL('../../email-dashboard/src/service.mjs', import.meta.url).href)
+const { mailClient, nativeMailClient } = await import(new URL('../../email-dashboard/src/service.mjs', import.meta.url).href)
 const pg = new PGlite()
 const db: Database = {
   query: async <T>(sql: string, params: unknown[] = []) => (await pg.query<T>(sql, params)).rows,
@@ -43,9 +44,12 @@ const port = Number(process.env.FIXTURE_PORT ?? 3038)
 const accountMode = process.env.FIXTURE_AUTH_MODE === 'account'
 const accountConfig = { publicUrl: `http://127.0.0.1:${port}`, secret: 'fixture-account-secret-'.repeat(3), proxySecret: 'fixture-proxy-secret-'.repeat(3), from: 'accounts@example.com', adminEmails: ['owner@example.net'] }
 const auth = accountMode ? createAccountAuth(accountConfig, new KyselyPGlite(pg).dialect, service) : undefined
+const native = process.env.FIXTURE_NATIVE_MAIL === 'true' ? await nativeDashboardFixture(objects, service.transport) : undefined
 const server = dashboardServer({ ...(accountMode ? {
   handler: accountDashboardHandler, workerUrl: service.config.publicUrl, proxySecret: accountConfig.proxySecret,
   request: async (url: URL, init: RequestInit) => handleAccountRequest(new Request(url, init), service, accountConfig, auth!),
+  ...(native ? { nativeMail: nativeMailClient({ workerUrl: native.service.config.publicUrl,
+    apiToken: native.service.config.apiToken, adminEmails: 'owner@example.net', request: native.request }) } : {}),
 } : {}), password: 'fixture-dashboard-password-'.repeat(2), publicUrl: `http://127.0.0.1:${port}`,
   client: mailClient({ workerUrl: service.config.publicUrl, apiToken: service.config.apiToken,
     request: async (url: URL, init: RequestInit) => handleRequest(new Request(url, init), service),
@@ -55,6 +59,11 @@ server.listen(port, '127.0.0.1', () => console.log(`Fixture dashboard http://127
 const control = createServer(async (req, res) => {
   try {
     if (req.url === '/sends') { res.end(JSON.stringify(sends)); return }
+    if (native && req.url === '/native-state') { res.end(JSON.stringify(await native.snapshot())); return }
+    if (native && req.url?.startsWith('/native-attachment/')) {
+      const response = await native.request(new URL(req.url.slice('/native-attachment'.length), native.service.config.publicUrl), { method: 'GET' })
+      res.writeHead(response.status, Object.fromEntries(response.headers.entries())).end(Buffer.from(await response.arrayBuffer())); return
+    }
     if (req.url?.startsWith('/v1/') || req.url === '/mcp' || req.url === '/openapi.json') {
       const chunks = []
       for await (const chunk of req) chunks.push(chunk)
@@ -95,5 +104,5 @@ const control = createServer(async (req, res) => {
 })
 control.listen(port + 1, '127.0.0.1')
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => {
-  server.close(); control.close(); void pg.close().then(() => process.exit(0))
+  server.close(); control.close(); void Promise.all([pg.close(), native?.close()]).then(() => process.exit(0))
 })

@@ -4,7 +4,7 @@ import { isIP } from 'node:net'
 import { dashboardHandler, readBody } from './handler.mjs'
 import { durableState } from './durable-state.mjs'
 import { accessDashboardHandler } from './access-handler.mjs'
-import { DashboardError, customerMailClient, mailClient } from './service.mjs'
+import { DashboardError, customerMailClient, mailClient, nativeMailClient } from './service.mjs'
 
 export class Dashboard extends DurableObject {
   constructor(ctx, env) {
@@ -48,6 +48,8 @@ export default {
       return accountDashboardHandler({
         publicUrl: env.DASHBOARD_PUBLIC_URL, workerUrl: env.MAIL_WORKER_URL, proxySecret: env.AUTH_PROXY_SECRET,
         request: (url, init) => env.MAIL_API.fetch(url, init),
+        nativeMail: nativeMailClient({ workerUrl: env.NATIVE_MAIL_WORKER_URL, apiToken: env.NATIVE_MAIL_API_TOKEN,
+          adminEmails: env.NATIVE_MAIL_ADMIN_EMAILS, request: (url, init) => env.NATIVE_MAIL_API.fetch(url, init) }),
         asset: async (file, request) => {
           const url = new URL(request.url); url.pathname = `/${file}`
           const response = await env.ASSETS.fetch(url)

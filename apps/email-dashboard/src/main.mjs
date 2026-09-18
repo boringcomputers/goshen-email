@@ -1,6 +1,6 @@
 import { accountDashboardHandler } from './account-handler.mjs'
 import { dashboardServer } from './server.mjs'
-import { mailClient } from './service.mjs'
+import { mailClient, nativeMailClient } from './service.mjs'
 
 const port = Number(process.env.PORT ?? 3031)
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be between 1 and 65535')
@@ -9,6 +9,8 @@ const server = dashboardServer({
   ...(process.env.DASHBOARD_AUTH_MODE === 'account' ? {
     handler: accountDashboardHandler, workerUrl: process.env.MAIL_WORKER_URL,
     proxySecret: process.env.AUTH_PROXY_SECRET, request: fetch,
+    nativeMail: nativeMailClient({ workerUrl: process.env.NATIVE_MAIL_WORKER_URL, apiToken: process.env.NATIVE_MAIL_API_TOKEN,
+      adminEmails: process.env.NATIVE_MAIL_ADMIN_EMAILS }),
   } : { client: mailClient({ workerUrl: process.env.MAIL_WORKER_URL, apiToken: process.env.MAIL_API_TOKEN }) }),
   password: process.env.DASHBOARD_PASSWORD, publicUrl,
   trustedProxyIps: (process.env.DASHBOARD_TRUSTED_PROXY_IPS ?? '').split(',').map((value) => value.trim()).filter(Boolean),

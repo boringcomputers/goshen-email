@@ -9,11 +9,16 @@
   "assets": { "directory": "public", "binding": "ASSETS", "run_worker_first": true, "html_handling": "none" },
   "durable_objects": { "bindings": [{ "name": "DASHBOARD", "class_name": "Dashboard" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Dashboard"] }],
-  "services": [{ "binding": "MAIL_API", "service": "bezalel-email-standalone" }],
+  "services": [
+    { "binding": "MAIL_API", "service": "bezalel-email-standalone" },
+    { "binding": "NATIVE_MAIL_API", "service": "bezalel-email" }
+  ],
   "vars": {
     "DASHBOARD_AUTH_MODE": "account",
     "DASHBOARD_PUBLIC_URL": "https://bezalel-email-dashboard.michaelwasihun96.workers.dev",
-    "MAIL_WORKER_URL": "https://bezalel-email-standalone.michaelwasihun96.workers.dev"
+    "MAIL_WORKER_URL": "https://bezalel-email-standalone.michaelwasihun96.workers.dev",
+    "NATIVE_MAIL_WORKER_URL": "https://bezalel-email.michaelwasihun96.workers.dev",
+    "NATIVE_MAIL_ADMIN_EMAILS": "michaelwasihun96@gmail.com"
   },
   "observability": { "enabled": false }
 }

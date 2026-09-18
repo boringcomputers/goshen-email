@@ -4,6 +4,7 @@ import { createDeveloperPanel } from "./developer.js"
 import { createInboxSetup, connectionCommand } from './setup.js'
 import { createDashboardConsole } from './console.js'
 import { createSettingsPanel } from './settings.js'
+import { createNativeMailPanel } from './native-mail.js'
 const $ = (selector) => document.querySelector(selector)
 const accountEvents = new BroadcastChannel('bezalel-account')
 accountEvents.addEventListener('message', (event) => { if (event.data === 'signed-out' && state.authMode === 'account') showLogin() })
@@ -142,6 +143,7 @@ async function request(path, value) {
   return body
 }
 const rpc = async (operation, value = {}) => (await request(`/api/rpc/${operation}`, value)).result
+const nativeMail = createNativeMailPanel({ rpc: async (operation, value) => (await request(`/api/native-rpc/${operation}`, value)).result })
 const setup = createInboxSetup({ state, rpc, createInbox, loadInboxes, notify,
   openCredentials: () => $('#credentials').click(),
   onVisibilityChange(open) {
@@ -187,6 +189,7 @@ const dashboard = createDashboardConsole({ state, icon, rpc, notify, selectInbox
     if (page === 'api-keys') await developers.load()
     if (page === 'domains') { $('#domains-error').textContent = ''; await loadDomains() }
     if (page === 'settings') await settings.load()
+    if (page === 'native-mail') await nativeMail.load()
   },
 })
 function setWorkspaceLoading(loading) {
@@ -218,7 +221,8 @@ function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
-  dashboard.reset(); setup.reset(); developers.reset(); settings.reset(); notifications.reset(); resetTriageFilters()
+  dashboard.reset(); setup.reset(); developers.reset(); settings.reset(); notifications.reset(); nativeMail.reset(); resetTriageFilters()
+  $('#native-mail').hidden = true
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)
@@ -600,6 +604,7 @@ $('#login-form').addEventListener('submit', async (event) => {
 void request('/api/session').then(async (session) => {
   if (!session.authenticated) return showLogin()
   state.session = session
+  $('#native-mail').hidden = session.nativeMailEnabled !== true
   updateAccount()
   $('#developers').hidden = !['access', 'account'].includes(session.authMode)
   $('#settings').hidden = $('#developers').hidden

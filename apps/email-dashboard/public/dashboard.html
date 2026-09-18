@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/developer.css">
   <link rel="stylesheet" href="/triage.css">
   <link rel="stylesheet" href="/console.css">
+  <link rel="stylesheet" href="/native-mail.css">
   <script src="/app.js" type="module"></script>
 </head>
 <body>
@@ -41,6 +42,7 @@
         <a id="domains" href="#/domains" data-page="domains"><span data-icon="globe"></span>Domains</a>
         <a id="developers" href="#/api-keys" data-page="api-keys" hidden><span data-icon="key"></span>API keys</a>
         <a id="integrations" href="#/integrations" data-page="integrations" hidden><span data-icon="code"></span>Integrations</a>
+        <a id="native-mail" href="#/native-mail" data-page="native-mail" hidden><span data-icon="inbox"></span>Bezalel inboxes</a>
       </nav>
       <div class="sidebar-bottom">
         <nav class="resource-nav" aria-label="Workspace"><a id="settings" href="#/settings" data-page="settings" hidden><span data-icon="settings"></span>Settings</a></nav>
@@ -53,6 +55,20 @@
         <div class="page-heading"><button id="open-menu" class="icon-button mobile-only" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><span data-icon="menu"></span></button><nav class="breadcrumbs" aria-label="Breadcrumb"><a id="workspace-breadcrumb" href="#/inboxes">Your workspace</a><span aria-hidden="true">/</span><span id="page-title" aria-current="page">Inboxes</span></nav></div>
       </header>
       <div class="workspace-content">
+        <section id="native-mail-page" class="resource-page" aria-labelledby="native-mail-heading" hidden>
+          <header class="resource-heading"><div><h1 id="native-mail-heading" tabindex="-1">Bezalel inboxes</h1><p>Read mail across Bezalel's existing inboxes. This admin view preserves each inbox's owner and leaves messages unchanged.</p></div><span class="badge">Read only</span></header>
+          <p id="native-mail-error" class="error" role="alert"></p>
+          <div id="native-inventory">
+            <div class="resource-toolbar"><label class="filter-search"><span data-icon="search"></span><input id="native-inbox-search" type="search" aria-label="Search Bezalel inboxes" placeholder="Search inboxes…"></label><button id="native-refresh" aria-label="Refresh Bezalel inboxes">Refresh</button></div>
+            <div class="resource-table-wrap"><table class="resource-table"><thead><tr><th scope="col">Inbox</th><th scope="col">Address</th><th scope="col"><span class="sr-only">Open inbox</span></th></tr></thead><tbody id="native-inbox-rows"></tbody></table><p id="native-inboxes-empty" class="resource-empty" hidden></p></div>
+            <p id="native-inbox-count" class="resource-footer" role="status"></p>
+          </div>
+          <div id="native-reader" hidden>
+            <header class="native-reader-heading"><button id="native-back">All Bezalel inboxes</button><h2 id="native-inbox-address"></h2></header>
+            <form id="native-message-search" class="native-message-search"><input id="native-message-query" type="search" maxlength="1000" aria-label="Search messages in this inbox" placeholder="Search all messages in this inbox…"><button type="submit">Search</button><select id="native-folder" aria-label="Bezalel mail folder"><option value="all">All mail</option><option value="received">Inbox</option><option value="sent">Sent</option><option value="trash">Trash</option></select></form>
+            <div class="native-mail-layout"><div class="native-thread-list"><div id="native-threads" aria-label="Conversations"></div><button id="native-more" hidden>Load more</button></div><div id="native-conversation" aria-live="polite"></div></div>
+          </div>
+        </section>
         <section id="inboxes-page" class="resource-page" aria-labelledby="inboxes-heading">
           <header class="resource-heading"><div><h1 id="inboxes-heading" tabindex="-1">Inboxes</h1><p>Create and manage email addresses for your agents.</p></div><button id="new-inbox" class="primary"><span data-icon="plus"></span>Create inbox</button></header>
           <div class="resource-toolbar"><label class="filter-search"><span data-icon="search"></span><input id="inbox-search" type="search" aria-label="Search inboxes" placeholder="Search inboxes…"></label><select id="inbox-group" aria-label="Filter by group"><option value="">All groups</option></select><button id="refresh-inboxes" class="icon-button" aria-label="Refresh inboxes" title="Refresh inboxes"><span data-icon="refresh"></span></button></div>
