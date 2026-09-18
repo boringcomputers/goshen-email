@@ -6,24 +6,21 @@
 #   --markdown    Generate PR markdown table and copy to clipboard
 #
 # Environment:
-#   IMAGE_ADAPTER    Storage adapter to use (default: 0x0st)
-#                    Available: 0x0st, gist, blob
+#   IMAGE_ADAPTER    Storage adapter to use (required; there is no default)
+#                    Available: 0x0st (public host), gist, blob
 #
 # Adapter-specific environment variables:
 #   blob:  BLOB_UPLOAD_URL - Custom upload endpoint
 #
 # Examples:
-#   ./upload-and-copy.sh before.png after.png
-#   ./upload-and-copy.sh before.png after.png --markdown
+#   IMAGE_ADAPTER=blob ./upload-and-copy.sh before.png after.png
 #   IMAGE_ADAPTER=gist ./upload-and-copy.sh before.png after.png --markdown
+#   IMAGE_ADAPTER=0x0st ./upload-and-copy.sh before.png after.png --markdown
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ADAPTERS_DIR="$SCRIPT_DIR/adapters"
-
-# Default adapter
-IMAGE_ADAPTER="${IMAGE_ADAPTER:-0x0st}"
 
 BEFORE_FILE="$1"
 AFTER_FILE="$2"
@@ -50,8 +47,8 @@ if [[ -z "$BEFORE_FILE" || -z "$AFTER_FILE" ]]; then
     echo "Usage: $0 <before.png> <after.png> [--markdown]"
     echo ""
     echo "Environment:"
-    echo "  IMAGE_ADAPTER    Storage adapter (default: 0x0st)"
-    echo "                   Available: 0x0st, gist, blob"
+    echo "  IMAGE_ADAPTER    Storage adapter (required)"
+    echo "                   Available: 0x0st (public host), gist, blob"
     exit 1
 fi
 
@@ -62,6 +59,15 @@ fi
 
 if [[ ! -f "$AFTER_FILE" ]]; then
     echo "Error: After file not found: $AFTER_FILE"
+    exit 1
+fi
+
+# Every upload leaves this machine, and a capture of an authenticated dashboard
+# can contain mailbox addresses and mail. The caller must name the destination.
+if [[ -z "${IMAGE_ADAPTER:-}" ]]; then
+    echo "Error: IMAGE_ADAPTER is not set. Uploads need an explicit destination." >&2
+    echo "Available adapters: 0x0st (public host), gist, blob" >&2
+    echo "Only upload captures made from the local fixture with synthetic data." >&2
     exit 1
 fi
 

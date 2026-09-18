@@ -32,9 +32,10 @@ Ship-beat notes:
   PNGs, so evidence gathered while developing can be reused as-is.
 - In containers or VMs where Chrome fails with "No usable sandbox", set
   `AGENT_BROWSER_ARGS="--no-sandbox"` for the capture command.
-- The default upload host (0x0.st) is public. Dashboard screenshots can show
-  inbox addresses and mail, so pass `--upload-url` with a private target for
-  anything that does.
+- Uploads need an explicit `IMAGE_ADAPTER`; the vendored uploader refuses to
+  run without one, and `0x0st` is a public host. Capture dashboard evidence
+  only from the local fixture with its synthetic accounts. Never upload a
+  capture of the production dashboard or of real mail.
 - Greptile is installed on this repository and reviews every PR as
   `greptile-apps[bot]`.
 
@@ -159,7 +160,7 @@ has a rollout section that states the order.
 | Skill | Source |
 |---|---|
 | `new-feature`, `code-structure`, `evidence-driven-testing` | [michaelshimeles/skills](https://github.com/michaelshimeles/skills) |
-| `before-and-after` | michaelshimeles/skills, vendored from [vercel-labs/before-and-after](https://github.com/vercel-labs/before-and-after) (or `npx skills add vercel-labs/before-and-after`) |
+| `before-and-after` | michaelshimeles/skills, vendored from [vercel-labs/before-and-after](https://github.com/vercel-labs/before-and-after) (or `npx skills add vercel-labs/before-and-after`). Local change: the upload script requires an explicit `IMAGE_ADAPTER` |
 | `greploop` | michaelshimeles/skills, vendored from [greptileai/skills](https://github.com/greptileai/skills) |
 | `greploop-apps` | michaelshimeles/skills (local variant of greploop for huge PRs; no separate upstream) |
 | `unslop` | michaelshimeles/skills, vendored from [cursor/plugins (pstack)](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop); frontmatter edited so agents apply it unprompted, body untouched |

@@ -11,4 +11,7 @@ for (const [path, expected] of Object.entries(manifest.files)) {
   if (actual === expected) unchanged++
 }
 for (const path of modified) if (!Object.hasOwn(manifest.files, path)) throw new Error(`Unknown modified source: ${path}`)
-console.log(`${unchanged} files match Bezalel ${manifest.revision}; ${modified.size} declared modifications`)
+// CLAUDE.md imports AGENTS.md instead of restating it, so the repository rules stay in one file.
+const claude = await readFile(new URL('CLAUDE.md', root), 'utf8')
+if (!claude.split(/\r?\n/).includes('@AGENTS.md')) throw new Error('CLAUDE.md must import AGENTS.md with a line containing only "@AGENTS.md"')
+console.log(`${unchanged} files match Bezalel ${manifest.revision}; ${modified.size} declared modifications; CLAUDE.md imports AGENTS.md`)

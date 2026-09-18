@@ -28,7 +28,7 @@ allowed-tools:
 - Use `--full` unless user explicitly asks for full page / full scroll capture
 
 **DO:**
-- Use `--markdown` when user wants PR integration or markdown output
+- Use `--markdown` when user wants PR integration or markdown output. On the CLI it uploads to 0x0.st, a public host, unless `--upload-url` names another endpoint. Prefer capturing without `--markdown` and uploading with the script and an explicit adapter
 - Use `--mobile` / `--tablet` if user mentions phone, mobile, tablet, responsive, etc.
 - Assume current state is **After**
 - If user provides only one URL or says "PR screenshots" without URLs, **ASK**: "What URL should I use for the 'before' state? (production URL, preview deployment, or another local port)"
@@ -38,7 +38,7 @@ allowed-tools:
 1. **Pre-flight** — `which before-and-after || npm install -g @vercel/before-and-after`
 2. **Protection check** — if `.vercel.app` URL: `curl -s -o /dev/null -w "%{http_code}" "<url>"` (401/403 = protected)
 3. **Capture** — `before-and-after "<before-url>" "<after-url>"`
-4. **Upload** — `./scripts/upload-and-copy.sh <before.png> <after.png> --markdown`
+4. **Upload** — `IMAGE_ADAPTER=<0x0st|gist|blob> ./scripts/upload-and-copy.sh <before.png> <after.png> --markdown`. The script exits without uploading when `IMAGE_ADAPTER` is unset. Upload only captures made from a local fixture with synthetic data; a capture of an authenticated dashboard can contain mailbox addresses and mail
 5. **PR integration** — optionally `gh pr edit` to append markdown
 
 **Never skip steps 1-2.**
@@ -60,8 +60,8 @@ before-and-after url1 url2 --mobile    # 375x812
 before-and-after url1 url2 --tablet    # 768x1024
 before-and-after url1 url2 --full      # full scroll
 
-# From existing images
-before-and-after before.png after.png --markdown
+# From existing images (pass --upload-url, or the CLI uploads to public 0x0.st)
+before-and-after before.png after.png --markdown --upload-url <endpoint>
 
 # Via npx (use full package name!)
 npx @vercel/before-and-after url1 url2
@@ -76,16 +76,23 @@ npx @vercel/before-and-after url1 url2
 | `-s, --selector` | CSS selector to capture |
 | `-o, --output` | Output directory (default: ~/Downloads) |
 | `--markdown` | Upload images & output markdown table |
-| `--upload-url <url>` | Custom upload endpoint (default: 0x0.st) |
+| `--upload-url <url>` | Upload endpoint. Without it, `--markdown` sends captures to 0x0.st, a public host |
 
 ## Image Upload
 
+`IMAGE_ADAPTER` is required. There is no default, because every upload leaves
+the machine and a capture of an authenticated app can contain private data.
+Check what the images show before choosing a destination.
+
 ```bash
-# Default (0x0.st - no signup needed)
-./scripts/upload-and-copy.sh before.png after.png --markdown
+# Public host, no signup (only for captures with nothing private)
+IMAGE_ADAPTER=0x0st ./scripts/upload-and-copy.sh before.png after.png --markdown
 
 # GitHub Gist
 IMAGE_ADAPTER=gist ./scripts/upload-and-copy.sh before.png after.png --markdown
+
+# Custom endpoint (set BLOB_UPLOAD_URL)
+IMAGE_ADAPTER=blob ./scripts/upload-and-copy.sh before.png after.png --markdown
 ```
 
 ## Vercel Deployment Protection
