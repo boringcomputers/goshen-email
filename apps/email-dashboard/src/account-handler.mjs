@@ -1,11 +1,11 @@
 import { assetResponse, assets, dashboardOrigin, readBody, responseHeaders } from './handler.mjs'
 import { renderAccountPage } from './account-page.mjs'
-import { customerOperations, DashboardError } from './service.mjs'
+import { customerOperations, nativeReadOperations, DashboardError } from './service.mjs'
 
 const pages = new Set(['/sign-in', '/sign-up', '/magic-link'])
 const accountAssets = new Map([['/auth.css', ['auth.css', 'text/css; charset=utf-8']], ['/auth.js', ['auth.js', 'text/javascript; charset=utf-8']]])
 
-export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, request: backend, asset }) {
+export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, request: backend, asset, nativeMail }) {
   const origin = dashboardOrigin(publicUrl)
   if (!proxySecret || proxySecret.length < 32) throw new Error('AUTH_PROXY_SECRET must contain at least 32 characters')
   return async (request, { clientIdentity } = {}) => {
@@ -26,7 +26,9 @@ export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, req
       const auth = path.startsWith('/api/auth/')
       const logout = path === '/api/logout'
       const operation = path.startsWith('/api/rpc/') ? path.slice('/api/rpc/'.length) : ''
-      if (!session && !auth && !logout && (!customerOperations.has(operation) || operation === 'session')) throw new DashboardError('Not found', 404)
+      const nativeOperation = path.startsWith('/api/native-rpc/') ? path.slice('/api/native-rpc/'.length) : ''
+      if (nativeOperation && (!nativeMail || !nativeReadOperations.has(nativeOperation))) throw new DashboardError('Not found', 404)
+      if (!session && !auth && !logout && !nativeOperation && (!customerOperations.has(operation) || operation === 'session')) throw new DashboardError('Not found', 404)
       if (!session) {
         if (request.method !== 'POST') throw new DashboardError('Not found', 404)
         if (request.headers.get('origin') !== origin.origin) throw new DashboardError('Invalid request origin', 403)
@@ -34,19 +36,28 @@ export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, req
       }
       const ip = clientIdentity?.()
       if (!ip) throw new DashboardError('Client address unavailable', 400)
-      const endpoint = session ? '/account-rpc/session' : logout ? '/api/auth/sign-out' : auth ? path + url.search : `/account-rpc/${operation}`
+      const endpoint = session || nativeOperation ? '/account-rpc/session' : logout ? '/api/auth/sign-out' : auth ? path + url.search : `/account-rpc/${operation}`
       const forwarded = new Headers({ authorization: `Bearer ${proxySecret}`, 'x-bezalel-client-ip': ip, origin: origin.origin, 'content-type': 'application/json' })
       if (request.headers.has('cookie')) forwarded.set('cookie', request.headers.get('cookie'))
       const method = session ? 'POST' : request.method
       const response = await backend(new URL(endpoint, workerUrl), { method, headers: forwarded,
-        ...(method === 'POST' ? { body: session ? '{}' : await readBody(request) } : {}), redirect: 'manual', signal: AbortSignal.timeout(45_000) })
+        ...(method === 'POST' ? { body: session || nativeOperation ? '{}' : await readBody(request) } : {}), redirect: 'manual', signal: AbortSignal.timeout(45_000) })
       for (const cookie of response.headers.getSetCookie()) headers.append('set-cookie', cookie)
       const location = response.headers.get('location')
       if (location && response.status >= 300 && response.status < 400) { headers.set('location', location); return new Response(null, { status: response.status, headers }) }
       const body = await response.json()
       if (session && response.status === 401) return json({ authenticated: false, authMode: 'account' })
       if (!response.ok) return json({ error: body.error?.message ?? body.message ?? 'Account request failed', code: body.code, authMode: 'account' }, response.status)
-      if (session) return json({ authenticated: true, authMode: 'account', ...body.result })
+      const nativeMailEnabled = nativeMail?.permits(body.result?.customer) === true
+      if (nativeOperation) {
+        if (!nativeMailEnabled) throw new DashboardError('Administrator access required', 403)
+        let input
+        try { input = JSON.parse(new TextDecoder().decode(await readBody(request))) }
+        catch (error) { if (error instanceof DashboardError) throw error; throw new DashboardError('Expected a JSON object') }
+        if (!input || typeof input !== 'object' || Array.isArray(input)) throw new DashboardError('Expected a JSON object')
+        return json({ result: await nativeMail.execute(nativeOperation, input) })
+      }
+      if (session) return json({ authenticated: true, authMode: 'account', ...body.result, nativeMailEnabled })
       if (logout) return json({ authenticated: false, logoutUrl: '/sign-in' })
       return json(body)
     } catch (error) {

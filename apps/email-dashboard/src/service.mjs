@@ -15,6 +15,22 @@ export class DashboardError extends Error {
 export const customerOperations = new Set([...operations, 'session', 'getSettings', 'updateSettings', 'getNotifications', 'listCustomers', 'inviteCustomer',
   'setCustomerAccess', 'getCredentials', 'rotateCredentials', 'finishInboxSetup', 'setupStatus', 'createApiKey', 'listApiKeys', 'revokeApiKey', 'getInbox', 'updateInbox'])
 
+export const nativeReadOperations = new Set([
+  'listInboxes', 'listMessages', 'getMessage', 'listThreads', 'getThread', 'searchMessages', 'getAttachment',
+])
+
+export function nativeMailClient({ workerUrl, apiToken, adminEmails = '', request }) {
+  if (!apiToken || !adminEmails.trim()) return undefined
+  if (workerUrl !== 'https://bezalel-email.michaelwasihun96.workers.dev')
+    throw new Error('The native mail client requires the dedicated Bezalel Worker')
+  if (apiToken.length < 32) throw new Error('NATIVE_MAIL_API_TOKEN must contain at least 32 characters')
+  const admins = new Set(adminEmails.split(',').map(email => email.trim().toLowerCase()).filter(Boolean))
+  return {
+    ...rpcClient({ workerUrl, request, endpoint: '/rpc', allowed: nativeReadOperations, authorize: () => `Bearer ${apiToken}` }),
+    permits: customer => customer?.role === 'admin' && typeof customer.email === 'string' && admins.has(customer.email.toLowerCase()),
+  }
+}
+
 function rpcClient({ workerUrl, request = fetch, endpoint, allowed, authorize, transform = (_, input) => input }) {
   const base = new URL(workerUrl)
   if (base.protocol !== 'https:' || base.username || base.password || base.pathname !== '/' || base.search || base.hash)

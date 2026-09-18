@@ -1,0 +1,33 @@
+#native-mail-page .resource-heading p { max-width: 640px; line-height: 1.6; }
+#native-mail-page .resource-table { table-layout: fixed; }
+#native-mail-page .resource-table td { overflow-wrap: anywhere; }
+#native-mail-page .resource-table th:last-child, #native-mail-page .resource-table td:last-child { width: 96px; }
+#native-inbox-rows button { min-width: 64px; white-space: nowrap; }
+#native-refresh { margin-left: auto; }
+.native-reader-heading { display: flex; align-items: center; gap: 16px; margin: 12px 0 20px; }
+.native-reader-heading h2 { overflow-wrap: anywhere; font-size: 18px; }
+.native-message-search { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.native-message-search input { flex: 1; min-width: 0; width: 180px; }
+.native-message-search select { width: 130px; }
+.native-mail-layout { display: grid; grid-template-columns: minmax(220px, 32%) minmax(0, 1fr); border: 1px solid var(--color-border); border-radius: 9px; overflow: hidden; min-height: 440px; }
+.native-thread-list { padding: 12px; border-right: 1px solid var(--color-border); }
+.native-thread { display: flex; flex-direction: column; align-items: stretch; text-align: left; width: 100%; padding: 14px 12px; border: 0; gap: 7px; margin-bottom: 6px; }
+.native-thread[aria-pressed=true] { background: var(--color-surface-subtle); box-shadow: inset 2px 0 #222; }
+.native-thread strong, .native-thread span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.native-thread span, .native-thread time, .native-message p, .native-message time { font-size: 12px; font-weight: 400; color: var(--color-text-muted); }
+#native-conversation { padding: 24px; min-width: 0; overflow-wrap: anywhere; }
+#native-conversation h3 { font-size: 20px; line-height: 1.4; margin-bottom: 24px; }
+.native-message { border-top: 1px solid var(--color-border); padding: 20px 0; }
+.native-message p { margin: 5px 0; }
+.native-message-body { white-space: pre-wrap; font-size: 13px; line-height: 1.7; margin: 20px 0; }
+.native-message button { margin: 4px 8px 4px 0; max-width: 100%; overflow-wrap: anywhere; }
+#native-more { margin-top: 12px; }
+@media (max-width: 760px) {
+  .native-mail-layout { grid-template-columns: minmax(0, 1fr); }
+  .native-thread-list { border-right: 0; border-bottom: 1px solid var(--color-border); max-height: 300px; overflow: auto; }
+  #native-conversation { padding: 18px; }
+  #native-mail-page .resource-table th, #native-mail-page .resource-table td { padding: 12px 8px; }
+  #native-mail-page .resource-table th:last-child, #native-mail-page .resource-table td:last-child { width: 80px; }
+  .native-message-search select { flex: 1; }
+  .native-reader-heading { flex-wrap: wrap; }
+}

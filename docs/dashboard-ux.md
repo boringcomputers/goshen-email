@@ -10,6 +10,10 @@ and Integrations. Inbox folders and mailbox keys live inside the inbox view.
 The reader's Filter messages button expands the
 existing Jev category, response, and urgency controls.
 
+Configured administrators also see [Bezalel inboxes](native-admin.md), a read-only
+view of the dedicated native deployment. It keeps native mail separate from the
+standalone account inventory and checks administrator access on every read.
+
 Settings sits above the account controls. It edits notification preferences and the organization and profile
 names, shows the verified sign-in email, and links to API keys. The saved
 organization name appears in the sidebar and breadcrumb. See

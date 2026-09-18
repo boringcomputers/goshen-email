@@ -8,6 +8,29 @@ import { unstable_dev } from 'wrangler'
 const password = 'workers-test-password-'.repeat(3)
 const origin = 'https://dashboard.example'
 
+test('Cloudflare account mode separates native reads from standalone mail and blocks other identities', { timeout: 120_000 }, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'email-dashboard-native-'))
+  const config = join(directory, 'wrangler.json')
+  await writeFile(config, JSON.stringify({ name: 'email-dashboard-native-test', main: resolve('test/fixtures/worker.mjs'),
+    compatibility_date: '2026-09-06', compatibility_flags: ['nodejs_compat'],
+    vars: { DASHBOARD_AUTH_MODE: 'account', DASHBOARD_PUBLIC_URL: origin, MAIL_WORKER_URL: 'https://standalone.example.com',
+      AUTH_PROXY_SECRET: 'fixture-proxy-'.repeat(4), NATIVE_MAIL_WORKER_URL: 'https://bezalel-email.michaelwasihun96.workers.dev',
+      NATIVE_MAIL_API_TOKEN: 'fixture-native-'.repeat(4), NATIVE_MAIL_ADMIN_EMAILS: 'owner@example.net' },
+  }))
+  const worker = await unstable_dev(resolve('test/fixtures/worker.mjs'), { config, local: true, ip: '127.0.0.1', port: 0, inspectorPort: 0,
+    logLevel: 'error', experimental: { disableExperimentalWarning: true, disableDevRegistry: true } })
+  t.after(async () => { await worker.stop(); await rm(directory, { recursive: true, force: true }) })
+  const request = (path, cookie = 'fixture=owner') => worker.fetch(origin + path, { method: path === '/api/session' ? 'GET' : 'POST',
+    headers: { cookie, 'content-type': 'application/json' }, ...(path === '/api/session' ? {} : { body: '{}' }) })
+  assert.equal((await (await request('/api/session')).json()).nativeMailEnabled, true)
+  assert.equal((await (await request('/api/session', 'fixture=customer')).json()).nativeMailEnabled, false)
+  assert.equal((await request('/api/native-rpc/listInboxes', 'fixture=customer')).status, 403)
+  assert.equal((await request('/api/native-rpc/listInboxes', 'forged')).status, 401)
+  assert.equal((await request('/api/native-rpc/send')).status, 404)
+  assert.deepEqual((await (await request('/api/native-rpc/listInboxes')).json()).result.inboxes, [{ inboxId: 'native@goshenemail.com' }])
+  assert.deepEqual((await (await request('/api/rpc/listInboxes')).json()).result.inboxes, [{ inboxId: 'standalone@example.com' }])
+})
+
 test('Cloudflare persists sessions, throttles and logout across process restarts', { timeout: 120_000 }, async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'email-dashboard-test-'))
   const config = join(directory, 'wrangler.json')
