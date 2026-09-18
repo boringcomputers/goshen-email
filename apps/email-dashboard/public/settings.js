@@ -1,6 +1,7 @@
 export const staleApiMessage = 'The email API is running an older version without workspace settings. Deploy the latest API Worker, then try again.'
-// The dashboard only sends operations it knows, so a 404 here means the deployed API predates this page.
-export const settingsErrorMessage = error => error?.status === 404 ? staleApiMessage : error?.message || 'Settings request failed'
+// The API Worker rejects an operation it does not know with exactly this 404. Any other 404 keeps its own explanation.
+export const staleApiRejection = 'Unknown dashboard operation'
+export const settingsErrorMessage = error => error?.status === 404 && error.message === staleApiRejection ? staleApiMessage : error?.message || 'Settings request failed'
 
 export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
   const $ = selector => document.querySelector(selector)
