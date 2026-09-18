@@ -1,4 +1,4 @@
-import { assets, dashboardOrigin, readJson, responseHeaders } from './handler.mjs'
+import { assetResponse, assets, dashboardOrigin, readJson, responseHeaders } from './handler.mjs'
 import { customerOperations, DashboardError } from './service.mjs'
 
 export function accessDashboardHandler({ client, publicUrl, asset }) {
@@ -14,9 +14,8 @@ export function accessDashboardHandler({ client, publicUrl, asset }) {
       if (url.origin !== origin.origin) throw new DashboardError('Invalid host', 403)
       const path = url.pathname
       if (request.method === 'GET' && assets.has(path)) {
-        const [file, contentType] = assets.get(path)
-        headers.set('content-type', contentType)
-        return new Response(await asset(file, request), { headers })
+        const entry = assets.get(path)
+        return assetResponse(await asset(entry[0], request), entry)
       }
       if (request.method === 'GET' && path === '/healthz') return json({ status: 'ok', service: 'bezalel-email-dashboard' })
       const token = request.headers.get('cf-access-jwt-assertion')

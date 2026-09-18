@@ -189,6 +189,31 @@ const dashboard = createDashboardConsole({ state, icon, rpc, notify, selectInbox
     if (page === 'settings') await settings.load()
   },
 })
+function setWorkspaceLoading(loading) {
+  $('#app').inert = loading
+  $('#app').setAttribute('aria-busy', String(loading))
+  $('#workspace-loading').hidden = !loading
+  if (!loading) {
+    delete document.documentElement.dataset.initialPage
+    document.documentElement.style.removeProperty('--initial-page-title')
+  }
+}
+async function startWorkspace() {
+  const epoch = state.epoch
+  setWorkspaceLoading(true)
+  $('#login').hidden = true; $('#app').hidden = false
+  try {
+    try { await loadInboxes(window.BezalelDashboardRoutes.parse(location.hash).inboxId) } catch (error) { if (epoch === state.epoch) $('#inboxes-error').textContent = error.message }
+    if (epoch !== state.epoch || $('#app').hidden) return
+    developers.configure()
+    await dashboard.start()
+  } finally {
+    if (epoch === state.epoch && !$('#app').hidden) {
+      setWorkspaceLoading(false)
+      document.querySelector('.workspace-content > section:not([hidden]) [tabindex="-1"]')?.focus({ preventScroll: true })
+    }
+  }
+}
 function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
   state.listVersion++; state.readVersion++; state.epoch++
@@ -202,6 +227,7 @@ function showLogin(mode = state.authMode, reason = '') {
   $('#workspace-breadcrumb').textContent = 'Your workspace'; $('#workspace-breadcrumb').removeAttribute('title')
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close()
+  setWorkspaceLoading(false)
   if (mode === 'account') { state.redirecting = true; $('#app').hidden = true; location.replace(reason ? `/sign-in?reason=${encodeURIComponent(reason)}` : '/sign-in'); return }
   $('#password-login').hidden = mode === 'access'
   $('#access-login').hidden = mode !== 'access'
@@ -567,9 +593,8 @@ $('#login-form').addEventListener('submit', async (event) => {
   button.disabled = true; $('#login-error').textContent = ''
   try {
     await request('/api/login', { password: form.elements.password.value })
-    form.reset(); $('#login').hidden = true; $('#app').hidden = false
-    await loadInboxes()
-    dashboard.start()
+    form.reset()
+    await startWorkspace()
   } catch (error) { $('#login-error').textContent = error.message; notify(error.message) } finally { button.disabled = false }
 })
 void request('/api/session').then(async (session) => {
@@ -581,12 +606,8 @@ void request('/api/session').then(async (session) => {
   $('#integrations').hidden = $('#developers').hidden
   $('#credentials').hidden = !['access', 'account'].includes(session.authMode)
   $('#domains').hidden = ['access', 'account'].includes(session.authMode) && !session.customDomainsEnabled
-  $('#app').hidden = false
-  try { await loadInboxes() } catch (error) { $('#inboxes-error').textContent = error.message }
-  if ($('#app').hidden) return
-  developers.configure()
-  dashboard.start()
-}).catch((error) => { notify(error.message); if ($('#app').hidden) showLogin() })
+  await startWorkspace()
+}).catch((error) => { notify(error.message); if (!state.session) showLogin(); else setWorkspaceLoading(false) })
 
 let credentialsInbox = ''
 async function loadCredentials(operation) {

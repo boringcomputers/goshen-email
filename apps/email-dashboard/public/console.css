@@ -3,6 +3,17 @@
 button, .button-link { border-radius: 7px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 #app { grid-template-columns: 224px minmax(0, 1fr); background: #fff; }
+html[data-initial-page] .workspace-content > section { display: none !important; }
+html[data-initial-page=inboxes] #inboxes-page,
+html[data-initial-page=api-keys] #api-keys-page,
+html[data-initial-page=integrations] #integrations-page,
+html[data-initial-page=domains] #domains-page,
+html[data-initial-page=setup] #setup,
+html[data-initial-page=settings] #settings-page { display: block !important; }
+html[data-initial-page=mail] #mail-page { display: flex !important; }
+html[data-initial-page] #page-title { font-size: 0; }
+html[data-initial-page] #page-title::after { content: var(--initial-page-title); font-size: 12px; }
+#app[aria-busy=true] :is(.workspace-label, .resource-nav, .sidebar-bottom, #workspace-breadcrumb, .resource-footer) { visibility: hidden; }
 .sidebar { padding: 24px 12px 16px; gap: 30px; background: #fafafa; }
 .sidebar > .brand { padding: 0 8px; }
 .workspace-label { display: flex; gap: 10px; align-items: center; padding: 0 8px; }
@@ -21,7 +32,7 @@ button, .button-link { border-radius: 7px; }
 .topbar { min-height: 60px; height: 60px; flex: 0 0 60px; padding: 0 32px; border-bottom: 1px solid var(--color-border); }
 .breadcrumbs { display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--color-text-muted); }
 .breadcrumbs a { text-decoration: none; color: var(--color-text-secondary); }
-#workspace-breadcrumb { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#workspace-breadcrumb { width: clamp(80px, 15vw, 160px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .breadcrumbs [aria-current] { color: var(--color-text); font-weight: 500; }
 .workspace-content { overflow: auto; padding: 36px 40px; }
 .resource-page, .mail-page { max-width: 1280px; margin: 0 auto; width: 100%; }
@@ -39,6 +50,8 @@ button, .button-link { border-radius: 7px; }
 #refresh-inboxes { margin-left: auto; }
 .resource-table-wrap { border: 1px solid var(--color-border); border-radius: 9px; }
 .resource-table { border-collapse: collapse; width: 100%; font-size: 12px; text-align: left; }
+#inboxes-page .resource-table { table-layout: fixed; }
+#inboxes-page th:nth-child(2), #inboxes-page th:nth-child(3), #inboxes-page th:nth-child(4) { width: 18%; }
 .resource-table th { background: #fafafa; color: var(--color-text-muted); font-size: 11px; font-weight: 500; padding: 12px 16px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
 .resource-table th:first-child { border-top-left-radius: 9px; }
 .resource-table th:last-child { border-top-right-radius: 9px; }
@@ -82,12 +95,12 @@ button, .button-link { border-radius: 7px; }
 .delete-inbox-target p { font-size: 12px; margin-top: 3px; }
 .mail-page { height: 100%; min-height: 540px; display: flex; flex-direction: column; }
 .mail-heading { align-items: flex-start; margin-bottom: 22px; }
-.mail-heading h1 { font-size: 24px; line-height: 30px; }
+.mail-heading h1 { font-size: 24px; line-height: 30px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .back-link { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--color-text-muted); font-size: 11px; margin-bottom: 16px; }
 .back-link .icon { width: 12px; height: 12px; }
 .heading-actions { display: flex; align-items: center; gap: 8px; padding-top: 29px; }
 .mailbox-switcher { display: flex; flex-direction: row; align-items: center; gap: 3px; padding: 2px 0 0; }
-.mailbox-switcher select { width: auto; max-width: 340px; border: 0; padding-left: 0; color: var(--color-text-muted); height: 28px; font-size: 12px; }
+.mailbox-switcher select { width: 340px; max-width: 100%; border: 0; padding-left: 0; color: var(--color-text-muted); height: 28px; font-size: 12px; }
 .mailbox-switcher .icon-button { height: 28px; width: 28px; flex-basis: 28px; padding: 6px; }
 .mail-toolbar { display: flex; align-items: center; gap: 16px; justify-content: space-between; margin-bottom: 16px; }
 #folders { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -154,6 +167,8 @@ button, .button-link { border-radius: 7px; }
   .resource-table th, .resource-table td { padding: 12px 8px; }
   .resource-table th:first-child, .resource-table td:first-child { padding-left: 12px; }
   .inbox-group-cell, #inboxes-page th:nth-child(2) { display: none; }
+  #inboxes-page th:nth-child(3) { width: 100px; }
+  #inboxes-page th:last-child { width: 40px; }
   .inbox-mark { display: none; }
   .inbox-link strong { font-size: 12px; }
   .inbox-link span > span { font-size: 10px; }

@@ -3,33 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sign in — Bezalel Email</title>
+  <title>{{page-title}} — Bezalel Email</title>
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/auth.css">
+  <link rel="stylesheet" href="/site-header.css">
   <script src="/auth.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
-  <header><a class="brand" href="/" aria-label="Bezalel Email home"><img src="/images/solenne.svg" alt="" width="28" height="28">Bezalel Email</a><a href="/" class="back">Back to home <span aria-hidden="true">↗</span></a></header>
+  <header class="site-header">
+    <a href="/" aria-label="Bezalel Email home" class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon">
+        <path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path>
+        <circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle>
+        <circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle>
+        <circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle>
+      </svg>
+      <span class="brand-name">Bezalel Email</span>
+    </a>
+    <div class="nav-actions">
+      <a href="/" class="site-header-log-in">Back to home</a>
+    </div>
+  </header>
   <main id="main">
     <div class="eyebrow">YOUR EMAIL, CONNECTED</div>
-    <h1 id="title">Welcome back.</h1>
-    <p id="description" class="description">Sign in to your email workspace.</p>
+    <h1 id="title">{{title}}</h1>
+    <p id="description" class="description">{{description}}</p>
     <form id="auth-form">
-      <div id="name-field" hidden><label for="name">Name</label><input id="name" name="name" autocomplete="name" maxlength="200"></div>
-      <div id="email-field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" required></div>
-      <fieldset id="method-field"><legend>How would you like to sign in?</legend><div class="methods">
+      <div id="name-field" {{name-hidden}}><label for="name">Name</label><input id="name" name="name" autocomplete="name" maxlength="200" {{name-required}}></div>
+      <div id="email-field" {{email-hidden}}><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" {{email-required}}></div>
+      <fieldset id="method-field" {{method-hidden}}><legend>How would you like to sign in?</legend><div class="methods">
         <label><input type="radio" name="method" value="link" checked> Magic link</label>
         <label><input type="radio" name="method" value="code"> Email code</label>
       </div></fieldset>
       <div id="code-field" hidden><label for="code">Six-digit code</label><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="code-hint"><p id="code-hint" class="hint">Use the latest code from your email. It expires in 10 minutes.</p></div>
-      <p id="error" class="error" role="alert"></p>
-      <button id="submit" type="submit">Email me a sign-in link <span aria-hidden="true">↗</span></button>
+      <p id="error" class="error" role="alert">{{error}}</p>
+      <button id="submit" type="submit" {{submit-disabled}}>{{submit-label}} <span aria-hidden="true">↗</span></button>
     </form>
     <div id="message" class="message" role="status" hidden></div>
     <button id="resend" class="secondary" type="button" hidden>Send another email</button>
     <button id="change-email" class="text-button" type="button" hidden>Use a different email or method</button>
-    <p id="alternate" class="alternate">New to Bezalel? <a href="/sign-up">Create an account</a></p>
+    <p id="alternate" class="alternate">{{alternate-copy}}<a href="{{alternate-href}}">{{alternate-label}}</a></p>
     <p class="footnote">One place for your inboxes, conversations, and email API.</p>
   </main>
   <footer><span>© Bezalel Email</span><span>A home for your email.</span></footer>

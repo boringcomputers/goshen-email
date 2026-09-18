@@ -1,5 +1,5 @@
 const $ = (selector) => document.querySelector(selector)
-const signup = location.pathname === '/sign-up', confirming = location.pathname === '/magic-link'
+const confirming = location.pathname === '/magic-link'
 const query = new URLSearchParams(location.search)
 const form = $('#auth-form'), button = $('#submit'), error = $('#error'), message = $('#message')
 let email = '', name = '', method = 'link', sent = false, busy = false, resendAt = 0
@@ -13,25 +13,12 @@ if (confirming) {
   } catch { confirmation = null }
   history.replaceState(null, '', '/magic-link')
 }
-const originalTitle = signup ? 'Make room for your email.' : 'Welcome back.'
-$('#title').textContent = confirming ? 'You’re one click away.' : originalTitle
-document.title = `${signup ? 'Sign up' : 'Sign in'} — Bezalel Email`
-$('#description').textContent = confirming ? `Sign in as ${confirmation?.email || 'your account'}. Continue only if this is your email address.` : signup ? 'Create your account with a sign-in link or email code.' : 'A link or a code. Your inbox is one email away.'
-$('#name-field').hidden = !signup || confirming
-$('#name').required = signup && !confirming
-$('#email-field').hidden = confirming
-$('#email').required = !confirming
-$('#method-field').hidden = confirming
-if (query.get('reason') === 'access_denied') error.textContent = 'Your account does not have access to this workspace. Contact the owner.'
-else if (query.has('error')) error.textContent = 'This sign-in link is invalid, expired, or already used. Request a new one below.'
 if (query.has('error') || query.has('reason')) history.replaceState(null, '', location.pathname)
 if (confirming) {
-  button.firstChild.textContent = 'Continue to workspace '
+  $('#description').textContent = `Sign in as ${confirmation?.email || 'your account'}. Continue only if this is your email address.`
   if (!confirmation?.email || !/^[A-Za-z0-9_-]{20,256}$/.test(confirmation?.token ?? '')) { form.hidden = true; notice('This sign-in link is incomplete. Request a new email to continue.') }
+  else button.disabled = false
 }
-const alternate = $('#alternate')
-alternate.replaceChildren(document.createTextNode(confirming ? '' : signup ? 'Already have an account? ' : 'New to Bezalel? '))
-const link = document.createElement('a'); link.href = signup || confirming ? '/sign-in' : '/sign-up'; link.textContent = signup ? 'Sign in' : confirming ? 'Request a new sign-in email' : 'Create an account'; alternate.append(link)
 function notice(text) { message.textContent = text; message.hidden = false }
 async function post(endpoint, body) {
   const response = await fetch(`/api/auth/${endpoint}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })

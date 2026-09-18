@@ -6,6 +6,7 @@ export const assets = new Map([
   ['/app', ['dashboard.html', 'text/html; charset=utf-8']],
   ['/app/', ['dashboard.html', 'text/html; charset=utf-8']],
   ['/landing.css', ['landing.css', 'text/css; charset=utf-8']],
+  ['/site-header.css', ['site-header.css', 'text/css; charset=utf-8']],
   ['/images/solenne.svg', ['images/solenne.svg', 'image/svg+xml']],
   ['/images/imessage.png', ['images/imessage.png', 'image/png']],
   ['/images/whatsapp.png', ['images/whatsapp.png', 'image/png']],
@@ -18,6 +19,7 @@ export const assets = new Map([
   ['/developer.js', ['developer.js', 'text/javascript; charset=utf-8']],
   ['/developer.css', ['developer.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
+  ['/dashboard-boot.js', ['dashboard-boot.js', 'text/javascript; charset=utf-8']],
   ['/console.js', ['console.js', 'text/javascript; charset=utf-8']],
   ['/console.css', ['console.css', 'text/css; charset=utf-8']],
   ['/notifications.js', ['notifications.js', 'text/javascript; charset=utf-8']],
@@ -84,9 +86,8 @@ export function dashboardHandler({ client, password, publicUrl, asset, state = {
       const url = new URL(request.url, origin)
       const path = url.pathname
       if (request.method === 'GET' && assets.has(path)) {
-        const [file, contentType] = assets.get(path)
-        headers.set('content-type', contentType)
-        return new Response(await asset(file, request), { headers })
+        const entry = assets.get(path)
+        return assetResponse(await asset(entry[0], request), entry)
       }
       if (request.method === 'GET' && path === '/healthz') return json({ status: 'ok', service: 'bezalel-email-dashboard' })
       if (request.method === 'GET' && path === '/api/session') return json({ authenticated: Boolean(sessionFor(request)) })
@@ -148,4 +149,12 @@ export function responseHeaders() {
       'referrer-policy': 'no-referrer',
       'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     })
+}
+
+export function assetResponse(body, [file, contentType]) {
+  const headers = responseHeaders()
+  headers.set('content-type', contentType)
+  if (file === 'fonts/InterVariable.woff2' && contentType === 'font/woff2')
+    headers.set('cache-control', 'public, max-age=3600')
+  return new Response(body, { headers })
 }

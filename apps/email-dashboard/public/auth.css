@@ -1,13 +1,10 @@
-@font-face { font-family:Inter; src:url('/fonts/InterVariable.woff2') format('woff2'); font-weight:100 900; font-display:swap}
+@font-face { font-family:Inter; src:url('/fonts/InterVariable.woff2') format('woff2'); font-weight:100 900; font-display:optional}
 
 * { box-sizing:border-box}
 html { min-height:100%; background:var(--color-landing-background)}
 body { margin:0; min-height:100dvh; display:flex; flex-direction:column; color:var(--color-text-primary,#242424); font:14px/1.5 Inter,Arial,sans-serif; -webkit-font-smoothing:antialiased}
 a { color:inherit; text-underline-offset:4px}
-header,footer { width:100%; max-width:var(--container-landing); margin:0 auto; padding:28px 64px; display:flex; align-items:center; justify-content:space-between; gap:20px}
-.brand { display:flex; align-items:center; gap:10px; font-size:20px; font-weight:650; letter-spacing:-.6px; text-decoration:none}
-.brand img { display:block}
-.back { color:#666; text-decoration:none; font-size:13px}
+footer { width:100%; max-width:var(--container-landing); margin:0 auto; padding:28px 64px; display:flex; align-items:center; justify-content:space-between; gap:20px}
 main { width:100%; max-width:456px; margin:auto; padding:76px 20px 96px}
 .eyebrow { font-size:10px; font-weight:650; letter-spacing:1.5px; margin-bottom:20px; color:#777}
 h1 { font-size:40px; line-height:1.12; letter-spacing:-1.6px; font-weight:500; margin:0 0 16px}
@@ -32,13 +29,11 @@ button:hover:not(:disabled) { background:#444}
 .alternate a { color:#292929; font-weight:500}
 .footnote { border-top:1px solid #ebebe8; margin:36px 0 0; padding-top:24px; text-align:center}
 footer { font-size:11px; color:#888; border-top:1px solid #ebebe8}
-.skip { position:absolute; left:20px; top:-100px; background:white; padding:10px; z-index:1}
-.skip:focus { top:10px}
+.skip { position:absolute; left:20px; top:10px; transform:translateY(calc(-100% - 20px)); background:white; padding:10px; z-index:1}
+.skip:focus { transform:translateY(0)}
 :focus-visible { outline:2px solid #777; outline-offset:4px}
 [hidden] { display:none!important}
-@media(max-width:600px) { header,footer { padding:22px 20px}
-.brand { font-size:18px}
-.back { font-size:11px}
+@media(max-width:600px) { footer { padding:22px 20px}
 main { padding-top:56px; padding-bottom:72px}
 h1 { font-size:36px}
 footer { gap:12px}
