@@ -1,3 +1,7 @@
+export const staleApiMessage = 'The email API is running an older version without workspace settings. Deploy the latest API Worker, then try again.'
+// The dashboard only sends operations it knows, so a 404 here means the deployed API predates this page.
+export const settingsErrorMessage = error => error?.status === 404 ? staleApiMessage : error?.message || 'Settings request failed'
+
 export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
   const $ = selector => document.querySelector(selector)
   const forms = [$('#organization-form'), $('#profile-form'), $('#notifications-form')]
@@ -47,7 +51,7 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
       $('#settings-content').hidden = false
     } catch (error) {
       if (version !== requestVersion) return
-      $('#settings-error').textContent = error.message
+      $('#settings-error').textContent = settingsErrorMessage(error)
       $('#settings-retry').hidden = false
     } finally { if (version === requestVersion) $('#settings-loading').hidden = true }
   }
@@ -70,7 +74,7 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
         render(result.customer, name); onChange(result.customer)
         status.textContent = name === 'organization-form' ? 'Organization name saved.' : name === 'profile-form' ? 'Profile name saved.' : 'Notification preferences saved.'
       } catch (error) {
-        if (version === requestVersion) $('#settings-error').textContent = error.message
+        if (version === requestVersion) $('#settings-error').textContent = settingsErrorMessage(error)
       } finally {
         if (saveTask === task) saveTask = null
         if (version === requestVersion) { pending = false; sync(); button.textContent = 'Save changes' }

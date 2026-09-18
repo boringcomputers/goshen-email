@@ -89,6 +89,16 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   await organization.waitFor()
   assert.equal(await organization.inputValue(), 'Boring Computers')
 
+  await page.route('**/api/rpc/getSettings', route => route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Unknown dashboard operation' }) }))
+  await page.reload()
+  await page.getByText('The email API is running an older version without workspace settings. Deploy the latest API Worker, then try again.', { exact: true }).waitFor()
+  assert.equal(await page.getByText('Unknown dashboard operation').count(), 0)
+  assert.equal(await organization.isVisible(), false)
+  await page.unroute('**/api/rpc/getSettings')
+  await page.getByRole('button', { name: 'Try again', exact: true }).click()
+  await organization.waitFor()
+  assert.equal(await organization.inputValue(), 'Boring Computers')
+
   assert.equal(await page.locator('#desktop-notifications').isChecked(), false)
   assert.equal(await page.locator('#email-notifications').isChecked(), false)
   assert.equal(await page.evaluate(() => window.notificationPermissionRequests), 0, 'No unsolicited permission prompt')
