@@ -173,6 +173,7 @@ html[data-initial-page] #page-title::after { content: var(--initial-page-title);
   .sidebar { width: min(248px, calc(100vw - 24px)); padding-inline: 12px; }
   .sidebar > .brand { gap: 8px; font-size: 18px; padding-inline: 4px; }
   .resource-nav a, .sidebar-bottom > button { min-height: 44px; }
+  #open-menu, #close-menu, #logout { width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex-basis: 44px; }
   .resource-heading > button, .heading-actions > button, .button-link { min-height: 40px; }
   .filter-search input { height: 40px; }
   #inbox-group { height: 42px; }
