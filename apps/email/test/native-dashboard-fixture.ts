@@ -31,6 +31,24 @@ export async function nativeDashboardFixture(objects: ObjectStore, transport: Tr
   await service.receive('research@example.com', raw('research', 'Research summary', 'The research summary is ready.\n\nExisting conversations stay with their original inbox and owner.'))
   await service.receive('research@example.com', raw('followup', 'Re: Research summary', 'The supporting notes are attached for your review.', 'research'))
   await service.receive('support@example.com', raw('support', 'Support handoff', 'A separate inbox keeps its own conversation history.'))
+  const deleted = await service.receive('support@example.com', raw('deleted', 'Deleted note', 'This note belongs only in Trash.'))
+  await service.execute('updateMessageLabels', { inboxId: 'support@example.com', messageId: deleted.messageId, addLabels: ['trash'] })
+  const archive = await service.receive('support@example.com', raw('archive', 'Long archive', 'Archive entry 0 body.'))
+  await db.query("update mail.messages set timestamp = '2020-01-01' where wire_id = $1", [archive.messageId])
+  await db.query(`insert into mail.messages(id, inbox_id, wire_id, thread_id, timestamp, direction, labels, data)
+    select gen_random_uuid(), inbox_id, '<archive-' || n || '@example.net>', thread_id,
+      timestamp + n * interval '1 second', direction, labels,
+      data || jsonb_build_object('text', 'Archive entry ' || n || ' body.', 'attachments', '[]'::jsonb)
+    from mail.messages cross join generate_series(1, 500) n where wire_id = $1`, [archive.messageId])
+  const large = await service.receive('support@example.com', raw('large', 'Large body archive', 'Large body entry 0.'))
+  await db.query(`update mail.messages set timestamp = '2021-01-01',
+    data = data || jsonb_build_object('text', 'Large body entry 0. ' || repeat('x', 1048576), 'attachments', '[]'::jsonb)
+    where wire_id = $1`, [large.messageId])
+  await db.query(`insert into mail.messages(id, inbox_id, wire_id, thread_id, timestamp, direction, labels, data)
+    select gen_random_uuid(), inbox_id, '<large-' || n || '@example.net>', thread_id,
+      timestamp + n * interval '1 second', direction, labels,
+      data || jsonb_build_object('text', 'Large body entry ' || n || '. ' || repeat('x', 1048576))
+    from mail.messages cross join generate_series(1, 8) n where wire_id = $1`, [large.messageId])
   return {
     service,
     request: (url: URL, init: RequestInit) => handleRequest(new Request(url, init), service),

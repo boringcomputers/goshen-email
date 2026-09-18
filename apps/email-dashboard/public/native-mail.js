@@ -65,7 +65,7 @@ export function createNativeMailPanel({ rpc }) {
     const query = $('#native-message-query').value.trim(), folder = $('#native-folder').value
     const result = await rpc(query ? 'searchMessages' : 'listThreads', { inboxId: target, limit: 30,
       ...(append && nextPage ? { pageToken: nextPage } : {}),
-      ...(query ? { query } : { includeTrash: folder === 'all' || folder === 'trash', ...(folder === 'all' ? {} : { labels: [folder] }) }),
+      ...(query ? { query } : { includeTrash: folder === 'trash', ...(folder === 'all' ? {} : { labels: [folder] }) }),
     })
     if (version !== listVersion || target !== inbox) return
     threads.push(...(result.threads || result.messages || [])); nextPage = result.nextPageToken
@@ -75,27 +75,69 @@ export function createNativeMailPanel({ rpc }) {
     const version = ++readVersion, target = inbox
     selected = threadId; renderThreads(); $('#native-mail-error').textContent = ''
     $('#native-conversation').replaceChildren(node('p', 'Loading conversation…', 'muted'))
-    const thread = await rpc('getThread', { inboxId: target, threadId, includeBodies: true })
-    if (version !== readVersion || target !== inbox) return
-    const content = $('#native-conversation')
-    content.replaceChildren(node('h3', thread.subject || '(No subject)'))
-    for (const message of thread.messages) {
-      const article = node('article', undefined, 'native-message')
-      article.append(node('strong', message.from), node('p', `To: ${message.to.join(', ')}`),
-        node('time', new Date(message.timestamp).toLocaleString()),
-        node('div', message.text ?? 'Message body is held for owner review.', 'native-message-body'))
-      if (message.protection?.status !== 'quarantined') for (const attachment of message.attachments || []) {
-        article.append(button(`Download ${attachment.filename}`, async () => {
-          const result = await rpc('getAttachment', { inboxId: target, messageId: message.messageId, attachmentId: attachment.attachmentId })
-          if (version !== readVersion || target !== inbox) return
-          const url = new URL(result.downloadUrl)
-          if (url.origin !== 'https://bezalel-email.michaelwasihun96.workers.dev' || !url.pathname.startsWith('/attachments/') || url.username || url.password)
-            throw new Error('Invalid attachment URL')
-          const link = node('a'); link.href = url.href; link.rel = 'noreferrer noopener'; link.target = '_blank'; link.click()
-        }))
+    try {
+      const thread = await rpc('getThread', { inboxId: target, threadId, includeBodies: true })
+      if (version !== readVersion || target !== inbox) return
+      $('#native-conversation').replaceChildren(node('h3', thread.subject || '(No subject)'),
+        ...thread.messages.map(message => renderMessage(message, version, target)))
+    } catch (error) {
+      if (version !== readVersion || target !== inbox) return
+      if (error.status === 413) {
+        try { await readLargeThread(threadId, version, target); return }
+        catch (failure) { error = failure }
       }
-      content.append(article)
+      if (version !== readVersion || target !== inbox) return
+      $('#native-conversation').replaceChildren(node('p', 'Could not open this conversation. Select it to try again.', 'muted'))
+      throw error
     }
+  }
+  function renderMessage(message, version, target, summaryOnly = false) {
+    const article = node('article', undefined, 'native-message')
+    article.append(node('strong', message.from), node('p', `To: ${message.to.join(', ')}`),
+      node('time', new Date(message.timestamp).toLocaleString()))
+    if (summaryOnly) {
+      article.append(node('p', message.preview || 'No preview'), button('Read message', async () => {
+        const body = await rpc('getMessage', { inboxId: target, messageId: message.messageId })
+        if (version === readVersion && target === inbox) article.replaceWith(renderMessage(body, version, target))
+      }))
+      return article
+    }
+    article.append(node('div', message.text ?? 'Message body is held for owner review.', 'native-message-body'))
+    if (message.protection?.status !== 'quarantined') for (const attachment of message.attachments || []) {
+      article.append(button(`Download ${attachment.filename}`, async () => {
+        const result = await rpc('getAttachment', { inboxId: target, messageId: message.messageId, attachmentId: attachment.attachmentId })
+        if (version !== readVersion || target !== inbox) return
+        const url = new URL(result.downloadUrl)
+        if (url.origin !== 'https://bezalel-email.michaelwasihun96.workers.dev' || !url.pathname.startsWith('/attachments/') || url.username || url.password)
+          throw new Error('Invalid attachment URL')
+        const link = node('a'); link.href = url.href; link.rel = 'noreferrer noopener'; link.target = '_blank'; link.click()
+      }))
+    }
+    return article
+  }
+  async function readLargeThread(threadId, version, target) {
+    const content = $('#native-conversation'), messages = node('div'), seen = new Set()
+    let pageToken
+    const more = button('Load more messages', loadPage)
+    content.replaceChildren(node('h3', threads.find(thread => thread.threadId === threadId)?.subject || '(No subject)'),
+      node('p', 'This conversation is large. Open individual messages below.', 'muted'), messages, more)
+    async function loadPage() {
+      let added = 0
+      do {
+        // The existing list API pages the inbox; select this thread without fetching unrelated bodies.
+        const page = await rpc('listMessages', { inboxId: target, limit: 100, ...(pageToken ? { pageToken } : {}) })
+        if (version !== readVersion || target !== inbox) return
+        for (const message of page.messages) if (message.threadId === threadId && !seen.has(message.messageId)) {
+          seen.add(message.messageId); added++
+          messages.append(renderMessage(message, version, target, true))
+        }
+        pageToken = page.nextPageToken
+      } while (!added && pageToken)
+      if (!pageToken) more.remove()
+      if (!seen.size) messages.replaceChildren(node('p', 'No messages found in this conversation.', 'muted'))
+    }
+    more.disabled = true
+    try { await loadPage() } finally { more.disabled = false }
   }
   async function load() {
     const version = ++inventoryVersion

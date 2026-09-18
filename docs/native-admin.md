@@ -11,6 +11,9 @@ conversations, searches message content, filters folders, and downloads signed
 attachments. Reading a message leaves its labels unchanged. The view cannot
 send, reply, delete, release quarantine, change ownership, or retrieve keys.
 Existing quarantine rules still apply to message bodies and attachments.
+All mail excludes trashed conversations; Trash shows them separately. When a
+conversation exceeds the native service's bulk read limit, the reader pages
+through message summaries and loads each body when the owner clicks Read message.
 
 ## Authorization
 
@@ -66,6 +69,8 @@ Run `apps/email-dashboard/test/browser/native-mail.mjs` with Playwright installe
 Set `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` when using existing local installations.
 The fixture creates separate PGlite databases for accounts and native mail and
 uses fake routing, delivery, and object storage. The browser test verifies owner
-and customer access, conversation reads, attachment bytes, search, mobile layout,
-sign-out, and unchanged native records. Restart the fixture between runs to keep
-sign-in rate limits isolated.
+and customer access, conversation reads, clicked attachment downloads, search,
+mobile layout, sign-out, and unchanged native records. It also reads 501-message
+and over-8-MiB conversations, checks Trash filtering, rejects unsafe download
+URLs, and retries a failed conversation read. Restart the fixture between runs
+to keep sign-in rate limits isolated.

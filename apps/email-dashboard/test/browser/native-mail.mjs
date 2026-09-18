@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 
 const base = process.env.DASHBOARD_TEST_URL ?? 'http://127.0.0.1:3198'
 const control = process.env.DASHBOARD_TEST_CONTROL_URL ?? 'http://127.0.0.1:3199'
@@ -40,13 +40,24 @@ test('the native admin view reads separate inboxes without changing mail or expo
   assert.equal(await page.locator('.native-message').count(), 2)
   assert.equal(await page.getByRole('button', { name: 'Download summary.txt' }).count(), 2)
   if (process.env.NATIVE_EVIDENCE_DIR) await page.screenshot({ path: process.env.NATIVE_EVIDENCE_DIR + '/after-conversation.png' })
-  const list = (await (await api('listThreads', { inboxId: 'research@example.com' })).json()).result
-  const thread = (await (await api('getThread', { inboxId: 'research@example.com', threadId: list.threads[0].threadId, includeBodies: true })).json()).result
-  const first = thread.messages[0], attachment = first.attachments[0]
-  const signed = (await (await api('getAttachment', { inboxId: 'research@example.com', messageId: first.messageId, attachmentId: attachment.attachmentId })).json()).result
-  const url = new URL(signed.downloadUrl)
-  const bytes = await context.request.get(control + '/native-attachment' + url.pathname + url.search)
-  assert.equal(bytes.status(), 200); assert.match(await bytes.text(), /Synthetic attachment/)
+  let attachmentRequests = 0
+  await context.route('https://bezalel-email.michaelwasihun96.workers.dev/attachments/**', async route => {
+    attachmentRequests++
+    const url = new URL(route.request().url())
+    const response = await context.request.get(control + '/native-attachment' + url.pathname + url.search)
+    await route.fulfill({ response })
+  })
+  const downloaded = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download summary.txt' }).first().click()
+  const download = await downloaded
+  assert.equal(download.suggestedFilename(), 'summary.txt')
+  assert.match(await readFile(await download.path(), 'utf8'), /Synthetic attachment for dashboard verification\./)
+  assert.equal(attachmentRequests, 1, 'The Download button opened the signed URL through local object storage')
+  await page.route('**/api/native-rpc/getAttachment', route => route.fulfill({ json: { result: { downloadUrl: 'https://example.com/unsafe' } } }))
+  await page.getByRole('button', { name: 'Download summary.txt' }).first().click()
+  await page.getByText('Invalid attachment URL', { exact: true }).waitFor()
+  assert.equal(attachmentRequests, 1, 'Unsafe URLs never reach link activation')
+  await page.unroute('**/api/native-rpc/getAttachment')
   await page.locator('#native-message-query').fill('supporting notes')
   await page.locator('#native-message-search').getByRole('button', { name: 'Search', exact: true }).click()
   await page.waitForFunction(() => document.querySelectorAll('.native-thread').length === 1)
@@ -67,9 +78,53 @@ test('the native admin view reads separate inboxes without changing mail or expo
   await page.waitForFunction(() => document.querySelector('#native-inbox-count').textContent === '1 inbox')
   await page.locator('#native-inbox-search').fill('Support')
   await page.locator('#native-inbox-rows button').click()
-  await page.locator('.native-thread').click()
+  await page.locator('.native-thread').filter({ hasText: 'Support handoff' }).click()
   await page.locator('#native-conversation').getByText('A separate inbox keeps its own conversation history.', { exact: true }).waitFor()
   assert.equal(await page.locator('#native-conversation').getByText('The supporting notes are attached for your review.', { exact: true }).count(), 0)
+  const largeThreads = (await (await api('listThreads', { inboxId: 'support@example.com', includeTrash: true })).json()).result.threads
+  for (const subject of ['Long archive', 'Large body archive']) {
+    const thread = largeThreads.find(item => item.subject === subject)
+    assert.equal((await api('getThread', { inboxId: 'support@example.com', threadId: thread.threadId, includeBodies: true })).status(), 413,
+      `${subject} exceeds the real service's bulk read limit`)
+    await page.locator('.native-thread').filter({ hasText: subject }).click()
+    await page.getByText('This conversation is large. Open individual messages below.', { exact: true }).waitFor()
+    const pageLoaded = () => page.waitForFunction(() => {
+      const more = [...document.querySelectorAll('#native-conversation button')].find(button => button.textContent === 'Load more messages')
+      return !more || !more.disabled
+    })
+    await pageLoaded()
+    if (subject === 'Long archive') {
+      while (await page.getByRole('button', { name: 'Load more messages', exact: true }).count()) {
+        await page.getByRole('button', { name: 'Load more messages', exact: true }).click()
+        await pageLoaded()
+      }
+      assert.equal(await page.locator('.native-message').count(), 501)
+      const oldest = page.locator('.native-message').filter({ hasText: 'Archive entry 0 body.' })
+      await oldest.getByRole('button', { name: 'Read message', exact: true }).click()
+      await oldest.locator('.native-message-body').getByText('Archive entry 0 body.', { exact: true }).waitFor()
+    } else {
+      assert.equal(await page.locator('.native-message').count(), 9)
+      const newest = page.locator('.native-message').first()
+      await newest.getByRole('button', { name: 'Read message', exact: true }).click()
+      await page.waitForFunction(() => document.querySelector('.native-message-body')?.textContent.length > 1048576)
+      assert.match(await newest.locator('.native-message-body').textContent(), /^Large body entry 8\./)
+    }
+    assert.equal(await page.getByText('Loading conversation…', { exact: true }).count(), 0)
+    if (process.env.NATIVE_EVIDENCE_DIR) await page.screenshot({ path: process.env.NATIVE_EVIDENCE_DIR + '/' + subject.replaceAll(' ', '-') + '.png' })
+  }
+  assert.equal(await page.locator('.native-thread').filter({ hasText: 'Deleted note' }).count(), 0, 'All mail excludes trashed conversations')
+  await page.locator('#native-folder').selectOption('trash')
+  await page.locator('.native-thread').filter({ hasText: 'Deleted note' }).waitFor()
+  assert.equal(await page.locator('.native-thread').count(), 1)
+  await page.locator('.native-thread').click()
+  await page.locator('#native-conversation').getByText('This note belongs only in Trash.', { exact: true }).waitFor()
+  await page.route('**/api/native-rpc/getThread', route => route.fulfill({ status: 502, json: { error: 'Fixture read unavailable' } }))
+  await page.locator('.native-thread').click()
+  await page.getByText('Could not open this conversation. Select it to try again.', { exact: true }).waitFor()
+  assert.equal(await page.getByText('Loading conversation…', { exact: true }).count(), 0)
+  await page.unroute('**/api/native-rpc/getThread')
+  await page.locator('.native-thread').click()
+  await page.locator('#native-conversation').getByText('This note belongs only in Trash.', { exact: true }).waitFor()
   await page.reload()
   await page.waitForFunction(() => document.querySelector('#native-inbox-count').textContent === '2 inboxes')
   for (const operation of ['send', 'reply', 'deleteInbox', 'updateThreadLabels', 'getCredentials']) assert.equal((await api(operation)).status(), 404)

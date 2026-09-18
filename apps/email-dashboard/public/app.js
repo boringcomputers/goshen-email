@@ -138,7 +138,7 @@ async function request(path, value) {
       showLogin(state.authMode, response.status === 403 ? 'access_denied' : '')
       $('#login-error').textContent = body.error ?? 'Sign in to continue'
     }
-    throw new Error(body.error ?? 'Email request failed')
+    throw Object.assign(new Error(body.error ?? 'Email request failed'), { status: response.status })
   }
   return body
 }
