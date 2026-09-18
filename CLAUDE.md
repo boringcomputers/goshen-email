@@ -3,8 +3,9 @@
 Every task moves through the same four beats. Each beat has a skill in
 `.claude/skills`, copied from
 [michaelshimeles/skills](https://github.com/michaelshimeles/skills); see
-[Skill sources](#skill-sources). `AGENTS.md` keeps the short rules for other
-agents. When the rules change, update both files.
+[Skill sources](#skill-sources). The repository rules live in `AGENTS.md`
+and are imported under [Repository rules](#repository-rules), so edit them
+there and keep the workflow here.
 
 ## Workflow
 
@@ -102,23 +103,16 @@ Use Node.js 24 and pnpm 10.15.1.
 `pnpm deploy:worker` and `pnpm deploy:dashboard` deploy to Cloudflare by hand.
 CI only runs tests. Deploy the API Worker before the dashboard.
 
-## Hard invariants
+## Repository rules
 
-- The Worker in `apps/email` owns mailbox storage, delivery, and application
-  credentials. `apps/email-gateway` owns SMTP transport and scanners.
-  `apps/email-dashboard` is an owner interface with a server-side Worker client.
-- Keep mailbox tokens scoped, secrets out of browser responses, send
-  idempotency intact, and quarantine decisions in the Worker.
-- Never run tests or migrations against production resources. Production
-  schema changes and Worker deploys need explicit authorization from the
-  owner. Each feature guide under `docs/` has a rollout section that states
-  the order.
-- Never deploy Worker, SMTP, or DNS changes as part of a code-only task.
-- Never overwrite another checkout's work.
-- Keep the source license and provenance manifest. Update `SOURCE.json`
-  deliberately when changing extracted files. Carry shared fixes back to
-  Bezalel through a separate reviewed change.
-- Do not merge a PR without explicit instruction.
+`AGENTS.md` applies in full. Claude Code inlines it here through the import
+below, so the rules exist in one file and cannot drift:
+
+@AGENTS.md
+
+Two additions for production work: schema changes and Worker deploys need
+explicit authorization from the owner, and each feature guide under `docs/`
+has a rollout section that states the order.
 
 ## Environment quick reference
 
