@@ -36,18 +36,19 @@ Missing inbox routes and the retired Customers route return to the inventory.
 Mobile navigation uses the existing focus trap; the mail reader keeps its
 back-to-conversations behavior.
 
-## Design references
+## Design
 
-Reviewed on September 17, 2026:
+The dashboard uses the landing page's Inter typography and shared `tokens.css`
+palette, spacing, and corner radii. The warm sidebar and table headers use
+`--color-surface-subtle`; white panels, black pill buttons, and rounded search
+fields follow the landing page's product preview. Resource cards use the same
+24px corners as the landing page's feature cards.
 
-- [AgentMail's published API key dashboard screenshot](https://github.com/agentmail-to/agentmail-docs/blob/main/fern/assets/api-key-creation.png): resource sidebar, breadcrumb header, list table, creation action, and row actions.
-- [AgentMail's inbox screenshot](https://github.com/agentmail-to/agentmail-docs/blob/main/fern/assets/label-example.png): inbox folder controls and thread list.
-- [AgentMail quickstart](https://github.com/agentmail-to/agentmail-docs/blob/main/fern/pages/get-started/quickstart.mdx): account keys and inbox workflow.
-
-The signed-in console could not be inspected because the shared browser lost
-its automation connection. This implementation follows those public references;
-it does not claim complete feature or visual parity with the current console.
-Bezalel's branding and existing account model remain in use.
+`console.css` defines the dashboard layout without replacing the shared color
+tokens. It applies to inboxes, API keys, integrations, domains, settings, and the
+native inbox inventory. `native-mail.css` uses the same tokens for its reader.
+Mobile navigation and the single-column mail reader retain their existing
+breakpoints and keyboard behavior.
 
 ## Verification
 
