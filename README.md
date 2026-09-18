@@ -114,7 +114,10 @@ pnpm deploy:worker
 pnpm deploy:dashboard
 ```
 
-Both commands run Wrangler deployment scripts. Set `MAIL_API_TOKEN` and
+Both commands run Wrangler deployment scripts. Deploy the API before the
+dashboard: a newer dashboard calls operations an older API rejects with
+"Unknown dashboard operation", which the Settings page reports as an email API
+that needs its latest deployment. Set `MAIL_API_TOKEN` and
 `MAIL_WEBHOOK_SECRET` as API Worker secrets. Account mode also requires independent `AUTH_SECRET` and `AUTH_PROXY_SECRET`
 values. Follow the account guide to configure both Workers before switching modes.
 

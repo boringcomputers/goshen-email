@@ -78,6 +78,10 @@ user signs in through Cloudflare Access.
    the new table, as for the account-auth migration.
 2. Deploy the email Worker, then the dashboard. No SMTP or DNS changes are
    needed. Confirm `AUTH_FROM`, `AUTH_PUBLIC_URL`, and the minute cron exist.
+   If the dashboard is deployed first, the older Worker rejects the settings
+   operations as unknown and the Settings page reports that the email API
+   needs its latest deployment, with a retry. Any other failure keeps its own
+   message, and other pages keep working.
 3. Verify saved names and preferences survive a reload. Opt in on a test
    account and confirm a new arrival produces a browser alert and an email
    summary; then opt out and confirm further arrivals do not notify.
