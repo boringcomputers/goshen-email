@@ -42,7 +42,9 @@ The dashboard uses the landing page's Inter typography and shared `tokens.css`
 palette, spacing, and corner radii. The warm sidebar and table headers use
 `--color-surface-subtle`; white panels, black pill buttons, and rounded search
 fields follow the landing page's product preview. Resource cards use the same
-24px corners as the landing page's feature cards.
+24px corners as the landing page's feature cards. A 216px sidebar, 56px header,
+and compact table and card padding keep the workspace dense. Mobile navigation
+keeps 44px tap targets.
 
 `console.css` defines the dashboard layout without replacing the shared color
 tokens. It applies to inboxes, API keys, integrations, domains, settings, and the
