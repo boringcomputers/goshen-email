@@ -14,6 +14,8 @@ Existing quarantine rules still apply to message bodies and attachments.
 All mail excludes trashed conversations; Trash shows them separately. When a
 conversation exceeds the native service's bulk read limit, the reader pages
 through message summaries and loads each body when the owner clicks Read message.
+Each scan checks at most three inbox pages. If those pages contain no matching
+messages, Load more messages resumes from the saved page token.
 
 ## Authorization
 
@@ -74,3 +76,5 @@ mobile layout, sign-out, and unchanged native records. It also reads 501-message
 and over-8-MiB conversations, checks Trash filtering, rejects unsafe download
 URLs, and retries a failed conversation read. Restart the fixture between runs
 to keep sign-in rate limits isolated.
+Sparse-page responses in the browser test are simulated to verify the scan bound
+and cursor continuation; the conversation size limits use the real local store.

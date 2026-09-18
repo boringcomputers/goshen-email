@@ -112,6 +112,34 @@ test('the native admin view reads separate inboxes without changing mail or expo
     assert.equal(await page.getByText('Loading conversation…', { exact: true }).count(), 0)
     if (process.env.NATIVE_EVIDENCE_DIR) await page.screenshot({ path: process.env.NATIVE_EVIDENCE_DIR + '/' + subject.replaceAll(' ', '-') + '.png' })
   }
+  let sparseScans = 0
+  const unrelated = (await (await api('listMessages', { inboxId: 'support@example.com', limit: 1 })).json()).result.messages[0]
+  await page.route('**/api/native-rpc/listMessages', async route => {
+    sparseScans++
+    const input = route.request().postDataJSON()
+    assert.equal(input.pageToken, sparseScans === 1 ? undefined : `sparse-${sparseScans - 1}`)
+    if (sparseScans <= 6) {
+      await route.fulfill({ json: { result: { messages: [unrelated], nextPageToken: `sparse-${sparseScans}` } } })
+    } else {
+      const response = await route.fetch({ postData: JSON.stringify({ ...input, pageToken: undefined }) })
+      await route.fulfill({ response })
+    }
+  })
+  await page.locator('.native-thread').filter({ hasText: 'Long archive' }).click()
+  const scanFinished = () => page.waitForFunction(() => [...document.querySelectorAll('#native-conversation button')]
+    .some(button => button.textContent === 'Load more messages' && !button.disabled))
+  await scanFinished()
+  assert.equal(sparseScans, 3, 'Opening a sparse conversation stops after three inbox pages')
+  assert.equal(await page.locator('.native-message').count(), 0)
+  await page.getByText('Still looking for older messages. Select Load more messages to continue.', { exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Load more messages', exact: true }).click()
+  await scanFinished()
+  assert.equal(sparseScans, 6, 'Each continuation has the same page bound and resumes its cursor')
+  await page.getByRole('button', { name: 'Load more messages', exact: true }).click()
+  await scanFinished()
+  assert.equal(sparseScans, 7)
+  assert.ok(await page.locator('.native-message').count() > 0, 'Later matching messages remain accessible')
+  await page.unroute('**/api/native-rpc/listMessages')
   assert.equal(await page.locator('.native-thread').filter({ hasText: 'Deleted note' }).count(), 0, 'All mail excludes trashed conversations')
   await page.locator('#native-folder').selectOption('trash')
   await page.locator('.native-thread').filter({ hasText: 'Deleted note' }).waitFor()

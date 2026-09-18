@@ -116,14 +116,16 @@ export function createNativeMailPanel({ rpc }) {
     return article
   }
   async function readLargeThread(threadId, version, target) {
-    const content = $('#native-conversation'), messages = node('div'), seen = new Set()
+    const content = $('#native-conversation'), messages = node('div'), scanStatus = node('p', '', 'muted'), seen = new Set()
+    scanStatus.setAttribute('role', 'status')
     let pageToken
     const more = button('Load more messages', loadPage)
     content.replaceChildren(node('h3', threads.find(thread => thread.threadId === threadId)?.subject || '(No subject)'),
-      node('p', 'This conversation is large. Open individual messages below.', 'muted'), messages, more)
+      node('p', 'This conversation is large. Open individual messages below.', 'muted'), messages, scanStatus, more)
     async function loadPage() {
       let added = 0
-      do {
+      scanStatus.textContent = ''
+      for (let scanned = 0; scanned < 3; scanned++) {
         // The existing list API pages the inbox; select this thread without fetching unrelated bodies.
         const page = await rpc('listMessages', { inboxId: target, limit: 100, ...(pageToken ? { pageToken } : {}) })
         if (version !== readVersion || target !== inbox) return
@@ -132,9 +134,11 @@ export function createNativeMailPanel({ rpc }) {
           messages.append(renderMessage(message, version, target, true))
         }
         pageToken = page.nextPageToken
-      } while (!added && pageToken)
+        if (added || !pageToken) break
+      }
+      if (!added && pageToken) scanStatus.textContent = 'Still looking for older messages. Select Load more messages to continue.'
       if (!pageToken) more.remove()
-      if (!seen.size) messages.replaceChildren(node('p', 'No messages found in this conversation.', 'muted'))
+      if (!seen.size && !pageToken) messages.replaceChildren(node('p', 'No messages found in this conversation.', 'muted'))
     }
     more.disabled = true
     try { await loadPage() } finally { more.disabled = false }
