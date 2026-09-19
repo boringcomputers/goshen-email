@@ -1,15 +1,14 @@
 # Design system
 
-The landing page retains the Fancy design below. The dashboard now follows the
-resource navigation and list/detail pattern in AgentMail's published console
-screenshots. See [dashboard UX](dashboard-ux.md) for the reference and behavior.
-`console.css` supplies the dashboard's neutral surfaces, 224px resource sidebar,
-60px breadcrumb header, 1280px content maximum, and compact rectangular controls.
-These overrides load only on `/app`; the exported Paper tokens remain intact.
+The landing page and the dashboard both follow the Fancy project in Paper.
+See [dashboard UX](dashboard-ux.md) for navigation and list behavior.
+`console.css` applies the Dashboard artboard shell on `/app`: sand canvas,
+240px sidebar, 64px header, 32px content padding, and 12px panels.
+The exported Paper tokens remain intact.
 
 ## Original Fancy reference
 
-The original dashboard and current landing page use the [Fancy project in Paper](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/2-0), synchronized on September 16, 2026. Its Design System, App Components, Dashboard, and Bezalel Email Landing artboards supplied the values below. The 72-token snapshot has Paper content hash `a098097c`.
+The dashboard shell and the landing page use the [Fancy project in Paper](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/2-0). On September 19, 2026 the 72-token snapshot still had content hash `a098097c`. Its Design System, App Components, Dashboard, and Bezalel Email Landing artboards supplied the values below.
 
 `apps/email-dashboard/public/tokens.css` contains the exported tokens with their original names and values. `style.css` applies them to the email interface. The app keeps plain HTML, CSS, and JavaScript.
 

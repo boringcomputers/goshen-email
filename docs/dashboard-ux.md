@@ -16,7 +16,7 @@ standalone account inventory and checks administrator access on every read.
 
 Settings sits above the account button. It edits notification preferences and the organization and profile
 names, shows the verified sign-in email, and links to API keys. The saved
-organization name appears in the sidebar and breadcrumb. See
+organization name appears in the breadcrumb. See
 [workspace settings](settings.md) for persistence and rollout details.
 The account button at the bottom of the sidebar opens a menu above it with the
 full sign-in name and email, a Settings link, and Sign out. Clicking outside,
@@ -41,19 +41,19 @@ back-to-conversations behavior.
 
 ## Design
 
-The dashboard uses the landing page's Inter typography and shared `tokens.css`
-palette, spacing, and corner radii. The warm sidebar and table headers use
-`--color-surface-subtle`; white panels, black pill buttons, and rounded search
-fields follow the landing page's product preview. Resource cards use the same
-24px corners as the landing page's feature cards. A 216px sidebar, 56px header,
-and compact table and card padding keep the workspace dense. Mobile navigation
-keeps 44px tap targets.
+The dashboard shell matches the Fancy Dashboard artboard. Shared tokens live in
+`tokens.css`. The canvas is sand 50 (`#F3F2EF`). The sidebar is 240px with
+20px vertical and 12px horizontal padding. Navigation is 13px, with 16px icons
+and a white active row. The header is 64px tall, with 32px side padding and a
+20px semibold title. Content padding is 8px on top and 32px on the sides and
+bottom. Panels, tables, and the mail reader use a 12px radius, a hairline
+border, and a white surface. Primary actions stay ink pills at 32px. Inputs
+are 40px with an 8px radius. Mobile navigation keeps 44px tap targets.
 
-`console.css` defines the dashboard layout without replacing the shared color
-tokens. It applies to inboxes, API keys, integrations, domains, settings, and the
-native inbox inventory. `native-mail.css` uses the same tokens for its reader.
-Mobile navigation and the single-column mail reader retain their existing
-breakpoints and keyboard behavior.
+`console.css` sets that layout for inboxes, API keys, integrations, domains,
+settings, and the native inbox inventory. `native-mail.css` uses the same
+tokens for its reader. Mobile navigation and the single-column mail reader
+keep their existing breakpoints and keyboard behavior.
 
 ## Verification
 

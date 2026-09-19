@@ -5,11 +5,11 @@
 #native-inbox-rows button { min-width: 64px; white-space: nowrap; }
 #native-refresh { margin-left: auto; }
 .native-reader-heading { display: flex; align-items: center; gap: 16px; margin: 8px 0 16px; }
-.native-reader-heading h2 { overflow-wrap: anywhere; font-size: 18px; }
+.native-reader-heading h2 { overflow-wrap: anywhere; font-size: var(--text-lg); line-height: 24px; letter-spacing: var(--tracking-tight); }
 .native-message-search { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
 .native-message-search input { flex: 1; min-width: 0; width: 180px; }
 .native-message-search select { width: 130px; }
-.native-mail-layout { display: grid; grid-template-columns: minmax(220px, 32%) minmax(0, 1fr); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; min-height: 440px; }
+.native-mail-layout { display: grid; grid-template-columns: minmax(220px, 32%) minmax(0, 1fr); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; min-height: 440px; background: var(--color-surface); }
 .native-thread-list { padding: 8px; border-right: 1px solid var(--color-border); }
 .native-thread { border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: stretch; text-align: left; width: 100%; padding: 12px; border: 0; gap: 7px; margin-bottom: 6px; }
 .native-thread[aria-pressed=true] { background: var(--color-surface-subtle); box-shadow: inset 2px 0 var(--color-ink); }

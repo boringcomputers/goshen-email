@@ -2,7 +2,7 @@
 
 Open **Settings** at `/app#/settings` to change your organization name, profile
 name, and notification preferences. Each section saves separately. The
-organization name appears in the sidebar and breadcrumb; the profile name
+organization name appears in the breadcrumb; the profile name
 appears in the account menu. Names and preferences persist across sign-ins.
 The verified sign-in email is read-only. One account owns one workspace.
 
