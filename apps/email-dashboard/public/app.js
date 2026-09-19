@@ -34,6 +34,7 @@ const iconPaths = {
   refresh: '<path d="M13.5 6a5.5 5.5 0 00-9.7-2L2 6M2 2v4h4M2.5 10a5.5 5.5 0 009.7 2l1.8-2M14 14v-4h-4"/>',
   close: '<path d="M4 4l8 8M12 4l-8 8"/>',
   menu: '<path d="M2 4h12M2 8h12M2 12h12"/>',
+  'chevron-updown': '<path d="M5 6l3-3 3 3M5 10l3 3 3-3"/>',
   more: '<circle cx="3" cy="8" r=".8"/><circle cx="8" cy="8" r=".8"/><circle cx="13" cy="8" r=".8"/>',
   copy: '<rect x="5" y="5" width="9" height="9" rx="2"/><path d="M10 2H4a2 2 0 00-2 2v6"/>',
   code: '<path d="M5 4L1 8l4 4M11 4l4 4-4 4M9 2L7 14"/>',
@@ -90,7 +91,7 @@ $('#sidebar').addEventListener('keydown', (event) => {
   if (!mobileViewport.matches || !$('#app').classList.contains('menu-open') || document.querySelector('dialog[open]')) return
   if (event.key === 'Escape') { event.preventDefault(); setMenu(false) }
   if (event.key !== 'Tab') return
-  const controls = [...$('#sidebar').querySelectorAll('button:not(:disabled), a[href], select')].filter((element) => element.checkVisibility())
+  const controls = [...$('#sidebar').querySelectorAll('button:not(:disabled), a[href], select, summary')].filter((element) => element.checkVisibility())
   const first = controls[0], last = controls.at(-1)
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
@@ -111,6 +112,8 @@ function updateAccount() {
   $('#account-avatar').textContent = initials(name)
   $('#account').textContent = customer ? `${customer.email} · ${customer.role === 'admin' ? 'Owner' : customer.inboxLimit === null ? 'No inbox limit' : `${customer.inboxLimit} inboxes`}` : 'Owner'
   $('#account').title = $('#account').textContent
+  $('#account-menu-name').textContent = name
+  $('#account-menu-detail').textContent = $('#account').textContent
   $('#mailbox-address').textContent = state.inbox || 'Choose a mailbox to get started'
   $('#mailbox-address').title = state.inbox
 }
@@ -226,7 +229,9 @@ function showLogin(mode = state.authMode, reason = '') {
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#domain-list').replaceChildren(); $('#api-key').value = ''
   setMenu(false, false)
+  $('#account-menu').open = false
   $('#account-name').textContent = 'Your workspace'; $('#account-avatar').textContent = 'B'
+  $('#account-menu-name').textContent = 'Your workspace'; $('#account-menu-detail').textContent = ''
   $('#workspace-name').textContent = 'Your workspace'; $('#workspace-name').removeAttribute('title'); $('#workspace-avatar').textContent = 'B'
   $('#workspace-breadcrumb').textContent = 'Your workspace'; $('#workspace-breadcrumb').removeAttribute('title')
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
@@ -554,6 +559,7 @@ action($('#new-inbox'), () => {
   if (domain.readOnly) domain.value = state.session.defaultDomain
   $('#inbox-error').textContent = ''; $('#inbox-dialog').showModal() })
 action($('#new-domain'), () => { $('#domain-error').textContent = ''; $('#domains-dialog').showModal() })
+$('#account-settings').addEventListener('click', () => { $('#account-menu').open = false })
 action($('#logout'), async () => {
   const { logoutUrl } = await request('/api/logout', {})
   if (state.authMode === 'account') accountEvents.postMessage('signed-out')
@@ -608,6 +614,7 @@ void request('/api/session').then(async (session) => {
   updateAccount()
   $('#developers').hidden = !['access', 'account'].includes(session.authMode)
   $('#settings').hidden = $('#developers').hidden
+  $('#account-settings').hidden = $('#developers').hidden
   $('#integrations').hidden = $('#developers').hidden
   $('#credentials').hidden = !['access', 'account'].includes(session.authMode)
   $('#domains').hidden = ['access', 'account'].includes(session.authMode) && !session.customDomainsEnabled

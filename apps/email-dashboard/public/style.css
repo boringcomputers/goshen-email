@@ -87,8 +87,8 @@ a { color: var(--color-text); text-underline-offset: 3px; }
 .sidebar-bottom { margin-top: auto; }
 .sidebar-bottom > .section-label { padding: 0 10px 8px; }
 #delete-inbox:hover { color: var(--color-danger); background: var(--color-danger-soft); }
-.account-row { display: flex; align-items: center; gap: 10px; padding: 16px 6px 0 10px; margin-top: 12px; border-top: 1px solid var(--color-border); }
-.account-row .avatar { height: 28px; width: 28px; flex-basis: 28px; font-size: 10px; font-weight: var(--font-weight-semibold); }
+.account-menu { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+.account-menu .avatar { height: 28px; width: 28px; flex-basis: 28px; font-size: 10px; font-weight: var(--font-weight-semibold); }
 .account-copy { flex: 1; min-width: 0; font-size: var(--text-sm); line-height: 16px; }
 .account-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--font-weight-medium); }
 .account { font-size: var(--text-xs); line-height: 16px; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -100,11 +100,15 @@ test('resource navigation, grouped inbox search, pagination, and deletion stay s
     assert.ok(open.width >= 44 && open.height >= 44, `Navigation opener has a 44px tap target at ${width}px`)
     await page.locator('#open-menu').click()
     const drawer = await page.locator('#sidebar').boundingBox()
-    for (const selector of ['#close-menu', '#logout']) {
+    assert.equal(await page.locator('#logout').isVisible(), false, `the account menu starts closed at ${width}px`)
+    await page.locator('#account-button').click()
+    for (const selector of ['#close-menu', '#account-button', '#account-settings', '#logout']) {
       const bounds = await page.locator(selector).boundingBox()
       assert.ok(bounds.width >= 44 && bounds.height >= 44, `${selector} has a 44px tap target at ${width}px`)
       assert.ok(bounds.x >= drawer.x && bounds.x + bounds.width <= drawer.x + drawer.width, `${selector} fits inside the drawer at ${width}px`)
     }
+    await page.locator('#account-button').click()
+    assert.equal(await page.locator('#logout').isVisible(), false, `the account button closes its menu at ${width}px`)
     const close = await page.locator('#close-menu').boundingBox()
     await page.locator('#close-menu').click({ position: { x: close.width - 2, y: close.height / 2 } })
     assert.equal(await page.locator('#sidebar').evaluate(e => e.inert), true)

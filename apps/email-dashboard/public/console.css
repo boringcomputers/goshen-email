@@ -32,7 +32,6 @@ html[data-initial-page] #page-title::after { content: var(--initial-page-title);
 .resource-nav a { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 8px 10px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--text-sm); line-height: 20px; color: var(--color-text-secondary); }
 .resource-nav a:hover { background: var(--color-sand-100); }
 .resource-nav a[aria-current] { background: var(--color-surface); color: var(--color-text); font-weight: var(--font-weight-medium); box-shadow: 0 1px 2px #0000000f; }
-.account-row { padding: 12px 4px 0 8px; margin-top: 8px; gap: 8px; }
 .account-copy strong { font-size: var(--text-sm); }
 .account { font-size: var(--text-xs); }
 .topbar { min-height: 56px; height: 56px; flex: 0 0 56px; padding: 0 28px; border-bottom: 1px solid var(--color-border); }
@@ -93,6 +92,17 @@ html[data-initial-page] #page-title::after { content: var(--initial-page-title);
 .actions-menu > summary:hover, .actions-menu[open] > summary { background: var(--color-sand-100); }
 .actions-popover { position: absolute; top: calc(100% + 4px); right: 0; width: 208px; z-index: 20; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: 0 6px 24px #00000014; padding: 6px; }
 .actions-popover button { display: flex; justify-content: flex-start; width: 100%; border: 0; padding: 10px; font-weight: var(--font-weight-regular); font-size: var(--text-sm); border-radius: var(--radius-sm); }
+.account-menu { display: block; margin-top: 8px; padding-top: 8px; }
+.account-menu > summary { width: 100%; height: auto; justify-content: flex-start; gap: 8px; padding: 6px 8px; text-align: left; }
+.account-menu > summary > .icon { flex: 0 0 16px; color: var(--color-text-muted); }
+.account-popover { top: auto; bottom: calc(100% + 6px); left: 0; right: 0; width: auto; }
+.account-identity { padding: 8px 10px 10px; margin-bottom: 6px; border-bottom: 1px solid var(--color-border); font-size: var(--text-sm); line-height: 20px; overflow-wrap: anywhere; }
+.account-identity strong { display: block; font-weight: var(--font-weight-medium); }
+.account-identity p { font-size: var(--text-xs); line-height: 16px; color: var(--color-text-muted); }
+.account-popover a, .account-popover button { display: flex; align-items: center; gap: 10px; }
+.account-popover a { width: 100%; padding: 10px; border-radius: var(--radius-sm); font-size: var(--text-sm); text-decoration: none; }
+.account-popover a:hover, .account-popover button:hover { background: var(--color-sand-100); }
+.account-popover .icon { color: var(--color-text-muted); }
 .danger-text { color: var(--color-danger); }
 .danger-text:hover { background: var(--color-danger-soft); }
 .danger { color: var(--color-surface); background: var(--color-danger); border-color: var(--color-danger); }
@@ -173,7 +183,8 @@ html[data-initial-page] #page-title::after { content: var(--initial-page-title);
   .sidebar { width: min(248px, calc(100vw - 24px)); padding-inline: 12px; }
   .sidebar > .brand { gap: 8px; font-size: 18px; padding-inline: 4px; }
   .resource-nav a, .sidebar-bottom > button { min-height: 44px; }
-  #open-menu, #close-menu, #logout { width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex-basis: 44px; }
+  #open-menu, #close-menu { width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex-basis: 44px; }
+  #account-button, .account-popover a, .account-popover button { min-height: 44px; }
   .resource-heading > button, .heading-actions > button, .button-link { min-height: 40px; }
   .filter-search input { height: 40px; }
   #inbox-group { height: 42px; }

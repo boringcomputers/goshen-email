@@ -55,6 +55,7 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   await page.locator('#profile-form button').click()
   await page.getByText('Profile name saved.', { exact: true }).waitFor()
   assert.equal(await page.locator('#account-name').textContent(), 'Michael S.')
+  assert.equal(await page.locator('#account-menu-name').textContent(), 'Michael S.')
 
   let requests = 0, requested
   const started = new Promise(resolve => { requested = resolve })
@@ -156,6 +157,9 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   await organization.waitFor()
   assert.equal(await page.locator('#desktop-notifications').isChecked(), true)
   assert.equal(await page.locator('#email-notifications').isChecked(), true)
+  assert.equal(await page.locator('#logout').isVisible(), false)
+  await page.locator('#account-button').click()
+  assert.equal(await page.locator('#account-menu-detail').textContent(), 'owner@example.net · Owner')
   await page.locator('#logout').click()
   await page.waitForURL('**/sign-in')
   await signIn(context, 'owner@example.net')
