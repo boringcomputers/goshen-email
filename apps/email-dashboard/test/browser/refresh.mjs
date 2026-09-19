@@ -191,7 +191,7 @@ test('dashboard refresh paints the requested shell before session and inventory 
             'The loading status remains available to assistive technology')
           assert.equal(await page.locator(`#${section}`).isVisible(), true)
           assert.equal(await page.locator('#triage-filters').isVisible(), false)
-          assert.equal(await page.locator('#workspace-name').textContent(), 'Your workspace')
+          assert.equal(await page.locator('#workspace-breadcrumb').textContent(), 'Your workspace')
           assert.equal(await page.locator('#inbox-rows tr').count(), 0, 'No saved account rows appear before authentication')
           const before = await geometry(page, selectors)
           session.release()

@@ -102,8 +102,6 @@ function updateAccount() {
   notifications.start(state.session?.customer)
   const customer = state.session?.customer
   const organization = customer?.organizationName || 'Your workspace'
-  $('#workspace-name').textContent = organization; $('#workspace-name').title = organization
-  $('#workspace-avatar').textContent = initials(organization)
   $('#workspace-breadcrumb').textContent = organization; $('#workspace-breadcrumb').title = organization
   const inbox = state.inboxes.find((item) => item.inboxId === state.inbox)
   const name = customer ? (customer.displayName || customer.email) : (inbox?.displayName || 'Your workspace')
@@ -232,7 +230,6 @@ function showLogin(mode = state.authMode, reason = '') {
   $('#account-menu').open = false
   $('#account-name').textContent = 'Your workspace'; $('#account-avatar').textContent = 'B'
   $('#account-menu-name').textContent = 'Your workspace'; $('#account-menu-detail').textContent = ''
-  $('#workspace-name').textContent = 'Your workspace'; $('#workspace-name').removeAttribute('title'); $('#workspace-avatar').textContent = 'B'
   $('#workspace-breadcrumb').textContent = 'Your workspace'; $('#workspace-breadcrumb').removeAttribute('title')
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close()
