@@ -114,7 +114,10 @@ pnpm deploy:worker
 pnpm deploy:dashboard
 ```
 
-Both commands run Wrangler deployment scripts. Deploy the API before the
+A push to `main` deploys these Workers after tests pass. Wrangler reads
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from GitHub Actions
+secrets to upload the scripts. That token is not the Email Routing token
+stored on the API Worker. The job does not apply SQL. Deploy the API before the
 dashboard: a newer dashboard calls operations an older API rejects with
 "Unknown dashboard operation", which the Settings page reports as an email API
 that needs its latest deployment. Set `MAIL_API_TOKEN` and
