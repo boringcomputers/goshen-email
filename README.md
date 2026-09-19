@@ -114,7 +114,10 @@ pnpm deploy:worker
 pnpm deploy:dashboard
 ```
 
-Both commands run Wrangler deployment scripts. Deploy the API before the
+A push to `main` deploys these Workers after tests pass. Wrangler reads
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from GitHub Actions
+secrets to upload the scripts. That token is not the Email Routing token
+stored on the API Worker. The job does not apply SQL. Deploy the API before the
 dashboard: a newer dashboard calls operations an older API rejects with
 "Unknown dashboard operation", which the Settings page reports as an email API
 that needs its latest deployment. Set `MAIL_API_TOKEN` and
@@ -133,8 +136,9 @@ Until it is present, dashboard reads work but mailbox creation and sending fail
 with a configuration error. Never deploy a short-lived Wrangler login token as
 this secret. See the [Worker setup](apps/email/README.md).
 
-Merging a PR runs CI only. These deployments are manual; no automatic deployment
-workflow is configured. No SMTP gateway is included in the Workers deployment.
+A pull request runs CI only. A push to `main` deploys the Workers after those
+tests pass, if that commit is still the tip of `main` and the Cloudflare
+deploy secrets are set. The job does not deploy the SMTP gateway.
 For customer-owned domains, follow the [SMTP gateway runbook](ops/email/README.md).
 That gateway needs a host that permits incoming and outgoing SMTP on port 25.
 
