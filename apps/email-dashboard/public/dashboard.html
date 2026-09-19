@@ -47,7 +47,14 @@
       <div class="sidebar-bottom">
         <nav class="resource-nav" aria-label="Workspace"><a id="settings" href="#/settings" data-page="settings" hidden><span data-icon="settings"></span>Settings</a></nav>
         <button id="get-started" hidden><span data-icon="arrow-right"></span><span>Get started</span></button>
-        <div class="account-row"><span id="account-avatar" class="avatar" aria-hidden="true">B</span><div class="account-copy"><strong id="account-name">Your workspace</strong><p id="account" class="account">Owner</p></div><button id="logout" class="icon-button" aria-label="Sign out" title="Sign out"><span data-icon="logout"></span></button></div>
+        <details id="account-menu" class="actions-menu account-menu">
+          <summary id="account-button"><span id="account-avatar" class="avatar" aria-hidden="true">B</span><div class="account-copy"><strong id="account-name">Your workspace</strong><p id="account" class="account">Owner</p></div><span data-icon="chevron-updown"></span></summary>
+          <div class="actions-popover account-popover">
+            <div class="account-identity"><strong id="account-menu-name">Your workspace</strong><p id="account-menu-detail"></p></div>
+            <a id="account-settings" href="#/settings" hidden><span data-icon="settings"></span>Settings</a>
+            <button id="logout" type="button"><span data-icon="logout"></span>Sign out</button>
+          </div>
+        </details>
       </div>
     </aside>
     <section class="workspace" aria-label="Email workspace">

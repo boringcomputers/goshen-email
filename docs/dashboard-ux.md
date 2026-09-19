@@ -14,10 +14,13 @@ Configured administrators also see [Bezalel inboxes](native-admin.md), a read-on
 view of the dedicated native deployment. It keeps native mail separate from the
 standalone account inventory and checks administrator access on every read.
 
-Settings sits above the account controls. It edits notification preferences and the organization and profile
+Settings sits above the account button. It edits notification preferences and the organization and profile
 names, shows the verified sign-in email, and links to API keys. The saved
 organization name appears in the sidebar and breadcrumb. See
 [workspace settings](settings.md) for persistence and rollout details.
+The account button at the bottom of the sidebar opens a menu above it with the
+full sign-in name and email, a Settings link, and Sign out. Clicking outside,
+pressing Escape, or navigating closes the menu.
 
 API keys and domains have dedicated list pages with separate creation dialogs.
 Integrations provides the configured API and MCP URLs plus SDK and CLI setup
