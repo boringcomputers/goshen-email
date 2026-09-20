@@ -1,6 +1,7 @@
-# Bezalel email
+# Goshen Email Worker
 
-A Cloudflare Worker that implements Bezalel's mailbox provider. Cloudflare sends
+The Cloudflare Worker behind Goshen Email. It was extracted from Bezalel's
+mailbox provider and keeps that design. Cloudflare sends
 and receives mail for managed domains. An optional Bezalel SMTP gateway handles
 customer domains at any DNS provider. This app stores inboxes, message bodies, threads, labels,
 search indexes, send receipts, and event queues in PlanetScale Postgres through Cloudflare Hyperdrive. R2 stores raw incoming
