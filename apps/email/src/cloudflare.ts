@@ -99,7 +99,7 @@ export const cloudflareTransport = (
         }
         if (parsed.data.length < 50) {
           if (found) return
-          await call(base, { name: `Bezalel Email: ${address}`, enabled: true, priority: 0,
+          await call(base, { name: `Goshen Email: ${address}`, enabled: true, priority: 0,
             matchers: [{ type: "literal", field: "to", value: address }],
             actions: [{ type: "worker", value: [config.workerName] }] })
           return

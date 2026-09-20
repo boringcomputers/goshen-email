@@ -62,7 +62,7 @@ export function openApiDocument(publicUrl = "https://bezalel-email-standalone.mi
         default: { description: "Request failed", content: { "application/json": { schema: { type: "object", required: ["error"], properties: { error: { type: "object", required: ["code", "message", "transient"], properties: { code: { type: "string" }, message: { type: "string" }, transient: { type: "boolean" } } } } } } } } },
     }
   }
-  return { openapi: "3.1.0", info: { title: "Bezalel Email API", version: "1.0.0", description: "Account and mailbox scoped email API. Sends require a stable idempotencyKey. JSON Schema cannot express every validation rule; the API also checks combined body and attachment sizes and recipient limits." },
+  return { openapi: "3.1.0", info: { title: "Goshen Email API", version: "1.0.0", description: "Account and mailbox scoped email API. Sends require a stable idempotencyKey. JSON Schema cannot express every validation rule; the API also checks combined body and attachment sizes and recipient limits." },
     servers: [{ url: publicUrl }], paths,
     components: { securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", description: "An account API key (bze_) or a mailbox key (gme_). Platform credentials are not accepted." } } } }
 }

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#FFFFFF">
-  <title>Bezalel Email</title>
+  <title>Goshen Email</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2028%2028%22%3E%3Cpath%20d%3D%22M14%202C7.4%202%202%206.7%202%2012.5c0%203.2%201.6%206%204.2%207.9L5%2026l6.1-3.1c.9.2%201.9.3%202.9.3%206.6%200%2012-4.7%2012-10.5S20.6%202%2014%202z%22%20fill%3D%22%23111111%22%2F%3E%3Cg%20fill%3D%22white%22%3E%3Ccircle%20cx%3D%229.5%22%20cy%3D%2212.5%22%20r%3D%221.8%22%2F%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2212.5%22%20r%3D%221.8%22%2F%3E%3Ccircle%20cx%3D%2218.5%22%20cy%3D%2212.5%22%20r%3D%221.8%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <script src="/dashboard-boot.js"></script>
@@ -21,7 +21,7 @@
   <p id="workspace-loading" class="sr-only" role="status">Loading workspace…</p>
   <section id="login" class="login" hidden>
     <form id="login-form" class="login-card">
-      <div class="brand"><span data-icon="brand" class="brand-mark"></span><span>Bezalel <span class="brand-secondary">Email</span></span></div>
+      <div class="brand"><span data-icon="brand" class="brand-mark"></span><span>Goshen <span class="brand-secondary">Email</span></span></div>
       <div class="login-intro"><h1>Your mail, in one place.</h1><p>Sign in to manage your inboxes and email domains.</p></div>
       <div id="password-login">
         <label>Dashboard password<input name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required></label>
@@ -34,7 +34,7 @@
   <main id="app" aria-busy="true" inert>
     <button id="sidebar-backdrop" tabindex="-1" aria-label="Close navigation" hidden></button>
     <aside id="sidebar" class="sidebar" aria-label="Workspace navigation">
-      <div class="brand"><a class="brand-link" href="/" aria-label="Bezalel Email home"><span data-icon="brand" class="brand-mark"></span><span>Bezalel <span class="brand-secondary">Email</span></span></a><button id="close-menu" class="icon-button mobile-only" aria-label="Close navigation"><span data-icon="close"></span></button></div>
+      <div class="brand"><a class="brand-link" href="/" aria-label="Goshen Email home"><span data-icon="brand" class="brand-mark"></span><span>Goshen <span class="brand-secondary">Email</span></span></a><button id="close-menu" class="icon-button mobile-only" aria-label="Close navigation"><span data-icon="close"></span></button></div>
       <nav aria-label="Resources" class="resource-nav">
         <span class="section-label">Resources</span>
         <a href="#/inboxes" data-page="inboxes"><span data-icon="inbox"></span>Inboxes</a>
@@ -134,7 +134,7 @@
           </div>
         </section>
         <section id="api-keys-page" class="resource-page" aria-labelledby="api-keys-heading" hidden><header class="resource-heading"><div><h1 id="api-keys-heading" tabindex="-1">API keys</h1><p>Connect your agents to every inbox in your account.</p></div><button id="new-api-key" class="primary"><span data-icon="plus"></span>Create API key</button></header><p id="api-keys-error" class="error" role="alert"></p><div id="developer-key-list"></div></section>
-        <section id="integrations-page" class="resource-page" aria-labelledby="integrations-heading" hidden><header class="resource-heading"><div><h1 id="integrations-heading" tabindex="-1">Integrations</h1><p>One account key. All your inboxes.</p></div><a class="button-link" href="#/api-keys">Manage API keys <span data-icon="arrow-right"></span></a></header><div class="integration-grid"><section class="integration-card"><span data-icon="code"></span><h2>REST API</h2><p>Create inboxes, read mail, and send messages from your application.</p><label>API URL<code id="developer-base-url"></code></label><a id="developer-api-docs" target="_blank" rel="noopener">View API specification <span data-icon="arrow-right"></span></a></section><section class="integration-card"><span data-icon="stack"></span><h2>MCP</h2><p>Give an MCP client access to your email tools. Connect with an account API key.</p><label>Server URL<code id="developer-mcp-url"></code></label></section><section class="integration-card"><span data-icon="terminal"></span><h2>SDKs &amp; CLI</h2><p>Use the TypeScript SDK, Python SDK, or CLI to work with your inboxes and named groups.</p><a href="https://github.com/boringcomputers/bezalel-email/blob/main/docs/developers.md" target="_blank" rel="noopener">Setup and examples <span data-icon="arrow-right"></span></a></section></div></section>
+        <section id="integrations-page" class="resource-page" aria-labelledby="integrations-heading" hidden><header class="resource-heading"><div><h1 id="integrations-heading" tabindex="-1">Integrations</h1><p>One account key. All your inboxes.</p></div><a class="button-link" href="#/api-keys">Manage API keys <span data-icon="arrow-right"></span></a></header><div class="integration-grid"><section class="integration-card"><span data-icon="code"></span><h2>REST API</h2><p>Create inboxes, read mail, and send messages from your application.</p><label>API URL<code id="developer-base-url"></code></label><a id="developer-api-docs" target="_blank" rel="noopener">View API specification <span data-icon="arrow-right"></span></a></section><section class="integration-card"><span data-icon="stack"></span><h2>MCP</h2><p>Give an MCP client access to your email tools. Connect with an account API key.</p><label>Server URL<code id="developer-mcp-url"></code></label></section><section class="integration-card"><span data-icon="terminal"></span><h2>SDKs &amp; CLI</h2><p>Use the TypeScript SDK, Python SDK, or CLI to work with your inboxes and named groups.</p><a href="https://github.com/boringcomputers/goshen-email/blob/main/docs/developers.md" target="_blank" rel="noopener">Setup and examples <span data-icon="arrow-right"></span></a></section></div></section>
         <section id="domains-page" class="resource-page" aria-labelledby="domains-heading" hidden><header class="resource-heading"><div><h1 id="domains-heading" tabindex="-1">Domains</h1><p>Send and receive email on your own domain.</p></div><button id="new-domain" class="primary"><span data-icon="plus"></span>Add domain</button></header><p id="domains-error" class="error" role="alert"></p><div id="domain-list"></div></section>
         <section id="settings-page" class="resource-page" aria-labelledby="settings-heading" hidden>
           <header class="resource-heading"><div><h1 id="settings-heading" tabindex="-1">Settings</h1><p>Make this workspace yours.</p></div></header>
@@ -150,14 +150,14 @@
             </form>
             <form id="profile-form" class="settings-card" aria-labelledby="profile-heading">
               <fieldset>
-                <div class="settings-card-body"><h2 id="profile-heading">Your profile</h2><p>Manage how your name appears in Bezalel Email.</p><label for="profile-name">Full name</label><input id="profile-name" name="displayName" required maxlength="200" autocomplete="name"><label for="settings-email">Sign-in email</label><input id="settings-email" type="email" readonly aria-describedby="settings-email-hint"><p id="settings-email-hint" class="settings-hint">This is the verified email address for your account.</p></div>
+                <div class="settings-card-body"><h2 id="profile-heading">Your profile</h2><p>Manage how your name appears in Goshen Email.</p><label for="profile-name">Full name</label><input id="profile-name" name="displayName" required maxlength="200" autocomplete="name"><label for="settings-email">Sign-in email</label><input id="settings-email" type="email" readonly aria-describedby="settings-email-hint"><p id="settings-email-hint" class="settings-hint">This is the verified email address for your account.</p></div>
                 <footer class="settings-card-footer"><span role="status"></span><button class="primary" type="submit" disabled>Save changes</button></footer>
               </fieldset>
             </form>
             <form id="notifications-form" class="settings-card" aria-labelledby="notifications-heading">
               <fieldset>
                 <div class="settings-card-body"><h2 id="notifications-heading">Notifications</h2><p>Choose how you hear about new mail in your inboxes.</p>
-                  <label class="notification-option"><input type="checkbox" name="desktopNotifications" id="desktop-notifications"><span><strong>Desktop notifications</strong><span>Show alerts while Bezalel Email is open. Message contents stay private.</span></span></label>
+                  <label class="notification-option"><input type="checkbox" name="desktopNotifications" id="desktop-notifications"><span><strong>Desktop notifications</strong><span>Show alerts while Goshen Email is open. Message contents stay private.</span></span></label>
                   <p id="desktop-permission" class="settings-hint" role="status"></p><button id="allow-notifications" type="button" hidden>Allow in this browser</button>
                   <label class="notification-option"><input type="checkbox" name="emailNotifications" id="email-notifications"><span><strong>Email notifications</strong><span>Get a summary of new arrivals, grouped each minute, at <span id="notification-email"></span>.</span></span></label>
                   <p class="settings-hint">Applies to new mail after you enable notifications. Quarantined mail is excluded.</p>

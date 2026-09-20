@@ -47,6 +47,10 @@ export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, req
       const response = await backend(new URL(endpoint, workerUrl), { method, headers: forwarded,
         ...(method === 'POST' ? { body: session || nativeOperation ? '{}' : await readBody(request) } : {}), redirect: 'manual', signal: AbortSignal.timeout(45_000) })
       for (const cookie of response.headers.getSetCookie()) headers.append('set-cookie', cookie)
+      // A sign-in step ends whatever workspace the browser was showing. Clearing the marker here keeps
+      // dashboard-shell.js from painting the previous account's saved workspace on the first /app load
+      // after a magic link or code; the session read that follows issues a marker for the new account.
+      if (auth) headers.append('set-cookie', workspaceCookie(secure, 0))
       const location = response.headers.get('location')
       if (location && response.status >= 300 && response.status < 400) { headers.set('location', location); return new Response(null, { status: response.status, headers }) }
       const body = await response.json()

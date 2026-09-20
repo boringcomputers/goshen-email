@@ -24,7 +24,7 @@ export function createDesktopNotifications({ rpc, openInbox }) {
         for (const id of stored) seen.add(id)
         const fresh = notifications.filter(item => !seen.has(item.id))
         if (!fresh.length) return
-        const alert = new Notification('New mail in Bezalel Email', {
+        const alert = new Notification('New mail in Goshen Email', {
           body: fresh.length === 1 ? `New mail in ${fresh[0].inboxId}` : `${fresh.length} new messages in your inboxes`,
           tag: 'bezalel-new-mail',
         })

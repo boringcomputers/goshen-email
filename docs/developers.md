@@ -1,6 +1,6 @@
 # Developer tools
 
-Bezalel Email has an account API, TypeScript and Python clients, a JSON CLI, and
+Goshen Email has an account API, TypeScript and Python clients, a JSON CLI, and
 MCP over Streamable HTTP or stdio. All use the same 16-operation contract.
 
 When the operator enables [email triage](triage.md), message and thread responses

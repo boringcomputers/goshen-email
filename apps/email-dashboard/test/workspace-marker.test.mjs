@@ -64,6 +64,33 @@ test('account mode issues the marker only for an authenticated session read and 
   assert.equal(marker(rpc), undefined, 'Other operations issue no marker')
 })
 
+test('account mode clears the marker on every sign-in step so a stale marker cannot paint the previous account', async () => {
+  let result
+  const handle = accountDashboardHandler({ publicUrl: origin, workerUrl: 'https://mail.example', proxySecret: 'marker-test-proxy-secret-'.repeat(2),
+    asset: async file => file, request: async () => result })
+  // An expired session leaves the browser holding the old marker; each sign-in call clears it.
+  const stale = '__Host-workspace=stale-marker-from-alice'
+  result = Response.json({ success: true })
+  const sent = await request(handle, '/api/auth/email-otp/send-verification-otp', { cookie: stale, body: { email: 'bob@example.net', type: 'sign-in' } })
+  assert.equal(sent.status, 200)
+  assert.match(marker(sent), /^__Host-workspace=; .*Max-Age=0/)
+  result = Response.json({ status: true }, { headers: { 'set-cookie': 'session=bob; HttpOnly' } })
+  const signedIn = await request(handle, '/api/auth/sign-in/email-otp', { cookie: stale, body: { email: 'bob@example.net', otp: '123456' } })
+  assert.match(marker(signedIn), /Max-Age=0/)
+  assert.ok(signedIn.headers.getSetCookie().includes('session=bob; HttpOnly'), 'The new session cookie still passes through')
+  // The magic-link confirmation answers with a redirect; the marker is cleared on that response too.
+  result = new Response(null, { status: 302, headers: { location: origin + '/app', 'set-cookie': 'session=bob; HttpOnly' } })
+  const verified = await request(handle, '/api/auth/magic-link/verify', { cookie: stale, body: { token: 't', email: 'bob@example.net' } })
+  assert.equal(verified.status, 302)
+  assert.equal(verified.headers.get('location'), origin + '/app')
+  assert.match(marker(verified), /Max-Age=0/)
+  // The session read after sign-in issues Bob's marker, so the saved workspace binds to his account.
+  result = Response.json({ result: { customer: { id: 'c2', email: 'bob@example.net' } } })
+  const session = await request(handle, '/api/session', { cookie: 'session=bob' })
+  assert.match(marker(session), /^__Host-workspace=[A-Za-z0-9_-]+; .*Max-Age=604800/)
+  assert.notEqual(value(marker(session)), 'stale-marker-from-alice')
+})
+
 test('Access mode issues the marker with an assertion and clears it without one and on logout', async () => {
   const handle = accessDashboardHandler({ publicUrl: origin, asset: async file => file,
     client: { execute: async () => ({ customer: { id: 'c1', email: 'owner@example.net' } }) } })

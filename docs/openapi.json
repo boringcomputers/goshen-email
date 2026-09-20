@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Bezalel Email API",
+    "title": "Goshen Email API",
     "version": "1.0.0",
     "description": "Account and mailbox scoped email API. Sends require a stable idempotencyKey. JSON Schema cannot express every validation rule; the API also checks combined body and attachment sizes and recipient limits."
   },

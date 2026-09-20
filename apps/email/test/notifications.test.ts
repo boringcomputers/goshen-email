@@ -33,7 +33,7 @@ it('defaults off, validates booleans, persists independent preferences and never
   expect(await store.resolve({ email: owner.email, subject: owner.email })).toMatchObject({ desktopNotifications: true, emailNotifications: true })
   await Promise.all([deliver(), deliver()])
   expect(f.send).toHaveBeenCalledTimes(1)
-  expect(f.send.mock.calls[0]![0]).toMatchObject({ to: ['owner@example.net'], subject: 'New mail in Bezalel Email', headers: { 'Auto-Submitted': 'auto-generated' } })
+  expect(f.send.mock.calls[0]![0]).toMatchObject({ to: ['owner@example.net'], subject: 'New mail in Goshen Email', headers: { 'Auto-Submitted': 'auto-generated' } })
   expect(f.send.mock.calls[0]![0].text).not.toContain('Invoice question')
   await deliver(); expect(f.send).toHaveBeenCalledTimes(1)
 })

@@ -55,9 +55,9 @@ export async function sendNotifications(db: Database, transport: Transport, from
           transportStarted = true
           try {
             const result = await transport.send({
-              from: { address: from, name: "Bezalel Email" }, to: [recipient.email], cc: [], bcc: [],
+              from: { address: from, name: "Goshen Email" }, to: [recipient.email], cc: [], bcc: [],
               headers: { "Auto-Submitted": "auto-generated", "X-Bezalel-Notification": "new-mail" },
-              subject: "New mail in Bezalel Email", text,
+              subject: "New mail in Goshen Email", text,
             })
             if ([...result.delivered, ...result.queued].includes(recipient.email)) state = 'accepted'
           } catch { /* Delivery may have happened, so do not retry the transport. */ }

@@ -110,7 +110,7 @@
       else link.removeAttribute('aria-current')
     }
     $('#page-title').textContent = titles[page]
-    document.title = `${titles[page]} · Bezalel Email`
+    document.title = `${titles[page]} · Goshen Email`
     delete document.documentElement.dataset.initialTitle
     document.documentElement.style.removeProperty('--initial-page-title')
   }

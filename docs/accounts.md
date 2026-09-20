@@ -1,6 +1,6 @@
 # Public accounts
 
-Anyone can create a Bezalel Email account at `/sign-up`. Choose a magic link or
+Anyone can create a Goshen Email account at `/sign-up`. Choose a magic link or
 a six-digit email code. Better Auth verifies ownership of the email address and
 creates an account on the first successful sign-in. Password sign-up, sign-in,
 and recovery endpoints are disabled.

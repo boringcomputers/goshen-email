@@ -29,10 +29,10 @@ const linkHash = (token: string, secret: string) => createHmac("sha256", secret)
 
 export function accountOptions(config: AccountConfig, dialect: Dialect, service: MailService): BetterAuthOptions {
   const send = async (email: string, subject: string, text: string) => {
-    await service.transport.send({ from: { address: config.from, name: "Bezalel Email" }, to: [email], cc: [], bcc: [], headers: {}, subject, text })
+    await service.transport.send({ from: { address: config.from, name: "Goshen Email" }, to: [email], cc: [], bcc: [], headers: {}, subject, text })
   }
   return {
-    appName: "Bezalel Email", baseURL: config.publicUrl, basePath: "/api/auth", secret: config.secret,
+    appName: "Goshen Email", baseURL: config.publicUrl, basePath: "/api/auth", secret: config.secret,
     trustedOrigins: [config.publicUrl], database: { dialect, type: "postgres", schemaName: "mail" },
     user: { modelName: "auth_users" }, account: { modelName: "auth_accounts" },
     verification: { modelName: "auth_verifications" },
@@ -43,12 +43,12 @@ export function accountOptions(config: AccountConfig, dialect: Dialect, service:
         sendMagicLink: async ({ email, token }) => {
           // The confirmation page keeps email scanners from consuming a sign-in link.
           const url = `${config.publicUrl}/magic-link#token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`
-          await send(email, "Your Bezalel Email sign-in link", `Sign in to Bezalel Email:\n\n${url}\n\nThis link works once and expires in 10 minutes. If you didn't request it, you can ignore this email.`)
+          await send(email, "Your Goshen Email sign-in link", `Sign in to Goshen Email:\n\n${url}\n\nThis link works once and expires in 10 minutes. If you didn't request it, you can ignore this email.`)
         } }),
       emailOTP({ otpLength: 6, expiresIn: 600, allowedAttempts: 5, storeOTP: "hashed", disableSignUp: false,
         sendVerificationOTP: async ({ email, otp, type }) => {
           if (type !== "sign-in") throw new MailError("Use passwordless sign-in", "invalid_request", 400)
-          await send(email, "Your Bezalel Email sign-in code", `Your sign-in code is:\n\n${otp}\n\nEnter this code on Bezalel Email. It works once and expires in 10 minutes. If you didn't request it, you can ignore this email.`)
+          await send(email, "Your Goshen Email sign-in code", `Your sign-in code is:\n\n${otp}\n\nEnter this code on Goshen Email. It works once and expires in 10 minutes. If you didn't request it, you can ignore this email.`)
         } }),
     ],
     advanced: { database: { generateId: "uuid" }, cookiePrefix: "bezalel", useSecureCookies: config.publicUrl.startsWith("https:"),

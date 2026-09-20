@@ -34,7 +34,7 @@ test('serves final sign-in and sign-up layouts before JavaScript runs for Node a
       assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'none'/)
       const html = await response.text()
       assert.doesNotMatch(html, /\{\{[a-z-]+\}\}/)
-      assert.match(html, signup ? /<title>Sign up — Bezalel Email<\/title>/ : /<title>Sign in — Bezalel Email<\/title>/)
+      assert.match(html, signup ? /<title>Sign up — Goshen Email<\/title>/ : /<title>Sign in — Goshen Email<\/title>/)
       assert.match(html, signup ? /<h1 id="title">Make room for your email\.<\/h1>/ : /<h1 id="title">Welcome back\.<\/h1>/)
       assert.match(html, signup ? /Create your account with a sign-in link or email code\./ : /A link or a code\. Your inbox is one email away\./)
       assert.equal(/\bhidden\b/.test(tag(html, 'name-field')), !signup)
@@ -43,7 +43,7 @@ test('serves final sign-in and sign-up layouts before JavaScript runs for Node a
       assert.match(tag(html, 'email'), /\brequired\b/)
       assert.doesNotMatch(tag(html, 'method-field'), /\bhidden\b/)
       assert.doesNotMatch(tag(html, 'submit'), /\bdisabled\b/)
-      assert.match(html, signup ? /Already have an account\? <a href="\/sign-in">Sign in<\/a>/ : /New to Bezalel\? <a href="\/sign-up">Create an account<\/a>/)
+      assert.match(html, signup ? /Already have an account\? <a href="\/sign-in">Sign in<\/a>/ : /New to Goshen Email\? <a href="\/sign-up">Create an account<\/a>/)
     }
   }
 })
@@ -76,7 +76,8 @@ test('replaces spoofed credentials and IP headers and keeps all session cookies'
   assert.equal(sent.init.headers.get('x-forwarded-for'), null)
   assert.equal(sent.init.headers.get('authorization'), 'Bearer ' + 'fixture-proxy-secret-'.repeat(3))
   assert.equal(sent.init.headers.get('cookie'), 'session=real')
-  assert.deepEqual(response.headers.getSetCookie(), ['one=1; HttpOnly', 'two=2; HttpOnly'])
+  // Upstream session cookies pass through unchanged; the sign-in step also clears the workspace marker.
+  assert.deepEqual(response.headers.getSetCookie(), ['one=1; HttpOnly', 'two=2; HttpOnly', '__Host-workspace=; Path=/; SameSite=Strict; Max-Age=0; Secure'])
 })
 test('rejects cross-origin mutations and private operations outside the allowlist', async () => {
   const count = calls.length

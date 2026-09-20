@@ -1,4 +1,4 @@
-"""Bezalel Email client. Retries never happen implicitly."""
+"""Goshen Email client. Retries never happen implicitly."""
 import json
 import re
 import socket

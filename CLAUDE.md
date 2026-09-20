@@ -1,4 +1,4 @@
-# Bezalel Email agent workflow
+# Goshen Email agent workflow
 
 Every task moves through the same four beats. Each beat has a skill in
 `.claude/skills`, copied from
