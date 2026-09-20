@@ -6,6 +6,10 @@
   "compatibility_date": "2026-09-06",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "routes": [
+    { "pattern": "goshenemail.com", "custom_domain": true },
+    { "pattern": "www.goshenemail.com", "custom_domain": true }
+  ],
   "assets": { "directory": "public", "binding": "ASSETS", "run_worker_first": true, "html_handling": "none" },
   "durable_objects": { "bindings": [{ "name": "DASHBOARD", "class_name": "Dashboard" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Dashboard"] }],
@@ -15,7 +19,7 @@
   ],
   "vars": {
     "DASHBOARD_AUTH_MODE": "account",
-    "DASHBOARD_PUBLIC_URL": "https://bezalel-email-dashboard.michaelwasihun96.workers.dev",
+    "DASHBOARD_PUBLIC_URL": "https://goshenemail.com",
     "MAIL_WORKER_URL": "https://bezalel-email-standalone.michaelwasihun96.workers.dev",
     "NATIVE_MAIL_WORKER_URL": "https://bezalel-email.michaelwasihun96.workers.dev",
     "NATIVE_MAIL_ADMIN_EMAILS": "michaelwasihun96@gmail.com"

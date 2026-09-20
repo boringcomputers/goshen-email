@@ -5,8 +5,8 @@ export default {
   fetch(request, env) {
     const url = new URL(request.url)
     url.protocol = 'https:'
-    url.host = 'dashboard.example'
     const headers = new Headers(request.headers)
+    url.host = headers.get('x-test-host') ?? 'dashboard.example'
     headers.set('origin', headers.get('x-test-origin') ?? 'https://dashboard.example')
     headers.set('cf-connecting-ip', headers.get('x-test-ip') ?? '192.0.2.1')
     if (env.DASHBOARD_AUTH_MODE === 'access') env.MAIL_API = {

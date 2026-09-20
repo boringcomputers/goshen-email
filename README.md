@@ -93,7 +93,8 @@ database. The root `build` command bundles the Worker without deploying it.
 
 The API and dashboard both run on Cloudflare Workers:
 
-- [Dashboard](https://bezalel-email-dashboard.michaelwasihun96.workers.dev/app)
+- [Dashboard](https://goshenemail.com/app). `www.goshenemail.com` and the
+  Worker's `workers.dev` address redirect there.
 - [API](https://bezalel-email-standalone.michaelwasihun96.workers.dev/healthz)
 
 The dashboard uses Better Auth accounts, static assets for the interface, and a

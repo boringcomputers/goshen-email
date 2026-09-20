@@ -1,7 +1,7 @@
 import { accountDashboardHandler } from './account-handler.mjs'
 import { DurableObject } from 'cloudflare:workers'
 import { isIP } from 'node:net'
-import { dashboardHandler, readBody } from './handler.mjs'
+import { canonicalHostRedirect, dashboardHandler, readBody } from './handler.mjs'
 import { durableState } from './durable-state.mjs'
 import { accessDashboardHandler } from './access-handler.mjs'
 import { DashboardError, customerMailClient, mailClient, nativeMailClient } from './service.mjs'
@@ -34,6 +34,8 @@ export class Dashboard extends DurableObject {
 
 export default {
   async fetch(request, env) {
+    const redirect = canonicalHostRedirect(request, env.DASHBOARD_PUBLIC_URL)
+    if (redirect) return redirect
     // Consume the bounded body before forwarding so early auth responses can close the stream.
     // https://github.com/cloudflare/workerd/issues/918
     try {
