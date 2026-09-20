@@ -40,9 +40,10 @@ const equal = (a, b) => {
 const lifetime = 8 * 60 * 60 * 1000
 
 // A random marker the browser can read, issued with each authenticated session response and cleared
-// when the session ends. dashboard-shell.js paints its saved workspace only while the marker matches
-// the one saved with it, so an ended session or another account never sees the previous workspace
-// before the session request answers. The server never reads it and it grants nothing.
+// when the session ends or a sign-in step runs. dashboard-shell.js paints its saved workspace only
+// while the marker matches the one saved with it, so an ended session or another account never sees
+// the previous workspace before the session request answers. The server never reads it and it
+// grants nothing.
 export function workspaceCookie(secure, maxAge) {
   const value = maxAge > 0 ? randomBytes(16).toString('base64url') : ''
   return `${secure ? '__Host-' : ''}workspace=${value}; Path=/; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`

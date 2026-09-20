@@ -64,12 +64,17 @@ its `no-store` headers, so this is the only state the browser retains.
 Painting waits for nothing, so it must not show one session's workspace to
 another. Every authenticated `/api/session` response sets a `workspace`
 cookie (`__Host-workspace` on HTTPS) with a fresh random value that the page
-can read; anonymous session reads and sign-out clear it. The dashboard saves
-the workspace together with that value and paints it only while the cookie
-still matches. Expired cookies, a cleared browser, or another account's
-sign-in leave the cookie missing or different, so nothing paints until the
-session answers. The server never reads the cookie and it grants nothing. All
-three auth modes issue it; `test/workspace-marker.test.mjs` covers them.
+can read; anonymous session reads, sign-out, and every account-mode
+`/api/auth/*` response (send a code, verify a link or code) clear it. The
+dashboard saves the workspace together with that value and paints it only
+while the cookie still matches. An expired cookie, a cleared browser, or a
+sign-in step leaves the cookie missing, so nothing paints until the session
+answers and issues a marker for the account that signed in. Without the
+sign-in clearing, an expired session's marker would outlive the session and
+the first `/app` paint after another account's magic link would show the
+previous account's workspace. The server never reads the cookie and it
+grants nothing. All three auth modes issue it;
+`test/workspace-marker.test.mjs` covers them.
 
 Controls painted from the saved workspace get their handlers as soon as the
 page modules load, so a failed refresh of API keys, domains, or the native

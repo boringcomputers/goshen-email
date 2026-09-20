@@ -76,7 +76,8 @@ test('replaces spoofed credentials and IP headers and keeps all session cookies'
   assert.equal(sent.init.headers.get('x-forwarded-for'), null)
   assert.equal(sent.init.headers.get('authorization'), 'Bearer ' + 'fixture-proxy-secret-'.repeat(3))
   assert.equal(sent.init.headers.get('cookie'), 'session=real')
-  assert.deepEqual(response.headers.getSetCookie(), ['one=1; HttpOnly', 'two=2; HttpOnly'])
+  // Upstream session cookies pass through unchanged; the sign-in step also clears the workspace marker.
+  assert.deepEqual(response.headers.getSetCookie(), ['one=1; HttpOnly', 'two=2; HttpOnly', '__Host-workspace=; Path=/; SameSite=Strict; Max-Age=0; Secure'])
 })
 test('rejects cross-origin mutations and private operations outside the allowlist', async () => {
   const count = calls.length
