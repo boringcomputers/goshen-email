@@ -14,7 +14,7 @@ The dashboard never sends its platform credential for customer requests.
    Create a team if the account has none. Record its `*.cloudflareaccess.com` domain.
 2. Under Integrations > Identity providers, add **One-time PIN**.
 3. Add a **Self-hosted** Access application named **Bezalel Email** for
-   `bezalel-email-dashboard.michaelwasihun96.workers.dev`. In that same application,
+   `goshenemail.com`. In that same application,
    add public hostname entries for paths `/app` and `/api` (each also covers its
    subpaths). Keep both entries under the same application audience. Leave the
    root homepage and static assets outside Access; do not retain a hostname-wide

@@ -114,6 +114,15 @@ test('Cloudflare customer mode forwards Access assertions without password secre
     assert.equal(app.status, 200)
     assert.match(await app.text(), /Bezalel Email/)
   }
+  for (const host of ['www.dashboard.example', 'dashboard.workers.example']) {
+    const moved = await worker.fetch(origin + '/app?page=inboxes', { redirect: 'manual', headers: { 'x-test-host': host } })
+    assert.equal(moved.status, 301)
+    assert.equal(moved.headers.get('location'), origin + '/app?page=inboxes')
+    assert.equal(moved.headers.get('cache-control'), 'no-store')
+    const post = await worker.fetch(origin + '/api/rpc/listInboxes', { method: 'POST', redirect: 'manual',
+      headers: { 'x-test-host': host, 'x-test-origin': 'https://' + host, 'content-type': 'application/json' }, body: '{}' })
+    assert.equal(post.status, 403)
+  }
   const css = await worker.fetch(origin + '/landing.css')
   assert.equal(css.status, 200)
   assert.match(css.headers.get('content-type'), /text\/css/)

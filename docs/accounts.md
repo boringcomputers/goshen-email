@@ -91,6 +91,20 @@ Rollback switches the dashboard back to its previous password-mode version.
 Leave the new tables in place; do not drop account data during rollback. Deploy
 neither SMTP nor DNS changes for this feature.
 
+### Public origin
+
+The dashboard answers at `https://goshenemail.com`. Its `wrangler.jsonc` declares
+`goshenemail.com` and `www.goshenemail.com` as Worker custom domains, which
+creates the proxied DNS records on deploy. The zone's Email Routing MX records
+are separate and stay in place. `DASHBOARD_PUBLIC_URL` on the dashboard and
+`AUTH_PUBLIC_URL` on the API must name the same origin: the dashboard rejects
+other hosts, the API checks the `Origin` header on sign-in against it, and
+Better Auth uses it as the base URL and trusted origin for magic links and
+cookies. Change both in one rollout, dashboard first, then the API. Sign-in
+fails for the seconds between the two deploys. Sessions on the previous origin
+do not carry over; people sign in again. GET requests to `www.` or the
+`workers.dev` address get a 301 to the public origin.
+
 The SQL is generated with
 `pnpm --filter @bezalel/email exec tsx scripts/generate-account-schema.ts`, using
 an empty in-memory database. Review generated changes when upgrading Better Auth.

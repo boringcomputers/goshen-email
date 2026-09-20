@@ -144,6 +144,17 @@ export function dashboardOrigin(publicUrl) {
   return origin
 }
 
+// The Worker also answers on workers.dev and www. Send those GET requests to the public origin
+// instead of the 403 the handlers return for an unexpected host. Other methods keep the 403.
+export function canonicalHostRedirect(request, publicUrl) {
+  const origin = dashboardOrigin(publicUrl)
+  const url = new URL(request.url)
+  if (url.host === origin.host || !['GET', 'HEAD'].includes(request.method)) return undefined
+  const headers = responseHeaders()
+  headers.set('location', new URL(url.pathname + url.search, origin).href)
+  return new Response(null, { status: 301, headers })
+}
+
 export function responseHeaders() {
   return new Headers({
       'cache-control': 'no-store',
