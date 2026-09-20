@@ -3,8 +3,9 @@ export const staleApiMessage = 'The email API is running an older version withou
 export const staleApiRejection = 'Unknown dashboard operation'
 export const settingsErrorMessage = error => error?.status === 404 && error.message === staleApiRejection ? staleApiMessage : error?.message || 'Settings request failed'
 
-export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
+export function createSettingsPanel({ rpc, onChange, getAuthMode, getCustomer }) {
   const $ = selector => document.querySelector(selector)
+  const shell = window.BezalelDashboardShell
   const forms = [$('#organization-form'), $('#profile-form'), $('#notifications-form')]
   let customer = null, version = 0, pending = false, saveTask = null
   const fields = form => [...form.querySelectorAll('input[name]')]
@@ -18,38 +19,27 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
   }
   function render(value, savedField) {
     customer = value
-    for (const form of forms) {
-      for (const input of fields(form)) {
-        if (!savedField || form.id === savedField) {
-          if (input.type === 'checkbox') input.checked = customer[input.name] ?? false
-          else input.value = customer[input.name] ?? ''
-        }
-      }
-    }
-    $('#settings-email').value = customer.email
-    $('#notification-email').textContent = customer.email
-    permissionStatus()
-    $('#settings-sign-in-method').textContent = getAuthMode() === 'access'
-      ? 'Sign in with an email code through Cloudflare Access.'
-      : 'Sign in with an email link or a one-time code.'
+    shell.paintSettings(customer, { authMode: getAuthMode(), only: savedField })
+    $('#settings-content').hidden = false
     sync()
   }
   async function load() {
     const requestVersion = ++version
-    pending = false; customer = null
+    pending = false
     $('#settings-error').textContent = ''
-    $('#settings-loading').hidden = false
-    $('#settings-content').hidden = true
     $('#settings-retry').hidden = true
     for (const form of forms) { form.querySelector('footer [role=status]').textContent = ''; form.querySelector('button[type=submit]').textContent = 'Save changes' }
-    sync()
+    // The session already carries this customer, so the page paints at once. A pending save is the
+    // one case where the server holds newer values, so wait for it before showing anything.
+    const known = saveTask ? null : getCustomer?.()
+    if (known) render(known)
+    else { customer = null; $('#settings-loading').hidden = false; $('#settings-content').hidden = true; sync() }
     try {
       await saveTask?.catch(() => {})
       if (version !== requestVersion) return
       const result = await rpc('getSettings')
       if (version !== requestVersion) return
       render(result.customer); onChange(result.customer)
-      $('#settings-content').hidden = false
     } catch (error) {
       if (version !== requestVersion) return
       $('#settings-error').textContent = settingsErrorMessage(error)
@@ -82,16 +72,7 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode }) {
       }
     })
   }
-  function permissionStatus() {
-    const permission = 'Notification' in window ? Notification.permission : 'unsupported'
-    $('#desktop-permission').textContent = {
-      granted: 'This browser can show desktop notifications.',
-      denied: 'Notifications are blocked. Allow them in your browser’s site settings.',
-      default: 'Allow notifications in this browser to receive desktop alerts.',
-      unsupported: 'This browser does not support desktop notifications.',
-    }[permission]
-    $('#allow-notifications').hidden = permission !== 'default'
-  }
+  const permissionStatus = shell.paintNotificationPermission
   $('#allow-notifications').addEventListener('click', async () => {
     try { await Notification.requestPermission(); permissionStatus() }
     catch { $('#desktop-permission').textContent = 'Enable notifications in your browser’s site settings.' }

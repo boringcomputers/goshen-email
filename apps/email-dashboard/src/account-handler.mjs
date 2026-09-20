@@ -1,12 +1,16 @@
-import { assetResponse, assets, dashboardOrigin, readBody, responseHeaders } from './handler.mjs'
+import { assetResponse, assets, dashboardOrigin, readBody, responseHeaders, workspaceCookie } from './handler.mjs'
 import { renderAccountPage } from './account-page.mjs'
 import { customerOperations, nativeReadOperations, DashboardError } from './service.mjs'
 
 const pages = new Set(['/sign-in', '/sign-up', '/magic-link'])
 const accountAssets = new Map([['/auth.css', ['auth.css', 'text/css; charset=utf-8']], ['/auth.js', ['auth.js', 'text/javascript; charset=utf-8']]])
 
+// Account sessions last seven days and refresh with activity; the marker is reissued on every session read.
+const sessionLifetime = 7 * 24 * 60 * 60
+
 export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, request: backend, asset, nativeMail }) {
   const origin = dashboardOrigin(publicUrl)
+  const secure = origin.protocol === 'https:'
   if (!proxySecret || proxySecret.length < 32) throw new Error('AUTH_PROXY_SECRET must contain at least 32 characters')
   return async (request, { clientIdentity } = {}) => {
     const headers = responseHeaders()
@@ -46,6 +50,7 @@ export function accountDashboardHandler({ publicUrl, workerUrl, proxySecret, req
       const location = response.headers.get('location')
       if (location && response.status >= 300 && response.status < 400) { headers.set('location', location); return new Response(null, { status: response.status, headers }) }
       const body = await response.json()
+      if (session || logout) headers.append('set-cookie', workspaceCookie(secure, session && response.ok ? sessionLifetime : 0))
       if (session && response.status === 401) return json({ authenticated: false, authMode: 'account' })
       if (!response.ok) return json({ error: body.error?.message ?? body.message ?? 'Account request failed', code: body.code, authMode: 'account' }, response.status)
       const nativeMailEnabled = nativeMail?.permits(body.result?.customer) === true

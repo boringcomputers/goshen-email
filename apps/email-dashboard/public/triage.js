@@ -7,23 +7,8 @@ const node = (tag, text, className) => {
   return element
 }
 
-export function triageBadges(triage) {
-  const group = node('div', '', 'triage-badges')
-  if (!triage) return group
-  group.setAttribute('aria-label', 'Email triage')
-  if (triage.status !== 'complete') {
-    group.append(node('span', triage.status === 'pending' ? 'Analysis pending' : 'Analysis unavailable', 'triage-badge muted'))
-    return group
-  }
-  const category = node('span', `${triage.category.confidence < 0.5 ? 'Maybe ' : ''}${title(triage.category.value)}`, 'triage-badge')
-  category.title = `Category confidence: ${percent(triage.category.confidence)}`
-  group.append(category)
-  const reply = triage.needsReply.value
-  group.append(node('span', reply === null ? 'Reply unclear' : reply ? 'Needs reply' : 'No reply needed', `triage-badge${reply ? ' triage-reply' : ''}`))
-  const urgency = triage.urgency.value
-  group.append(node('span', urgency ? `${title(urgency)} urgency` : 'Urgency unclear', `triage-badge triage-${urgency ?? 'uncertain'}`))
-  return group
-}
+// Thread badges live in dashboard-shell.js so a saved thread list paints with them before this module loads.
+export const triageBadges = window.BezalelDashboardShell.triageBadges
 
 export function triageDetails(triage) {
   const details = node('details', '', 'message-details triage-details')

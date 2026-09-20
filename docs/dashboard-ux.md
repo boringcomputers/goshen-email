@@ -39,6 +39,46 @@ Missing inbox routes and the retired Customers route return to the inventory.
 Mobile navigation uses the existing focus trap; the mail reader keeps its
 back-to-conversations behavior.
 
+## Refresh
+
+A reload paints the workspace as it last looked before any request finishes.
+`dashboard-boot.js` runs in the head and selects the routed view.
+`dashboard-shell.js` runs at the end of the body: it draws the static icons,
+reads the saved workspace from `localStorage` under
+`bezalel.dashboard.snapshot`, and paints the sidebar, breadcrumb, account
+button, inbox table, mailbox switcher, thread list, settings values, API key
+table, domain cards, and native inventory from it. `app.js` and the page
+modules render fresh data through the same painters, so the network changes
+nothing on screen unless the data changed. Reloading a list already on screen
+keeps it until the new list arrives; switching folders or inboxes still shows
+the loading placeholder.
+
+The saved workspace holds display data only: the session's names, flags, and
+URLs, the inbox inventory, the default inbox view of the five most recently
+opened inboxes, API key names and prefixes, domain records, and the native
+inventory. It never holds tokens, keys, or message bodies. Sign-out, an ended
+session, and a session for a different customer clear it. Anyone who can read
+the browser profile can read it, as with browser history; the dashboard keeps
+its `no-store` headers, so this is the only state the browser retains.
+
+Painting waits for nothing, so it must not show one session's workspace to
+another. Every authenticated `/api/session` response sets a `workspace`
+cookie (`__Host-workspace` on HTTPS) with a fresh random value that the page
+can read; anonymous session reads and sign-out clear it. The dashboard saves
+the workspace together with that value and paints it only while the cookie
+still matches. Expired cookies, a cleared browser, or another account's
+sign-in leave the cookie missing or different, so nothing paints until the
+session answers. The server never reads the cookie and it grants nothing. All
+three auth modes issue it; `test/workspace-marker.test.mjs` covers them.
+
+Controls painted from the saved workspace get their handlers as soon as the
+page modules load, so a failed refresh of API keys, domains, or the native
+inventory leaves working controls, not dead ones.
+
+A browser that has never shown the workspace has nothing to paint. It hides
+the navigation, account button, and list footer until the session answers, and
+the breadcrumb can change width once the organization name arrives.
+
 ## Design
 
 The dashboard shell matches the Fancy Dashboard artboard. Shared tokens live in
@@ -62,8 +102,13 @@ FIXTURE_PORT=3190 pnpm --filter @bezalel/email exec tsx test/dashboard-fixture.t
 Set `DASHBOARD_TEST_URL=http://127.0.0.1:3190` and
 `DASHBOARD_TEST_CONTROL_URL=http://127.0.0.1:3191`, then run
 `node --test apps/email-dashboard/test/browser/console.mjs`.
-Run `developer-keys.mjs`, `mailbox-selection.mjs`, and `triage.mjs` the same way,
-restarting the fixture between files to isolate account login rate limits.
+Run `developer-keys.mjs`, `mailbox-selection.mjs`, `triage.mjs`, `refresh.mjs`,
+and `saved-workspace.mjs` the same way, restarting the fixture between files to
+isolate account login rate limits. `refresh.mjs` gates the session and
+inventory responses and checks that a reload paints the saved workspace with
+no layout shift and that fresh data changes nothing already on screen.
+`saved-workspace.mjs` checks that sign-out, an ended session, and another
+account clear it.
 Set `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` if Chromium and Playwright are
 installed outside the worktree. Run this workload through `homelab-job` on the
 homelab.

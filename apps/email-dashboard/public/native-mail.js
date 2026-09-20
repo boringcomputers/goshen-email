@@ -6,12 +6,11 @@ const node = (tag, text, className) => {
   return item
 }
 
-export function createNativeMailPanel({ rpc }) {
+export function createNativeMailPanel({ rpc, remember }) {
+  const shell = window.BezalelDashboardShell
   let inboxes = [], inbox = '', threads = [], nextPage, selected = ''
   let inventoryVersion = 0, listVersion = 0, readVersion = 0
-  const button = (label, task, className) => {
-    const item = node('button', label, className)
-    item.type = 'button'
+  const wire = (item, task) => {
     item.addEventListener('click', async () => {
       item.disabled = true
       try { await task() } catch (error) { $('#native-mail-error').textContent = error.message }
@@ -19,20 +18,17 @@ export function createNativeMailPanel({ rpc }) {
     })
     return item
   }
+  const button = (label, task, className) => {
+    const item = node('button', label, className)
+    item.type = 'button'
+    return wire(item, task)
+  }
+  // Attaches Open handlers to whatever the shell painted, including the saved inventory on load.
+  const wireRows = () => { for (const row of $('#native-inbox-rows').children) wire(row.querySelector('button'), () => openInbox(row.dataset.inboxId)) }
+  wireRows()
   function renderInboxes() {
-    const query = $('#native-inbox-search').value.trim().toLowerCase()
-    const filtered = inboxes.filter(item => `${item.inboxId} ${item.displayName || ''}`.toLowerCase().includes(query))
-    $('#native-inbox-rows').replaceChildren(...filtered.map(item => {
-      const row = node('tr'), name = node('td'), address = node('td'), action = node('td')
-      name.append(node('strong', item.displayName || item.inboxId))
-      address.textContent = item.address || item.inboxId
-      action.append(button('Open', () => openInbox(item.inboxId)))
-      row.append(name, address, action)
-      return row
-    }))
-    $('#native-inbox-count').textContent = `${filtered.length} inbox${filtered.length === 1 ? '' : 'es'}`
-    $('#native-inboxes-empty').hidden = filtered.length !== 0
-    $('#native-inboxes-empty').textContent = inboxes.length ? 'No inboxes match this search.' : 'No active Bezalel inboxes.'
+    shell.paintNativeInboxes(inboxes, $('#native-inbox-search').value)
+    wireRows()
   }
   function clearReader() {
     readVersion++; selected = ''
@@ -145,12 +141,12 @@ export function createNativeMailPanel({ rpc }) {
   }
   async function load() {
     const version = ++inventoryVersion
-    listVersion++; clearReader(); inbox = ''; inboxes = []
+    listVersion++; clearReader(); inbox = ''
     $('#native-mail-error').textContent = ''; $('#native-inventory').hidden = false; $('#native-reader').hidden = true
-    $('#native-inbox-rows').replaceChildren(); $('#native-inboxes-empty').hidden = true; $('#native-inbox-count').textContent = 'Loading inboxes…'
+    // The painted inventory stays on screen until the fresh list replaces it.
     const result = await rpc('listInboxes', {})
     if (version !== inventoryVersion) return
-    inboxes = result.inboxes; renderInboxes()
+    inboxes = result.inboxes; remember?.(inboxes); renderInboxes()
   }
   function listen(id, task, event = 'click') {
     $(id).addEventListener(event, async e => {

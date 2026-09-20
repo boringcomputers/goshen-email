@@ -20,6 +20,7 @@ export const assets = new Map([
   ['/developer.css', ['developer.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/dashboard-boot.js', ['dashboard-boot.js', 'text/javascript; charset=utf-8']],
+  ['/dashboard-shell.js', ['dashboard-shell.js', 'text/javascript; charset=utf-8']],
   ['/console.js', ['console.js', 'text/javascript; charset=utf-8']],
   ['/console.css', ['console.css', 'text/css; charset=utf-8']],
   ['/notifications.js', ['notifications.js', 'text/javascript; charset=utf-8']],
@@ -37,6 +38,15 @@ const equal = (a, b) => {
   return left.length === right.length && timingSafeEqual(left, right)
 }
 const lifetime = 8 * 60 * 60 * 1000
+
+// A random marker the browser can read, issued with each authenticated session response and cleared
+// when the session ends. dashboard-shell.js paints its saved workspace only while the marker matches
+// the one saved with it, so an ended session or another account never sees the previous workspace
+// before the session request answers. The server never reads it and it grants nothing.
+export function workspaceCookie(secure, maxAge) {
+  const value = maxAge > 0 ? randomBytes(16).toString('base64url') : ''
+  return `${secure ? '__Host-' : ''}workspace=${value}; Path=/; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`
+}
 
 export async function readBody(request) {
   const chunks = []
@@ -92,7 +102,11 @@ export function dashboardHandler({ client, password, publicUrl, asset, state = {
         return assetResponse(await asset(entry[0], request), entry)
       }
       if (request.method === 'GET' && path === '/healthz') return json({ status: 'ok', service: 'bezalel-email-dashboard' })
-      if (request.method === 'GET' && path === '/api/session') return json({ authenticated: Boolean(sessionFor(request)) })
+      if (request.method === 'GET' && path === '/api/session') {
+        const authenticated = Boolean(sessionFor(request))
+        headers.append('set-cookie', workspaceCookie(secure, authenticated ? lifetime / 1000 : 0))
+        return json({ authenticated })
+      }
       if (request.method !== 'POST') throw new DashboardError('Not found', 404)
       if (request.headers.get('origin') !== origin.origin) throw new DashboardError('Invalid request origin', 403)
       if (!(request.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json')) throw new DashboardError('Expected application/json', 415)
@@ -125,6 +139,7 @@ export function dashboardHandler({ client, password, publicUrl, asset, state = {
       if (path === '/api/logout') {
         sessions.delete(session)
         headers.set('set-cookie', cookie('', 0))
+        headers.append('set-cookie', workspaceCookie(secure, 0))
         return json({ authenticated: false })
       }
       const operation = path.startsWith('/api/rpc/') ? path.slice('/api/rpc/'.length) : ''
