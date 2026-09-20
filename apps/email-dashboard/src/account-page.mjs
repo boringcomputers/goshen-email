@@ -12,7 +12,7 @@ export async function renderAccountPage(body, url) {
     'submit-label': confirming ? 'Continue to workspace' : 'Email me a sign-in link',
     'submit-disabled': confirming ? 'disabled' : '',
     error: url.searchParams.get('reason') === 'access_denied' ? 'Your account does not have access to this workspace. Contact the owner.' : url.searchParams.has('error') ? 'This sign-in link is invalid, expired, or already used. Request a new one below.' : '',
-    'alternate-copy': confirming ? '' : signup ? 'Already have an account? ' : 'New to Bezalel? ',
+    'alternate-copy': confirming ? '' : signup ? 'Already have an account? ' : 'New to Goshen Email? ',
     'alternate-href': signup || confirming ? '/sign-in' : '/sign-up',
     'alternate-label': signup ? 'Sign in' : confirming ? 'Request a new sign-in email' : 'Create an account',
   }

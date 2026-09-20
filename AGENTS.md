@@ -1,4 +1,4 @@
-# Bezalel Email
+# Goshen Email
 
 Use Node.js 24 and pnpm 10.15.1. Make changes on a task branch in an isolated
 worktree. Keep the source license and provenance manifest. Do not merge a PR

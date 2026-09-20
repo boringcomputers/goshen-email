@@ -33,7 +33,7 @@ Inter is served from `/fonts/InterVariable.woff2`; the security policy permits f
 
 ## Public landing page
 
-The [Bezalel Email Landing artboard](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/1-0) matches the deployed homepage's copy, email capability icons, white canvas, and centered layout. The Design System page includes the same layout rules and updated component examples.
+The [Bezalel Email Landing artboard](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/1-0) supplies the deployed homepage's structure, email capability icons, white canvas, and centered layout. The page copy has since been rewritten for Goshen Email and no longer matches the artboard text. The Design System page includes the same layout rules and updated component examples.
 
 | Element | Specification |
 | --- | --- |

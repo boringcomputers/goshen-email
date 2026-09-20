@@ -60,12 +60,12 @@ test('Cloudflare persists sessions, throttles and logout across process restarts
   await start()
   const page = await request('/')
   assert.equal(page.status, 200)
-  assert.match(await page.text(), /<title>Bezalel Email \| Inboxes for people and agents<\/title>/)
+  assert.match(await page.text(), /<title>Goshen Email \| Email inboxes for AI agents<\/title>/)
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/)
   for (const path of ['/app', '/app/']) {
     const app = await request(path)
     assert.equal(app.status, 200)
-    assert.match(await app.text(), /Bezalel Email/)
+    assert.match(await app.text(), /Goshen Email/)
   }
   assert.equal((await request('/dashboard.html')).status, 404)
   assert.equal((await request('/.env')).status, 404)
@@ -108,11 +108,11 @@ test('Cloudflare customer mode forwards Access assertions without password secre
   t.after(async () => { await worker.stop(); await rm(directory, { recursive: true, force: true }) })
   const homepage = await worker.fetch(origin)
   assert.equal(homepage.status, 200)
-  assert.match(await homepage.text(), /<title>Bezalel Email \| Inboxes for people and agents<\/title>/)
+  assert.match(await homepage.text(), /<title>Goshen Email \| Email inboxes for AI agents<\/title>/)
   for (const path of ['/app', '/app/']) {
     const app = await worker.fetch(origin + path)
     assert.equal(app.status, 200)
-    assert.match(await app.text(), /Bezalel Email/)
+    assert.match(await app.text(), /Goshen Email/)
   }
   for (const host of ['www.dashboard.example', 'dashboard.workers.example']) {
     const moved = await worker.fetch(origin + '/app?page=inboxes', { redirect: 'manual', headers: { 'x-test-host': host } })

@@ -1,7 +1,7 @@
-# Bezalel Email
+# Goshen Email
 
-Email inboxes for people and agents, with a standalone dashboard, an HTTP API,
-and an optional SMTP gateway for custom domains.
+Email inboxes for AI agents, with a dashboard for the people who run them, an
+HTTP API, and an optional SMTP gateway for custom domains.
 
 This project extracts the email implementation from
 [Bezalel](https://github.com/boringcomputers/bezalel). The original code stays in
@@ -40,15 +40,18 @@ Bezalel's billing, approval policies, and analytics stay in Bezalel.
 ## Homepage
 
 The root page uses Fancy's **Bezalel Email Landing** layout from
-[Paper](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/1-0), with copy
-about Bezalel Email's inboxes, mailbox API keys, attachments, and quarantine
-review. The feature strip and setup cards describe existing capabilities.
+[Paper](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/1-0). The copy
+presents Goshen Email as email inboxes for AI agents: one call creates an
+inbox, threads and attachments, scoped API keys, quarantine review, and a
+dashboard that shows the same mail. The numbers strip and the setup cards
+describe shipped capabilities only (16 operations, 5 key scopes, 2 SDKs).
 The email thread and file names are illustrative examples.
 
 The page shares the dashboard's Paper tokens and local Inter font. Smaller
 screens reflow the cards, navigation, and product illustration. Sign-in, inbox,
-and API key links open `/app`. Demo, sales, and unfinished footer destinations
-remain `#` placeholders.
+and API key links open `/app`. Docs links open the developer guide and the
+SMTP runbook on GitHub. Contact, status, and legal footer destinations remain
+`#` placeholders.
 
 ## Run the local owner dashboard
 

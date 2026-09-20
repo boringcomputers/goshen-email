@@ -144,7 +144,7 @@ test('settings persist, isolate accounts, and preserve edits on failure with res
   assert.equal(await page.evaluate(() => window.notificationAlerts.length), 1, 'The next poll does not repeat an alert')
   assert.equal((await context.request.post(control + '/notifications', { data: {} })).status(), 200)
   const delivered = await (await context.request.get(control + '/sends')).json()
-  const mail = delivered.filter(message => message.subject === 'New mail in Bezalel Email')
+  const mail = delivered.filter(message => message.subject === 'New mail in Goshen Email')
   assert.equal(mail.length, 1)
   assert.deepEqual(mail[0].to, ['owner@example.net'])
   assert.equal(mail[0].text.includes('Private content'), false)

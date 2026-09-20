@@ -15,5 +15,5 @@
   // dashboard-shell.js replaces this CSS-drawn title with the real text once the body exists.
   document.documentElement.dataset.initialTitle = ''
   document.documentElement.style.setProperty('--initial-page-title', JSON.stringify(titles[initial]))
-  document.title = `${titles[initial]} · Bezalel Email`
+  document.title = `${titles[initial]} · Goshen Email`
 })()
