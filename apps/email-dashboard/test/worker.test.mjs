@@ -119,6 +119,9 @@ test('Cloudflare customer mode forwards Access assertions without password secre
     assert.equal(moved.status, 301)
     assert.equal(moved.headers.get('location'), origin + '/app?page=inboxes')
     assert.equal(moved.headers.get('cache-control'), 'no-store')
+    const schemeRelative = await worker.fetch(origin + '//evil.example?probe=1', { redirect: 'manual', headers: { 'x-test-host': host } })
+    assert.equal(schemeRelative.status, 301)
+    assert.equal(new URL(schemeRelative.headers.get('location')).origin, origin, 'a // path cannot pick the redirect host')
     const post = await worker.fetch(origin + '/api/rpc/listInboxes', { method: 'POST', redirect: 'manual',
       headers: { 'x-test-host': host, 'x-test-origin': 'https://' + host, 'content-type': 'application/json' }, body: '{}' })
     assert.equal(post.status, 403)

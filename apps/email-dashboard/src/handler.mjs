@@ -150,8 +150,13 @@ export function canonicalHostRedirect(request, publicUrl) {
   const origin = dashboardOrigin(publicUrl)
   const url = new URL(request.url)
   if (url.host === origin.host || !['GET', 'HEAD'].includes(request.method)) return undefined
+  // Assign the components rather than resolving a relative reference: a path starting with // would
+  // otherwise be read as scheme-relative and replace the host.
+  const location = new URL(origin)
+  location.pathname = url.pathname
+  location.search = url.search
   const headers = responseHeaders()
-  headers.set('location', new URL(url.pathname + url.search, origin).href)
+  headers.set('location', location.href)
   return new Response(null, { status: 301, headers })
 }
 
