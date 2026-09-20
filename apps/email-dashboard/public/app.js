@@ -6,69 +6,19 @@ import { createDashboardConsole } from './console.js'
 import { createSettingsPanel } from './settings.js'
 import { createNativeMailPanel } from './native-mail.js'
 const $ = (selector) => document.querySelector(selector)
+// dashboard-shell.js paints the last saved workspace before this module loads; the same painters render fresh data.
+const shell = window.BezalelDashboardShell
+const { icon, node, avatar, snapshot } = shell
 const accountEvents = new BroadcastChannel('bezalel-account')
 accountEvents.addEventListener('message', (event) => { if (event.data === 'signed-out' && state.authMode === 'account') showLogin() })
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload() })
 const state = { session: null, epoch: 0, inboxes: [], inbox: '', folder: 'inbox', query: '', triageFilters: {}, page: undefined, threads: [], selected: '', listVersion: 0, readVersion: 0, draft: null }
 const folderNames = { inbox: 'Inbox', sent: 'Sent', all: 'All mail', quarantined: 'Quarantine', trash: 'Trash' }
 let noticeTimer
-const node = (tag, text, className) => {
-  const element = document.createElement(tag)
-  if (text !== undefined) element.textContent = text
-  if (className) element.className = className
-  return element
-}
-const iconPaths = {
-  brand: '<path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="currentColor" stroke="none"/><g fill="white" stroke="none"><circle cx="9.5" cy="12.5" r="1.8"/><circle cx="14" cy="12.5" r="1.8"/><circle cx="18.5" cy="12.5" r="1.8"/></g>',
-  inbox: '<path d="M2 9l2-6h8l2 6v4H2zM2 9h3l1 2h4l1-2h3"/>',
-  send: '<path d="M14 2L7 9M14 2l-4 12-3-5-5-3z"/>',
-  stack: '<rect x="3" y="2" width="10" height="10" rx="2"/><path d="M1 6v8h9M6 5h4M6 8h3"/>',
-  shield: '<path d="M8 1.5l5.5 2v4c0 3-3 5.5-5.5 7-2.5-1.5-5.5-4-5.5-7v-4zM8 5v3M8 10.5h.01"/>',
-  trash: '<path d="M2 4h12M6 4V2h4v2M4 4l.7 10h6.6L12 4M6.5 7v4M9.5 7v4"/>',
-  key: '<circle cx="5" cy="6" r="3.5"/><path d="M8 8l5.5 5.5M11 11l2-2M12.5 12.5l2-2"/>',
-  settings: '<path d="M6 2l.5-1h3l.5 1 1.5 1 1.2-.1 1.5 2.6-.7 1.1v1.8l.7 1.1-1.5 2.6-1.2-.1-1.5 1-.5 1h-3l-.5-1-1.5-1-1.2.1-1.5-2.6.7-1.1V6.6l-.7-1.1 1.5-2.6 1.2.1z"/><circle cx="8" cy="7.5" r="2"/>',
-  plus: '<path d="M8 3v10M3 8h10"/>',
-  globe: '<circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.5" ry="6"/><path d="M2 8h12"/>',
-  logout: '<path d="M6 2H2v12h4M6 8h8M11 5l3 3-3 3"/>',
-  search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>',
-  refresh: '<path d="M13.5 6a5.5 5.5 0 00-9.7-2L2 6M2 2v4h4M2.5 10a5.5 5.5 0 009.7 2l1.8-2M14 14v-4h-4"/>',
-  close: '<path d="M4 4l8 8M12 4l-8 8"/>',
-  menu: '<path d="M2 4h12M2 8h12M2 12h12"/>',
-  'chevron-updown': '<path d="M5 6l3-3 3 3M5 10l3 3 3-3"/>',
-  more: '<circle cx="3" cy="8" r=".8"/><circle cx="8" cy="8" r=".8"/><circle cx="13" cy="8" r=".8"/>',
-  copy: '<rect x="5" y="5" width="9" height="9" rx="2"/><path d="M10 2H4a2 2 0 00-2 2v6"/>',
-  code: '<path d="M5 4L1 8l4 4M11 4l4 4-4 4M9 2L7 14"/>',
-  terminal: '<rect x="1" y="2" width="14" height="12" rx="2"/><path d="M4 5l3 3-3 3M9 11h3"/>',
-  filter: '<path d="M2 4h12M4 8h8M6 12h4"/>',
-  'arrow-right': '<path d="M2 8h12M9 3l5 5-5 5"/>',
-  'arrow-left': '<path d="M14 8H2M7 3L2 8l5 5"/>',
-  paperclip: '<path d="M6 9.5l4.5-4.5a2 2 0 012.8 2.8L7 14a3.5 3.5 0 01-5-5l6.5-6.5a2 2 0 012.8 2.8L5 11"/>',
-  archive: '<rect x="2" y="2" width="12" height="3" rx="1"/><path d="M3 5v9h10V5M6 8h4"/>',
-  reply: '<path d="M6 3L1 7l5 4M1 7h7a6 6 0 016 6"/>',
-  mail: '<rect x="2" y="3" width="12" height="10" rx="2"/><path d="M2 4l6 5 6-5"/>',
-  alert: '<circle cx="8" cy="8" r="6"/><path d="M8 4.5v4M8 11.5h.01"/>',
-}
-function icon(name) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  for (const [key, value] of Object.entries({ viewBox: name === 'brand' ? '0 0 28 28' : '0 0 16 16', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', class: 'icon' })) svg.setAttribute(key, value)
-  // Only static icon markup enters this SVG; mail content always uses textContent.
-  svg.innerHTML = iconPaths[name] ?? iconPaths.mail
-  return svg
-}
-for (const element of document.querySelectorAll('[data-icon]')) element.append(icon(element.dataset.icon))
-const initials = (value) => value.replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').toUpperCase() || 'B'
-const avatar = (value) => { const element = node('span', initials(value), 'avatar'); element.setAttribute('aria-hidden', 'true'); return element }
 function emptyState(title, description, buttonText, onClick) {
-  const wrap = node('div', undefined, 'empty-wrap'), empty = node('div', undefined, 'empty')
-  empty.append(icon('mail'), node('h2', title), node('p', description))
-  if (buttonText) { const button = node('button', buttonText, 'primary'); action(button, onClick); empty.append(button) }
-  wrap.append(empty)
+  const wrap = shell.emptyState(title, description, buttonText)
+  if (buttonText) action(wrap.querySelector('button'), onClick)
   return wrap
-}
-function statusBadge(status) {
-  const badge = node('span', status, 'badge')
-  badge.dataset.status = String(status).toLowerCase()
-  return badge
 }
 const mobileViewport = matchMedia('(max-width: 767px)')
 const compactViewport = matchMedia('(max-width: 1023px)')
@@ -100,20 +50,15 @@ mobileViewport.addEventListener('change', () => setMenu(false, false))
 setMenu(false, false)
 function updateAccount() {
   notifications.start(state.session?.customer)
-  const customer = state.session?.customer
-  const organization = customer?.organizationName || 'Your workspace'
-  $('#workspace-breadcrumb').textContent = organization; $('#workspace-breadcrumb').title = organization
-  const inbox = state.inboxes.find((item) => item.inboxId === state.inbox)
-  const name = customer ? (customer.displayName || customer.email) : (inbox?.displayName || 'Your workspace')
-  $('#account-name').textContent = name
-  $('#account-name').title = name
-  $('#account-avatar').textContent = initials(name)
-  $('#account').textContent = customer ? `${customer.email} · ${customer.role === 'admin' ? 'Owner' : customer.inboxLimit === null ? 'No inbox limit' : `${customer.inboxLimit} inboxes`}` : 'Owner'
-  $('#account').title = $('#account').textContent
-  $('#account-menu-name').textContent = name
-  $('#account-menu-detail').textContent = $('#account').textContent
-  $('#mailbox-address').textContent = state.inbox || 'Choose a mailbox to get started'
-  $('#mailbox-address').title = state.inbox
+  shell.paintAccount({ session: state.session, inboxes: state.inboxes, inbox: state.inbox })
+}
+// Save what the shell needs to paint the next load. Names, flags, and URLs only; never tokens or cursors.
+function rememberSession() {
+  const session = state.session
+  if (!session) return
+  const customer = session.customer && Object.fromEntries(['id', 'email', 'displayName', 'organizationName', 'role', 'inboxLimit', 'desktopNotifications', 'emailNotifications'].map(key => [key, session.customer[key]]))
+  snapshot.update({ session: { authMode: session.authMode, customer, defaultDomain: session.defaultDomain, apiUrl: session.apiUrl,
+    customDomainsEnabled: session.customDomainsEnabled, nativeMailEnabled: session.nativeMailEnabled } })
 }
 
 const notify = (message) => {
@@ -144,7 +89,8 @@ async function request(path, value) {
   return body
 }
 const rpc = async (operation, value = {}) => (await request(`/api/rpc/${operation}`, value)).result
-const nativeMail = createNativeMailPanel({ rpc: async (operation, value) => (await request(`/api/native-rpc/${operation}`, value)).result })
+const nativeMail = createNativeMailPanel({ rpc: async (operation, value) => (await request(`/api/native-rpc/${operation}`, value)).result,
+  remember: inboxes => snapshot.update({ nativeInboxes: inboxes }) })
 const setup = createInboxSetup({ state, rpc, createInbox, loadInboxes, notify,
   openCredentials: () => $('#credentials').click(),
   onVisibilityChange(open) {
@@ -171,7 +117,7 @@ const action = (element, task) => element.addEventListener('click', async () => 
   element.disabled = true
   try { await task() } catch (error) { notify(error.message) } finally { element.disabled = false }
 })
-const developers = createDeveloperPanel({ rpc, notify, getSession: () => state.session })
+const developers = createDeveloperPanel({ rpc, notify, getSession: () => state.session, remember: keys => snapshot.update({ apiKeys: keys }) })
 const notifications = createDesktopNotifications({ rpc, async openInbox(inboxId) {
   const epoch = state.epoch
   try {
@@ -179,12 +125,12 @@ const notifications = createDesktopNotifications({ rpc, async openInbox(inboxId)
     if (epoch === state.epoch) dashboard.openInbox(inboxId)
   } catch (error) { if (epoch === state.epoch) notify(error.message) }
 } })
-const settings = createSettingsPanel({ rpc, getAuthMode: () => state.authMode, onChange(customer) {
+const settings = createSettingsPanel({ rpc, getAuthMode: () => state.authMode, getCustomer: () => state.session?.customer, onChange(customer) {
   if (state.session?.customer?.id !== customer.id) return
   state.session.customer = customer
-  updateAccount()
+  updateAccount(); rememberSession()
 } })
-const dashboard = createDashboardConsole({ state, icon, rpc, notify, selectInbox, loadInboxes,
+const dashboard = createDashboardConsole({ state, rpc, notify, selectInbox, loadInboxes,
   closeSetup: () => setup.close(), openSetup: () => setup.open(), closeNavigation: () => setMenu(false, false),
   loadPage: async page => {
     if (page === 'api-keys') await developers.load()
@@ -198,8 +144,8 @@ function setWorkspaceLoading(loading) {
   $('#app').setAttribute('aria-busy', String(loading))
   $('#workspace-loading').hidden = !loading
   if (!loading) {
+    delete $('#app').dataset.restored
     delete document.documentElement.dataset.initialPage
-    document.documentElement.style.removeProperty('--initial-page-title')
   }
 }
 async function startWorkspace() {
@@ -220,6 +166,7 @@ async function startWorkspace() {
 }
 function showLogin(mode = state.authMode, reason = '') {
   if (mode === 'account' && state.redirecting) return
+  snapshot.clear()
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
   dashboard.reset(); setup.reset(); developers.reset(); settings.reset(); notifications.reset(); nativeMail.reset(); resetTriageFilters()
@@ -241,10 +188,7 @@ function showLogin(mode = state.authMode, reason = '') {
   $('#app').hidden = true
   $('#login').hidden = false
 }
-function emptyReader() {
-  $('.mail-workspace').classList.remove('reading')
-  $('#conversation').replaceChildren(emptyState('A little room to focus.', 'Select a conversation to read your mail.'))
-}
+const emptyReader = () => shell.paintReaderEmpty()
 async function loadInboxes(preferred = state.inbox) {
   const epoch = state.epoch
   const inboxes = [], seen = new Set()
@@ -259,20 +203,13 @@ async function loadInboxes(preferred = state.inbox) {
   } while (pageToken)
   if (epoch !== state.epoch) return
   state.inboxes = inboxes
+  snapshot.update({ inboxes })
   dashboard.render()
-  $('#inboxes').replaceChildren(...inboxes.map((inbox) => {
-    const option = node('option', `${inbox.group ? `[${inbox.group}] ` : ''}${inbox.inboxId}${inbox.deliveryStatus === 'pending' ? ' (setup pending)' : ''}`)
-    option.value = inbox.inboxId
-    return option
-  }))
   await selectInbox(inboxes.some((inbox) => inbox.inboxId === preferred) ? preferred : inboxes[0]?.inboxId ?? '')
 }
 async function selectInbox(inboxId) {
   if (state.inbox !== inboxId) resetTriageFilters()
   state.inbox = inboxId
-  $('#inboxes').value = state.inbox
-  $('#inboxes').title = state.inbox
-  $('#compose').disabled = !state.inbox
   dashboard.syncSelection()
   // Update the guide immediately, even when message loading is slow or fails.
   await Promise.all([setup.sync(), dashboard.page === 'mail' ? loadThreads() : Promise.resolve()])
@@ -286,53 +223,47 @@ async function loadThreads(append = false) {
   updateAccount()
   $('#triage-filters').hidden = !state.inbox || state.folder === 'quarantined' || $('#toggle-triage').getAttribute('aria-expanded') !== 'true'
   $('#toggle-triage').hidden = !state.inbox || state.folder === 'quarantined'
-  $('#thread-count').hidden = true
-  $('#finish-inbox').hidden = !state.inboxes.some((i) => i.inboxId === state.inbox && i.deliveryStatus === 'pending')
   const version = ++state.listVersion
-  if (!append) { state.readVersion++; state.selected = ''; state.threads = []; state.page = undefined; emptyReader() }
-  $('#load-more').hidden = true
+  const view = shell.threadView(state)
+  // Reloading the view already on screen keeps that list until fresh results replace it.
+  const keep = !append && $('#threads').dataset.view === view
+  if (!append) {
+    state.readVersion++; state.selected = ''; emptyReader()
+    if (keep) for (const button of $('#threads').querySelectorAll('.thread.selected')) { button.classList.remove('selected'); button.setAttribute('aria-pressed', 'false') }
+    else { state.threads = []; state.page = undefined; $('#thread-count').hidden = true; $('#load-more').hidden = true }
+  } else $('#load-more').hidden = true
   if (!state.inbox) {
     $('#threads').replaceChildren(emptyState('Your first inbox', 'Create an address to start sending and receiving mail.', 'Create inbox', () => $('#new-inbox').click()))
+    $('#threads').dataset.view = view
     return
   }
-  if (!append) $('#threads').replaceChildren(emptyState('Loading mail', 'Your conversations will appear here.'))
+  if (!append && !keep) $('#threads').replaceChildren(emptyState('Loading mail', 'Your conversations will appear here.'))
   try {
     const result = await rpc(state.query ? 'searchMessages' : 'listThreads', {
       ...state.triageFilters, inboxId: state.inbox, limit: 30, ...(append && state.page ? { pageToken: state.page } : {}),
       ...(state.query ? { query: state.query } : { ...(state.folder === 'all' ? {} : { labels: [state.folder === 'inbox' ? 'received' : state.folder] }), includeTrash: state.folder === 'trash' }),
     })
     if (version !== state.listVersion) return
-    state.threads.push(...(result.threads ?? result.messages ?? []).map((item) => ({ ...item, senders: item.senders ?? [item.from] })))
+    const items = (result.threads ?? result.messages ?? []).map((item) => ({ ...item, senders: item.senders ?? [item.from] }))
+    state.threads = append ? [...state.threads, ...items] : items
     state.page = result.nextPageToken
     renderThreads()
-    $('#load-more').hidden = !state.page
   } catch (error) {
     if (version === state.listVersion) $('#threads').replaceChildren(emptyState('Could not load mail', error.message, 'Try again', () => loadThreads()))
     throw error
   }
 }
 function renderThreads() {
-  const seen = new Set()
-  const buttons = state.threads.filter((thread) => {
-    if (seen.has(thread.threadId)) return false
-    seen.add(thread.threadId); return true
-  }).map((thread) => {
-    const unread = thread.labels?.includes('unread')
-    const button = node('button', undefined, `thread${state.selected === thread.threadId ? ' selected' : ''}${unread ? ' unread' : ''}`)
-    button.setAttribute('aria-pressed', String(state.selected === thread.threadId))
-    const copy = node('div', undefined, 'thread-copy'), meta = node('div', undefined, 'thread-meta')
-    const time = node('span', new Date(thread.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), 'time')
-    if (unread) { const dot = node('span', undefined, 'unread-dot'); dot.setAttribute('aria-label', 'Unread'); time.prepend(dot) }
-    meta.append(node('span', thread.senders.join(', '), 'sender'), time)
-    copy.append(meta, node('div', thread.subject || '(No subject)', 'subject'), node('div', thread.preview || (state.folder === 'quarantined' ? 'Held for your review' : 'No preview'), 'preview'))
-    copy.append(triageBadges(thread.triage))
-    button.append(avatar(thread.senders[0] || 'Mail'), copy)
-    action(button, () => readThread(thread.threadId))
-    return button
-  })
-  $('#thread-count').textContent = `${buttons.length}${state.page ? '+' : ''}`
-  $('#thread-count').hidden = !buttons.length
-  $('#threads').replaceChildren(...(buttons.length ? buttons : [emptyState(state.query || Object.keys(state.triageFilters).length ? 'No matching messages' : 'No conversations yet', Object.keys(state.triageFilters).length ? 'Try different triage filters or clear them to see all conversations.' : state.query ? 'Try a different search in this mailbox.' : 'Messages in this folder will appear here.')]))
+  const filtered = Object.keys(state.triageFilters).length > 0
+  shell.paintThreads({ threads: state.threads, selected: state.selected, view: shell.threadView(state), folder: state.folder, query: state.query, filtered, more: Boolean(state.page) })
+  for (const button of $('#threads').querySelectorAll('.thread')) action(button, () => readThread(button.dataset.threadId))
+  if (state.folder === 'inbox' && !state.query && !filtered) rememberThreads()
+}
+// Keep the default inbox view of the five most recently opened inboxes for the next load.
+function rememberThreads() {
+  const saved = snapshot.read()?.threads ?? {}
+  delete saved[state.inbox]
+  snapshot.update({ threads: Object.fromEntries([...Object.entries(saved).slice(-4), [state.inbox, { items: state.threads.slice(0, 30), more: Boolean(state.page) }]]) })
 }
 async function readThread(threadId) {
   const version = ++state.readVersion
@@ -492,34 +423,16 @@ $('#compose-form').addEventListener('submit', async (event) => {
 $('#compose-dialog').addEventListener('cancel', (event) => { if (state.draft?.sending) event.preventDefault() })
 async function loadDomains() {
   const result = await rpc('listDomains')
-  $('#domain-list').replaceChildren()
-  for (const domain of result) {
-    const card = node('section', undefined, 'domain-card'), header = node('header')
-    header.append(node('strong', domain.domain ?? domain.domainId), statusBadge(domain.status))
-    for (const [label, operation] of [['Verify DNS', 'verifyDomain'], ['Remove', 'deleteDomain']]) {
-      const button = node('button', label)
-      action(button, async () => {
-        if (operation === 'deleteDomain' && !confirm(`Remove ${domain.domainId}? Active inboxes must be removed first.`)) return
-        await rpc(operation, { domainId: domain.domainId })
-        await loadDomains()
-      })
-      header.append(button)
-    }
-    card.append(header)
-    if (domain.records.length) {
-      const table = node('table'), headings = node('tr')
-      for (const label of ['Type', 'Name', 'Value', 'Status']) headings.append(node('th', label))
-      table.append(headings)
-      for (const record of domain.records) {
-        const row = node('tr')
-        for (const value of [record.type, record.name, `${record.priority === undefined ? '' : `${record.priority} `}${record.value}`, record.status ?? 'Pending']) row.append(node('td', value))
-        table.append(row)
-      }
-      const scroll = node('div', undefined, 'table-scroll'); scroll.append(table); card.append(scroll)
-    }
-    $('#domain-list').append(card)
+  snapshot.update({ domains: result })
+  shell.paintDomains(result)
+  for (const button of $('#domain-list').querySelectorAll('[data-action]')) {
+    const { domainId } = button.closest('[data-domain-id]').dataset
+    action(button, async () => {
+      if (button.dataset.action === 'remove' && !confirm(`Remove ${domainId}? Active inboxes must be removed first.`)) return
+      await rpc(button.dataset.action === 'remove' ? 'deleteDomain' : 'verifyDomain', { domainId })
+      await loadDomains()
+    })
   }
-  if (!$('#domain-list').children.length) $('#domain-list').append(node('p', 'No domains have been connected yet.'))
 }
 for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => $(`#${button.dataset.close}`).close())
 for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('close', () => {
@@ -607,14 +520,11 @@ $('#login-form').addEventListener('submit', async (event) => {
 void request('/api/session').then(async (session) => {
   if (!session.authenticated) return showLogin()
   state.session = session
-  $('#native-mail').hidden = session.nativeMailEnabled !== true
+  // A saved workspace from another account must not survive into this one.
+  if (snapshot.read()?.session?.customer?.id !== session.customer?.id) snapshot.clear()
+  rememberSession()
+  shell.paintNavigation(session)
   updateAccount()
-  $('#developers').hidden = !['access', 'account'].includes(session.authMode)
-  $('#settings').hidden = $('#developers').hidden
-  $('#account-settings').hidden = $('#developers').hidden
-  $('#integrations').hidden = $('#developers').hidden
-  $('#credentials').hidden = !['access', 'account'].includes(session.authMode)
-  $('#domains').hidden = ['access', 'account'].includes(session.authMode) && !session.customDomainsEnabled
   await startWorkspace()
 }).catch((error) => { notify(error.message); if (!state.session) showLogin(); else setWorkspaceLoading(false) })
 

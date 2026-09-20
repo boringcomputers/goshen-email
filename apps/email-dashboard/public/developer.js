@@ -1,54 +1,27 @@
-export function createDeveloperPanel({ rpc, notify, getSession }) {
+export function createDeveloperPanel({ rpc, notify, getSession, remember }) {
   const $ = selector => document.querySelector(selector)
+  const shell = window.BezalelDashboardShell
   const dialog = $('#developer-dialog')
   let version = 0, listVersion = 0
-  const element = (tag, text) => { const item = document.createElement(tag); item.textContent = text; return item }
   const current = value => dialog.open && version === value
   async function load() {
     const value = ++listVersion
     $('#api-keys-error').textContent = ''
     const { keys } = await rpc('listApiKeys')
     if (listVersion !== value) return
-    const wrap = element('div', ''), table = element('table', ''), head = element('thead', ''), headings = element('tr', ''), body = element('tbody', '')
-    wrap.className = 'resource-table-wrap'; table.className = 'resource-table'
-    for (const label of ['Name', 'Key', 'Status', 'Expires', 'Actions']) headings.append(element('th', label))
-    head.append(headings)
-    for (const key of keys) {
-      const row = element('tr', ''), copy = element('td', ''), prefix = element('td', ''), status = element('td', ''), expires = element('td', ''), actions = element('td', '')
-      const expired = key.expiresAt && new Date(key.expiresAt).getTime() <= Date.now()
-      copy.append(element('strong', key.name), element('small', key.scopes.join(', ')))
-      prefix.append(element('code', `${key.prefix}…`))
-      status.textContent = key.revokedAt ? 'Revoked' : expired ? 'Expired' : 'Active'
-      expires.textContent = key.expiresAt ? new Date(key.expiresAt).toLocaleDateString() : 'Never'
-      if (!key.revokedAt && !expired) {
-        const revoke = element('button', 'Revoke')
-        revoke.setAttribute('aria-label', `Revoke ${key.name}`)
-        revoke.addEventListener('click', async () => {
-          if (!confirm(`Revoke ${key.name}? Any agent using it will lose access immediately.`)) return
-          revoke.disabled = true
-          try { await rpc('revokeApiKey', { keyId: key.keyId }); if (listVersion === value) { await load(); notify('API key revoked') } }
-          catch (error) { if (listVersion === value) $('#api-keys-error').textContent = error.message }
-          finally { revoke.disabled = false }
-        })
-        actions.append(revoke)
-      }
-      row.append(copy, prefix, status, expires, actions); body.append(row)
+    remember?.(keys)
+    shell.paintApiKeys(keys)
+    for (const revoke of $('#developer-key-list').querySelectorAll('[data-key-id]')) {
+      revoke.addEventListener('click', async () => {
+        if (!confirm(`Revoke ${revoke.dataset.keyName}? Any agent using it will lose access immediately.`)) return
+        revoke.disabled = true
+        try { await rpc('revokeApiKey', { keyId: revoke.dataset.keyId }); if (listVersion === value) { await load(); notify('API key revoked') } }
+        catch (error) { if (listVersion === value) $('#api-keys-error').textContent = error.message }
+        finally { revoke.disabled = false }
+      })
     }
-    table.append(head, body); wrap.append(table)
-    if (!keys.length) {
-      const empty = element('div', ''); empty.className = 'resource-empty'
-      empty.append(element('h2', 'No account API keys yet.'), element('p', 'Create a key to connect your first agent.'))
-      wrap.append(empty)
-    }
-    $('#developer-key-list').replaceChildren(wrap)
   }
-  function configure() {
-    const base = getSession()?.apiUrl
-    $('#developer-base-url').textContent = base || 'API URL is not configured'
-    $('#developer-mcp-url').textContent = base ? `${base}/mcp` : 'MCP URL is not configured'
-    if (base) $('#developer-api-docs').href = `${base}/openapi.json`
-    else $('#developer-api-docs').removeAttribute('href')
-  }
+  const configure = () => shell.paintIntegrations(getSession()?.apiUrl)
   $('#new-api-key').addEventListener('click', () => {
     version++
     $('#developer-error').textContent = ''; $('#developer-created').hidden = true

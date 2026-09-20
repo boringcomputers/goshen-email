@@ -20,6 +20,7 @@ export const assets = new Map([
   ['/developer.css', ['developer.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/dashboard-boot.js', ['dashboard-boot.js', 'text/javascript; charset=utf-8']],
+  ['/dashboard-shell.js', ['dashboard-shell.js', 'text/javascript; charset=utf-8']],
   ['/console.js', ['console.js', 'text/javascript; charset=utf-8']],
   ['/console.css', ['console.css', 'text/css; charset=utf-8']],
   ['/notifications.js', ['notifications.js', 'text/javascript; charset=utf-8']],

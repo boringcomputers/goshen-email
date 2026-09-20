@@ -1,4 +1,5 @@
 const $ = (selector) => document.querySelector(selector)
+const shell = window.BezalelDashboardShell
 
 export function connectionCommand(apiUrl) {
   const url = new URL('/inbox-rpc/getInbox', apiUrl)
@@ -64,11 +65,10 @@ export function createInboxSetup({ state, rpc, createInbox, loadInboxes, openCre
   }
   async function sync() {
     const enabled = ['access', 'account'].includes(state.authMode) && Boolean(state.session?.customer)
-    const available = enabled && (!state.inbox || current()?.setupAvailable)
+    const available = shell.setupAvailable({ authMode: state.authMode, customer: state.session?.customer, inboxes: state.inboxes, inbox: state.inbox })
     $('#get-started').hidden = !available
     const domain = state.session?.defaultDomain
-    $('#setup-domain').textContent = domain ? `@${domain}` : ''
-    $('#setup-create').disabled = !domain
+    shell.paintSetupDomain(domain)
     if (!initialChecked && enabled) {
       initialChecked = true
       if (!wasDismissed() && available && state.inboxes.length === 0 && !location.hash) setOpen(true)

@@ -1,12 +1,7 @@
 const $ = selector => document.querySelector(selector)
-const element = (tag, text, className) => {
-  const item = document.createElement(tag)
-  if (text !== undefined) item.textContent = text
-  if (className) item.className = className
-  return item
-}
+const shell = window.BezalelDashboardShell
 
-export function createDashboardConsole({ state, icon, rpc, notify, selectInbox, loadInboxes, closeSetup, openSetup, loadPage, closeNavigation }) {
+export function createDashboardConsole({ state, rpc, notify, selectInbox, loadInboxes, closeSetup, openSetup, loadPage, closeNavigation }) {
   let page = 'inboxes', ready = false, pageNumber = 0, routeVersion = 0, deletion = null
   const pageSize = 10
   const { titles, parse } = window.BezalelDashboardRoutes
@@ -41,14 +36,8 @@ export function createDashboardConsole({ state, icon, rpc, notify, selectInbox, 
     closeMenus(); closeNavigation()
     if (page !== 'setup') closeSetup()
     for (const name of pages) $(name === 'setup' ? '#setup' : `#${name}-page`).hidden = name !== page
-    for (const link of document.querySelectorAll('[data-page]')) {
-      if (link.dataset.page === (page === 'mail' ? 'inboxes' : page)) link.setAttribute('aria-current', 'page')
-      else link.removeAttribute('aria-current')
-    }
-    $('#page-title').textContent = titles[page]
-    document.title = `${titles[page]} · Bezalel Email`
+    shell.paintCurrentPage(page)
     delete document.documentElement.dataset.initialPage
-    document.documentElement.style.removeProperty('--initial-page-title')
     $('.workspace-content').scrollTop = 0
     const heading = $(page === 'setup' ? '#setup-title' : `#${page}-heading`)
     heading?.focus({ preventScroll: true })
@@ -64,63 +53,28 @@ export function createDashboardConsole({ state, icon, rpc, notify, selectInbox, 
       else notify(error.message)
     }
   }
-  function action(label, task, className) {
-    const button = element('button', label, className)
-    button.type = 'button'
+  function wire(button, task) {
     button.addEventListener('click', async () => {
       closeMenus(); button.disabled = true
       try { await task(button) } catch (error) { notify(error.message) }
       finally { button.disabled = false }
     })
-    return button
   }
-  function options(inbox) {
-    const details = element('details', undefined, 'actions-menu'), summary = element('summary')
-    summary.setAttribute('aria-label', `Options for ${inbox.inboxId}`); summary.title = 'Inbox options'; summary.append(icon('more'))
-    const popover = element('div', undefined, 'actions-popover')
-    const copy = action('Copy email address', () => copyAddress(inbox.address || inbox.inboxId))
-    copy.prepend(icon('copy'))
-    const remove = action('Delete inbox…', () => confirmDeletion(inbox, summary), 'danger-text')
-    remove.prepend(icon('trash')); popover.append(copy, remove); details.append(summary, popover)
-    return details
-  }
+  // The shell paints the table; this attaches behavior to the rows it produced.
   function render() {
-    const group = $('#inbox-group').value
-    const groups = [...new Set(state.inboxes.map(inbox => inbox.group).filter(Boolean))].sort()
-    const all = element('option', 'All groups'); all.value = ''
-    $('#inbox-group').replaceChildren(all, ...groups.map(name => { const option = element('option', name); option.value = name; return option }))
-    $('#inbox-group').value = groups.includes(group) ? group : ''
-    const query = $('#inbox-search').value.trim().toLowerCase()
-    const filtered = state.inboxes.filter(inbox => (!$('#inbox-group').value || inbox.group === $('#inbox-group').value) && [inbox.inboxId, inbox.displayName, inbox.group].filter(Boolean).join(' ').toLowerCase().includes(query))
-    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)); pageNumber = Math.min(pageNumber, totalPages - 1)
-    $('#inbox-rows').replaceChildren(...filtered.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize).map(inbox => {
-      const row = element('tr'), identity = element('td'), link = element('a', undefined, 'inbox-link')
-      link.href = mailRoute(inbox.inboxId)
-      const mark = element('span', undefined, 'inbox-mark'); mark.append(icon('inbox'))
-      const copy = element('span'); copy.append(element('strong', inbox.displayName || inbox.inboxId), element('span', inbox.address || inbox.inboxId))
-      link.append(mark, copy); identity.append(link)
-      const groupCell = element('td', inbox.group || 'Ungrouped', 'inbox-group-cell')
-      const status = element('td'), badge = element('span', inbox.deliveryStatus === 'pending' ? 'Setup pending' : 'Ready', 'delivery-badge')
-      badge.dataset.status = inbox.deliveryStatus === 'pending' ? 'pending' : 'ready'; status.append(badge)
-      const date = new Date(inbox.createdAt)
-      const created = element('td', Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }), 'inbox-created-cell')
-      const actions = element('td'); actions.append(options(inbox)); row.append(identity, groupCell, status, created, actions); return row
-    }))
-    const inventoryFailed = Boolean($('#inboxes-error').textContent) && !state.inboxes.length
-    const empty = $('#inboxes-empty'); empty.hidden = filtered.length !== 0 || inventoryFailed
-    empty.replaceChildren(icon('inbox'), element('h2', state.inboxes.length ? 'No inboxes found' : 'Create your first inbox'), element('p', state.inboxes.length ? 'Try a different name, address, or group.' : 'Give your agent an email address to send and receive mail.'))
-    if (!state.inboxes.length) empty.append(action('Create inbox', () => $('#new-inbox').click(), 'primary'))
-    $('#inbox-count').textContent = inventoryFailed ? '' : `${filtered.length} inbox${filtered.length === 1 ? '' : 'es'}${filtered.length !== state.inboxes.length ? ` of ${state.inboxes.length}` : ''}`
-    $('#inbox-page-count').textContent = `Page ${pageNumber + 1} of ${totalPages}`
-    $('#inbox-previous').disabled = pageNumber === 0; $('#inbox-next').disabled = pageNumber + 1 === totalPages
+    const painted = shell.paintInboxes({ inboxes: state.inboxes, query: $('#inbox-search').value, group: $('#inbox-group').value, pageNumber, pageSize,
+      inventoryFailed: Boolean($('#inboxes-error').textContent) && !state.inboxes.length })
+    pageNumber = painted.pageNumber
+    for (const row of $('#inbox-rows').children) {
+      const inbox = state.inboxes.find(inbox => inbox.inboxId === row.dataset.inboxId)
+      wire(row.querySelector('[data-action=copy]'), () => copyAddress(inbox.address || inbox.inboxId))
+      wire(row.querySelector('[data-action=delete]'), () => confirmDeletion(inbox, row.querySelector('summary')))
+    }
+    const create = $('#inboxes-empty [data-action=create]')
+    if (create) wire(create, () => $('#new-inbox').click())
   }
   async function copyAddress(address) { await navigator.clipboard.writeText(address); notify('Email address copied') }
-  function syncSelection() {
-    const inbox = state.inboxes.find(inbox => inbox.inboxId === state.inbox)
-    $('#mail-heading').textContent = inbox?.displayName || state.inbox || 'Inbox'
-    $('#inboxes').title = state.inbox
-    $('#delete-inbox').disabled = !inbox; $('#copy-inbox-address').disabled = !inbox
-  }
+  function syncSelection() { shell.paintMailbox({ inboxes: state.inboxes, inbox: state.inbox }) }
   function confirmDeletion(inbox, trigger) {
     if (!inbox || deletion?.pending) return
     closeMenus()

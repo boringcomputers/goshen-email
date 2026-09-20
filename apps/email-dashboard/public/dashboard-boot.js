@@ -12,6 +12,8 @@
   const { page } = parse(location.hash)
   const initial = Object.hasOwn(titles, page) ? page : 'inboxes'
   document.documentElement.dataset.initialPage = initial
+  // dashboard-shell.js replaces this CSS-drawn title with the real text once the body exists.
+  document.documentElement.dataset.initialTitle = ''
   document.documentElement.style.setProperty('--initial-page-title', JSON.stringify(titles[initial]))
   document.title = `${titles[initial]} · Bezalel Email`
 })()
