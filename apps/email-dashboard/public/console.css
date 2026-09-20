@@ -91,7 +91,7 @@ html[data-initial-page] #page-title::after { content: var(--initial-page-title);
 .actions-menu > summary:hover, .actions-menu[open] > summary { background: var(--color-sand-100); }
 .actions-popover { position: absolute; top: calc(100% + 4px); right: 0; width: 208px; z-index: 20; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: 0 6px 24px #00000014; padding: 6px; }
 .actions-popover button { display: flex; justify-content: flex-start; width: 100%; border: 0; padding: 10px; font-weight: var(--font-weight-regular); font-size: var(--text-sm); border-radius: var(--radius-sm); }
-.account-menu { display: block; margin-top: 12px; padding-top: 0; border-top: 0; }
+.account-menu { display: block; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border); }
 .account-menu > summary { width: 100%; height: auto; justify-content: flex-start; gap: 10px; padding: 8px 10px; text-align: left; }
 .account-menu > summary > .icon { flex: 0 0 16px; color: var(--color-text-muted); }
 .account-popover { top: auto; bottom: calc(100% + 6px); left: 0; right: 0; width: auto; }
