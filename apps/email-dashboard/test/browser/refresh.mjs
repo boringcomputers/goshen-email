@@ -259,6 +259,9 @@ test('dashboard refresh paints the saved workspace before session and inventory 
           const saved = await savedWorkspace(page)
           assert.equal(saved.session.customer.email, email, 'The workspace is saved for the next load')
           assert.equal(saved.inboxes.length, 1)
+          const markerCookie = (await context.cookies(base)).find(cookie => cookie.name === 'workspace')
+          assert.equal(markerCookie.httpOnly, false)
+          assert.equal(saved.marker, markerCookie.value, 'The saved workspace is bound to the session marker')
           assert.equal(JSON.stringify(saved).includes('token'), false, 'The saved workspace holds no credentials')
           t.diagnostic(`${phase}: CLS=${metrics.cls}${metrics.cls ? ` ${JSON.stringify(metrics.shifts)}` : ''}`)
         } finally { await session.close(); await inventory.close() }

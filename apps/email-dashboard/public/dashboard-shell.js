@@ -71,7 +71,10 @@
   }
 
   // The saved workspace never holds secrets: names, addresses, list rows, and key prefixes only.
+  // It is saved with the session's workspace marker cookie and painted only while that marker is
+  // still the browser's, so an ended session or another account never sees it.
   const storageKey = 'bezalel.dashboard.snapshot', snapshotVersion = 1
+  const marker = () => document.cookie.split('; ').find(part => /^(__Host-)?workspace=/.test(part))?.split('=')[1] || ''
   const snapshot = {
     read() {
       try {
@@ -83,6 +86,7 @@
       try { localStorage.setItem(storageKey, JSON.stringify({ ...(snapshot.read() ?? {}), ...changes, version: snapshotVersion })) } catch {}
     },
     clear() { try { localStorage.removeItem(storageKey) } catch {} },
+    marker,
   }
 
   const threadView = ({ inbox, folder, query, triageFilters }) => JSON.stringify([inbox, folder, query, triageFilters ?? {}])
@@ -144,7 +148,7 @@
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)), current = Math.min(pageNumber, totalPages - 1)
     $('#inbox-rows').replaceChildren(...filtered.slice(current * pageSize, (current + 1) * pageSize).map(inbox => {
       const row = node('tr'), identity = node('td'), link = node('a', undefined, 'inbox-link')
-      row.dataset.inboxId = inbox.inboxId
+      row.dataset.inboxId = inbox.inboxId; row.dataset.address = inbox.address || inbox.inboxId; row.dataset.displayName = inbox.displayName || ''
       link.href = `#/inboxes/${encodeURIComponent(inbox.inboxId)}`
       const mark = node('span', undefined, 'inbox-mark'); mark.append(icon('inbox'))
       const copy = node('span'); copy.append(node('strong', inbox.displayName || inbox.inboxId), node('span', inbox.address || inbox.inboxId))
@@ -329,8 +333,8 @@
     const { titles, parse } = window.BezalelDashboardRoutes
     const route = parse(location.hash)
     if (!Object.hasOwn(titles, route.page)) route.page = 'inboxes'
-    const saved = snapshot.read()
-    if (!saved?.session) { paintCurrentPage(route.page); return }
+    const saved = snapshot.read(), current = marker()
+    if (!saved?.session || !current || saved.marker !== current) { paintCurrentPage(route.page); return }
     const { session, inboxes = [] } = saved
     const inbox = route.page === 'mail' && inboxes.some(item => item.inboxId === route.inboxId) ? route.inboxId : ''
     paintNavigation(session)

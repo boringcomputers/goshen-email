@@ -57,7 +57,7 @@ function rememberSession() {
   const session = state.session
   if (!session) return
   const customer = session.customer && Object.fromEntries(['id', 'email', 'displayName', 'organizationName', 'role', 'inboxLimit', 'desktopNotifications', 'emailNotifications'].map(key => [key, session.customer[key]]))
-  snapshot.update({ session: { authMode: session.authMode, customer, defaultDomain: session.defaultDomain, apiUrl: session.apiUrl,
+  snapshot.update({ marker: snapshot.marker(), session: { authMode: session.authMode, customer, defaultDomain: session.defaultDomain, apiUrl: session.apiUrl,
     customDomainsEnabled: session.customDomainsEnabled, nativeMailEnabled: session.nativeMailEnabled } })
 }
 
@@ -249,7 +249,12 @@ async function loadThreads(append = false) {
     state.page = result.nextPageToken
     renderThreads()
   } catch (error) {
-    if (version === state.listVersion) $('#threads').replaceChildren(emptyState('Could not load mail', error.message, 'Try again', () => loadThreads()))
+    if (version === state.listVersion) {
+      // The kept list is gone now, so nothing may page or count it.
+      if (!append) { state.threads = []; state.page = undefined; $('#thread-count').hidden = true; $('#load-more').hidden = true }
+      $('#threads').replaceChildren(emptyState('Could not load mail', error.message, 'Try again', () => loadThreads()))
+      $('#threads').dataset.view = view
+    }
     throw error
   }
 }
@@ -425,6 +430,10 @@ async function loadDomains() {
   const result = await rpc('listDomains')
   snapshot.update({ domains: result })
   shell.paintDomains(result)
+  wireDomains()
+}
+// Attaches handlers to whatever the shell painted, including the saved cards on load.
+function wireDomains() {
   for (const button of $('#domain-list').querySelectorAll('[data-action]')) {
     const { domainId } = button.closest('[data-domain-id]').dataset
     action(button, async () => {
@@ -434,6 +443,7 @@ async function loadDomains() {
     })
   }
 }
+wireDomains()
 for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => $(`#${button.dataset.close}`).close())
 for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('close', () => {
   if (mobileViewport.matches && (document.activeElement === document.body || $('#sidebar').contains(document.activeElement))) $('#open-menu').focus()

@@ -23,9 +23,12 @@ export function createNativeMailPanel({ rpc, remember }) {
     item.type = 'button'
     return wire(item, task)
   }
+  // Attaches Open handlers to whatever the shell painted, including the saved inventory on load.
+  const wireRows = () => { for (const row of $('#native-inbox-rows').children) wire(row.querySelector('button'), () => openInbox(row.dataset.inboxId)) }
+  wireRows()
   function renderInboxes() {
     shell.paintNativeInboxes(inboxes, $('#native-inbox-search').value)
-    for (const row of $('#native-inbox-rows').children) wire(row.querySelector('button'), () => openInbox(row.dataset.inboxId))
+    wireRows()
   }
   function clearReader() {
     readVersion++; selected = ''

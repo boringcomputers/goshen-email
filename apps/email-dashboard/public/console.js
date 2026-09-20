@@ -60,18 +60,24 @@ export function createDashboardConsole({ state, rpc, notify, selectInbox, loadIn
       finally { button.disabled = false }
     })
   }
-  // The shell paints the table; this attaches behavior to the rows it produced.
+  // Attaches behavior to the rows the shell painted. Saved rows painted before the inventory
+  // loads carry their own address and name, so they work even if that load fails.
+  function wireRows() {
+    for (const row of $('#inbox-rows').children) {
+      const { inboxId, address, displayName } = row.dataset
+      const inbox = () => state.inboxes.find(inbox => inbox.inboxId === inboxId) ?? { inboxId, address, displayName }
+      wire(row.querySelector('[data-action=copy]'), () => copyAddress(inbox().address))
+      wire(row.querySelector('[data-action=delete]'), () => confirmDeletion(inbox(), row.querySelector('summary')))
+    }
+    const create = $('#inboxes-empty [data-action=create]')
+    if (create) wire(create, () => $('#new-inbox').click())
+  }
+  wireRows()
   function render() {
     const painted = shell.paintInboxes({ inboxes: state.inboxes, query: $('#inbox-search').value, group: $('#inbox-group').value, pageNumber, pageSize,
       inventoryFailed: Boolean($('#inboxes-error').textContent) && !state.inboxes.length })
     pageNumber = painted.pageNumber
-    for (const row of $('#inbox-rows').children) {
-      const inbox = state.inboxes.find(inbox => inbox.inboxId === row.dataset.inboxId)
-      wire(row.querySelector('[data-action=copy]'), () => copyAddress(inbox.address || inbox.inboxId))
-      wire(row.querySelector('[data-action=delete]'), () => confirmDeletion(inbox, row.querySelector('summary')))
-    }
-    const create = $('#inboxes-empty [data-action=create]')
-    if (create) wire(create, () => $('#new-inbox').click())
+    wireRows()
   }
   async function copyAddress(address) { await navigator.clipboard.writeText(address); notify('Email address copied') }
   function syncSelection() { shell.paintMailbox({ inboxes: state.inboxes, inbox: state.inbox }) }

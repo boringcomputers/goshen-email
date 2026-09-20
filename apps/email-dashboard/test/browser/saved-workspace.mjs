@@ -30,7 +30,24 @@ const ready = page => page.waitForFunction(() => {
 })
 const savedWorkspace = page => page.evaluate(() => JSON.parse(localStorage.getItem('bezalel.dashboard.snapshot')))
 
-test('the saved workspace is replaced for another account and cleared on sign-out or an ended session', { timeout: 120_000 }, async t => {
+// Reloads with the session response held back and reports what the page shows before it answers.
+async function paintedBeforeSession(page) {
+  let release, finished
+  const pending = new Promise(resolve => { release = resolve })
+  const handler = async route => { await pending; finished = route.continue() }
+  await page.route('**/api/session', handler)
+  await page.reload({ waitUntil: 'commit' })
+  await page.waitForFunction(() => performance.getEntriesByName('first-contentful-paint').length > 0)
+  const painted = { breadcrumb: await page.locator('#workspace-breadcrumb').textContent(), rows: await page.locator('#inbox-rows tr').count(),
+    restored: await page.locator('#app').evaluate(app => 'restored' in app.dataset) }
+  release()
+  await page.waitForResponse('**/api/session')
+  await finished
+  await page.unroute('**/api/session', handler)
+  return painted
+}
+
+test('the saved workspace paints only for the session that saved it and clears on sign-out or an ended session', { timeout: 120_000 }, async t => {
   const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'] })
   t.after(() => browser.close())
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
@@ -41,13 +58,22 @@ test('the saved workspace is replaced for another account and cleared on sign-ou
   await ready(page)
   assert.equal(await page.locator('#workspace-breadcrumb').textContent(), 'First Labs')
   assert.equal((await savedWorkspace(page)).session.customer.email, first.email)
+  assert.deepEqual(await paintedBeforeSession(page), { breadcrumb: 'First Labs', rows: 1, restored: true }, 'The live session paints its saved workspace')
+  await ready(page)
 
-  // Another account signing in on this browser ends up with its own workspace, and nothing of the first remains saved.
+  // Once the session's cookies are gone, as when they expire, nothing paints before the session answers.
   await context.clearCookies()
+  assert.deepEqual(await paintedBeforeSession(page), { breadcrumb: 'Your workspace', rows: 0, restored: false }, 'No session, no saved workspace on screen')
+  await page.waitForURL('**/sign-in')
+  assert.equal(await savedWorkspace(page), null)
+
+  // Another account signing in on this browser never sees the first account's workspace and ends up with its own.
   const second = await signIn(context, 'Second owner', 'Second Labs')
-  await page.reload()
+  await page.goto(base + '/app#/inboxes')
   await ready(page)
   assert.equal(await page.locator('#workspace-breadcrumb').textContent(), 'Second Labs')
+  assert.deepEqual(await paintedBeforeSession(page), { breadcrumb: 'Second Labs', rows: 1, restored: true })
+  await ready(page)
   assert.equal(await page.locator('#account-name').textContent(), 'Second owner')
   assert.equal(await page.locator('#inbox-rows tr').count(), 1)
   assert.equal(await page.locator('#inbox-rows strong').textContent(), 'Second owner')
@@ -63,14 +89,16 @@ test('the saved workspace is replaced for another account and cleared on sign-ou
   assert.equal(await savedWorkspace(page), null)
   await page.unroute('**/api/session')
 
-  // Signing out clears it too.
+  // Signing out clears it and removes the marker cookie.
   await page.goto(base + '/app#/inboxes')
   await ready(page)
   assert.equal((await savedWorkspace(page)).session.customer.email, second.email)
+  assert.equal((await context.cookies(base)).some(cookie => cookie.name === 'workspace'), true)
   await page.locator('#account-button').click()
   await page.locator('#logout').click()
   await page.waitForURL('**/sign-in')
   assert.equal(await savedWorkspace(page), null)
+  assert.equal((await context.cookies(base)).some(cookie => cookie.name === 'workspace'), false)
   assert.deepEqual(errors, [])
   await context.close()
 })

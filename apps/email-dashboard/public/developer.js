@@ -4,6 +4,20 @@ export function createDeveloperPanel({ rpc, notify, getSession, remember }) {
   const dialog = $('#developer-dialog')
   let version = 0, listVersion = 0
   const current = value => dialog.open && version === value
+  // Attaches revoke handlers to whatever the shell painted, including the saved table on load.
+  function wire() {
+    for (const revoke of $('#developer-key-list').querySelectorAll('[data-key-id]')) {
+      revoke.addEventListener('click', async () => {
+        if (!confirm(`Revoke ${revoke.dataset.keyName}? Any agent using it will lose access immediately.`)) return
+        revoke.disabled = true
+        // A replaced or cleared table means a newer load or a sign-out owns the page now.
+        try { await rpc('revokeApiKey', { keyId: revoke.dataset.keyId }); if (revoke.isConnected) { await load(); notify('API key revoked') } }
+        catch (error) { if (revoke.isConnected) $('#api-keys-error').textContent = error.message }
+        finally { revoke.disabled = false }
+      })
+    }
+  }
+  wire()
   async function load() {
     const value = ++listVersion
     $('#api-keys-error').textContent = ''
@@ -11,15 +25,7 @@ export function createDeveloperPanel({ rpc, notify, getSession, remember }) {
     if (listVersion !== value) return
     remember?.(keys)
     shell.paintApiKeys(keys)
-    for (const revoke of $('#developer-key-list').querySelectorAll('[data-key-id]')) {
-      revoke.addEventListener('click', async () => {
-        if (!confirm(`Revoke ${revoke.dataset.keyName}? Any agent using it will lose access immediately.`)) return
-        revoke.disabled = true
-        try { await rpc('revokeApiKey', { keyId: revoke.dataset.keyId }); if (listVersion === value) { await load(); notify('API key revoked') } }
-        catch (error) { if (listVersion === value) $('#api-keys-error').textContent = error.message }
-        finally { revoke.disabled = false }
-      })
-    }
+    wire()
   }
   const configure = () => shell.paintIntegrations(getSession()?.apiUrl)
   $('#new-api-key').addEventListener('click', () => {

@@ -61,6 +61,20 @@ session, and a session for a different customer clear it. Anyone who can read
 the browser profile can read it, as with browser history; the dashboard keeps
 its `no-store` headers, so this is the only state the browser retains.
 
+Painting waits for nothing, so it must not show one session's workspace to
+another. Every authenticated `/api/session` response sets a `workspace`
+cookie (`__Host-workspace` on HTTPS) with a fresh random value that the page
+can read; anonymous session reads and sign-out clear it. The dashboard saves
+the workspace together with that value and paints it only while the cookie
+still matches. Expired cookies, a cleared browser, or another account's
+sign-in leave the cookie missing or different, so nothing paints until the
+session answers. The server never reads the cookie and it grants nothing. All
+three auth modes issue it; `test/workspace-marker.test.mjs` covers them.
+
+Controls painted from the saved workspace get their handlers as soon as the
+page modules load, so a failed refresh of API keys, domains, or the native
+inventory leaves working controls, not dead ones.
+
 A browser that has never shown the workspace has nothing to paint. It hides
 the navigation, account button, and list footer until the session answers, and
 the breadcrumb can change width once the organization name arrives.
