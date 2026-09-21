@@ -678,20 +678,24 @@ export class MailService {
     const triage = row.triage?.status === "pending" ? await this.triageHold(inbox.id) : { enabled: false, hold: null }
     let result: { status: string } | undefined
     try {
-      ;[result] = await this.store.db.query<{ status: string }>(
-        "select mail.release_quarantine($1, $2, $3::jsonb, $4::jsonb) as status",
-        [inbox.id, row.id, JSON.stringify(released.protection),
-          inbox.testing ? null : JSON.stringify(this.receivedEvent(released, inbox.address))])
+      // release_quarantine locks the message row, so dropping an unpaid analysis in the
+      // same transaction leaves no moment where the worker could lease it. Only the call
+      // that released the message drops it; a caller that lost must not clear work
+      // another caller's hold is paying for.
+      result = await this.store.db.transaction(async (db) => {
+        const [outcome] = await db.query<{ status: string }>(
+          "select mail.release_quarantine($1, $2, $3::jsonb, $4::jsonb) as status",
+          [inbox.id, row.id, JSON.stringify(released.protection),
+            inbox.testing ? null : JSON.stringify(this.receivedEvent(released, inbox.address))])
+        if (outcome?.status === "released" && row.triage?.status === "pending" && !triage.enabled)
+          await db.query("update mail.messages set triage = null where id = $1 and triage->>'status' = 'pending'", [row.id])
+        return outcome
+      })
     } catch (error) {
       await this.metering?.settle(triage.hold, "release")
       throw error
     }
-    const won = result?.status === "released"
-    await this.metering?.settle(triage.hold, won ? "confirm" : "release")
-    // Only the call that released the message may drop its unpaid analysis. A concurrent
-    // caller that was denied a hold must not clear work another caller's hold is paying for.
-    if (won && row.triage?.status === "pending" && !triage.enabled)
-      await this.store.db.query("update mail.messages set triage = null where id = $1 and triage->>'status' = 'pending' and triage_lease is null", [row.id])
+    await this.metering?.settle(triage.hold, result?.status === "released" ? "confirm" : "release")
     if (result?.status === "missing") throw new MailError("Message not found", "not_found", 404)
     if (result?.status === "infected") throw new MailError("Attachments did not pass scanning", "malware_blocked", 403)
     return result?.status === "released"
