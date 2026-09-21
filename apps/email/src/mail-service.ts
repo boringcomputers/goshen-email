@@ -1,6 +1,7 @@
 import { processTriage } from "./triage-worker.js"
 import type { TriageAnalyzer } from "./triage.js"
 import type { Metering } from "./metering.js"
+import type { BillingHold } from "./billing.js"
 import { clientEventTarget } from "./mail-clients.js"
 import { initialDelivery, deliveryEvent } from "./delivery.js"
 import PostalMime, { type Address } from "postal-mime"
@@ -619,6 +620,9 @@ export class MailService {
       })
     }
     await this.objects.put(`${inbox.id}/${id}/raw.eml`, raw)
+    // Quarantined mail is not analysed unless released, so its unit is held at release instead.
+    // The hold taken here is confirmed only once the message is stored.
+    const triage = protection?.status === "quarantined" ? { enabled: Boolean(this.triageAnalyzer), hold: null } : await this.triageHold(inbox.id)
     const row: MessageRow = {
       id,
       inbox_id: inbox.id,
@@ -626,16 +630,22 @@ export class MailService {
       thread_id: threadId,
       timestamp: new Date().toISOString(),
       direction: "received",
-      // Quarantined mail is not analysed unless released, so its unit is consumed at release instead.
-      ...((protection?.status === "quarantined" ? Boolean(this.triageAnalyzer) : await this.triageEnabled(inbox.id)) ? { triage: { status: "pending" as const } } : {}),
+      ...(triage.enabled ? { triage: { status: "pending" as const } } : {}),
       labels: protection?.status === "quarantined" ? ["quarantined"] : ["received", "unread"],
       ...(protection ? { protection } : {}),
       data
     }
-    const saved = await this.store.commitMessage(row,
-      inbox.testing || protection?.status === "quarantined" ? null : this.receivedEvent(row, inbox.address), undefined,
-      !parsed.headers.some(header => header.key.toLowerCase() === "auto-submitted" && header.value.toLowerCase() !== "no") &&
-      !parsed.headers.some(header => header.key.toLowerCase() === "x-bezalel-notification"))
+    let saved
+    try {
+      saved = await this.store.commitMessage(row,
+        inbox.testing || protection?.status === "quarantined" ? null : this.receivedEvent(row, inbox.address), undefined,
+        !parsed.headers.some(header => header.key.toLowerCase() === "auto-submitted" && header.value.toLowerCase() !== "no") &&
+        !parsed.headers.some(header => header.key.toLowerCase() === "x-bezalel-notification"))
+    } catch (error) {
+      await this.metering?.settle(triage.hold, "release")
+      throw error
+    }
+    await this.metering?.settle(triage.hold, "confirm")
     return { messageId: saved.wire_id, threadId: saved.thread_id }
   }
 
@@ -662,28 +672,41 @@ export class MailService {
     const released = { ...row, protection: { ...row.protection, status: "released" as const,
       releasedAt: new Date().toISOString(), releasedBy: input.reviewedBy },
       labels: [...new Set([...row.labels.filter((label) => !["quarantined", "trash"].includes(label)), "received", "unread"])] }
-    // Release makes the pending analysis eligible, so this is where its unit is consumed.
-    if (row.triage?.status === "pending" && !(await this.triageEnabled(inbox.id)))
+    // Release makes the pending analysis eligible, so its unit is held here and
+    // confirmed only if this call is the one that releases the message.
+    const triage = row.triage?.status === "pending" ? await this.triageHold(inbox.id) : { enabled: false, hold: null }
+    if (row.triage?.status === "pending" && !triage.enabled)
       await this.store.db.query("update mail.messages set triage = null where id = $1 and triage->>'status' = 'pending'", [row.id])
-    const [result] = await this.store.db.query<{ status: string }>(
-      "select mail.release_quarantine($1, $2, $3::jsonb, $4::jsonb) as status",
-      [inbox.id, row.id, JSON.stringify(released.protection),
-        inbox.testing ? null : JSON.stringify(this.receivedEvent(released, inbox.address))])
+    let result: { status: string } | undefined
+    try {
+      ;[result] = await this.store.db.query<{ status: string }>(
+        "select mail.release_quarantine($1, $2, $3::jsonb, $4::jsonb) as status",
+        [inbox.id, row.id, JSON.stringify(released.protection),
+          inbox.testing ? null : JSON.stringify(this.receivedEvent(released, inbox.address))])
+    } catch (error) {
+      await this.metering?.settle(triage.hold, "release")
+      throw error
+    }
+    await this.metering?.settle(triage.hold, result?.status === "released" ? "confirm" : "release")
     if (result?.status === "missing") throw new MailError("Message not found", "not_found", 404)
     if (result?.status === "infected") throw new MailError("Attachments did not pass scanning", "malware_blocked", 403)
     return result?.status === "released"
   }
 
   /**
+   * Whether triage should run for a message, holding the unit that pays for it.
    * Triage runs when the operator enabled it and, under metering, the inbox's
-   * account has allowance left. The unit is consumed here, at receipt, so a
-   * burst of mail cannot overspend; an analysis that ends in failure refunds it.
+   * account has allowance left. Holding at receipt means a burst of mail cannot
+   * overspend; the caller confirms the hold once the message is stored or
+   * released, and an analysis that ends in failure refunds the unit.
    */
-  private async triageEnabled(inboxId: string): Promise<boolean> {
-    if (!this.triageAnalyzer) return false
-    if (!this.metering) return true
+  private async triageHold(inboxId: string): Promise<{ enabled: boolean; hold: BillingHold | null }> {
+    if (!this.triageAnalyzer) return { enabled: false, hold: null }
+    if (!this.metering) return { enabled: true, hold: null }
     const customer = await this.store.inboxCustomer(inboxId)
-    return customer ? this.metering.consumeTriage(customer) : true
+    if (!customer) return { enabled: true, hold: null }
+    const { allowed, hold } = await this.metering.holdTriage(customer)
+    return { enabled: allowed, hold }
   }
 
   async processTriage(): Promise<void> {

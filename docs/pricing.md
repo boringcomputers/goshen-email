@@ -55,7 +55,7 @@ decision.
 | --- | --- | --- | --- |
 | `inboxes` | `createInbox` holds one unit before provisioning a new address | confirmed after provisioning, released if it fails; `deleteInbox` credits one back | yes |
 | `sends` | `send` and `reply` hold one unit before the idempotency reservation | confirmed after the message is committed, released on every other exit | yes |
-| `triage` | consumed when an incoming message is stored; for quarantined mail, when it is released | refunded if the analysis ends in failure | yes |
+| `triage` | held when an incoming message arrives; for quarantined mail, when someone releases it | confirmed once the message is stored or the release happens, released otherwise; refunded if the analysis ends in failure | yes |
 | `custom_domains` | not yet; domain operations are administrator-only today | | no |
 | `storage_mb` | not yet | | no |
 | `seats` | not yet; accounts have one member | | no |
@@ -80,10 +80,12 @@ Design points:
   Settlement failures after the action is decided are swallowed: the
   customer's action already happened, and a hold that fails to confirm
   expires in our favour, not theirs.
-- Triage consumes its unit at receipt so a burst of mail cannot overspend. An
-  analysis that ends in `failed` refunds the unit with a negative usage event.
-  Quarantined mail is not charged unless someone releases it; a release with
-  no allowance left drops the pending analysis instead of running it unpaid.
+- Triage holds its unit at receipt so a burst of mail cannot overspend, and
+  confirms it only when the message is stored. An analysis that ends in
+  `failed` refunds the unit with a negative usage event. Quarantined mail is
+  not charged unless someone releases it, and only the release that changes
+  the message's state is charged; a release with no allowance left drops the
+  pending analysis instead of running it unpaid.
 - Administrators listed in `DASHBOARD_ADMIN_EMAILS` are exempt from every
   check and are never created in Autumn.
 - Inboxes provisioned with the platform token rather than an account are not
@@ -122,6 +124,7 @@ double (`apps/email/test/autumn-fixture.ts`) with small allowances. It covers
 the inbox cap and retry path, send denial before reservation and success after
 a top-up, one winner among simultaneous sends on the last unit, a retried
 storage failure being checked again, no charge for rejected sends, mailbox-key
-sends, provider outage, administrator exemption, triage consumption and refund,
-quarantine release, `getUsage` through REST, SDK, CLI, and MCP, and checkout
-from the dashboard. No test contacts Autumn or Stripe.
+sends, provider outage, administrator exemption, triage holds and refunds
+including a failed commit, simultaneous and missing quarantine releases,
+`getUsage` through REST, SDK, CLI, and MCP, and checkout from the dashboard.
+No test contacts Autumn or Stripe.

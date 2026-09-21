@@ -36,9 +36,7 @@ export interface BillingHold { lockId: string; feature: BillingFeature }
 
 /** Reusable billing mechanics. Policy (who is exempt, which feature gates what) lives in metering.ts. */
 export interface BillingProvider {
-  /** Checks and, when allowed, consumes one unit atomically. Concurrent callers cannot both pass on the last unit. */
-  consume(customer: BillingCustomer, feature: BillingFeature): Promise<BillingAccess>
-  /** Checks and, when allowed, holds one unit atomically until finalize() or the hold expires. */
+  /** Checks and, when allowed, holds one unit atomically until finalize() or the hold expires. Concurrent callers cannot both pass on the last unit. */
   hold(customer: BillingCustomer, feature: BillingFeature): Promise<BillingAccess & { hold: BillingHold | null }>
   finalize(hold: BillingHold, action: "confirm" | "release"): Promise<void>
   track(customer: BillingCustomer, feature: BillingFeature, value: number, idempotencyKey: string): Promise<void>
@@ -124,7 +122,6 @@ export function autumnBilling(secretKey: string, request: typeof fetch = fetch, 
     return { allowed: result.allowed, balance: result.balance ? balanceView(result.balance) : null }
   }
   return {
-    consume: (customer, feature) => check(customer, feature, { send_event: true }),
     async hold(customer, feature) {
       const lockId = crypto.randomUUID()
       const access = await check(customer, feature, { send_event: true, lock: { enabled: true, lock_id: lockId, expires_at: Date.now() + holdLifetimeMs } })

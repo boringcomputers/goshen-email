@@ -43,10 +43,17 @@ export class Metering {
     return this.hold(customer, "sends", "Your plan's monthly send limit is reached. Upgrade or add sends, then retry with the same idempotencyKey.")
   }
 
-  /** Consumes one triage unit at receipt. Triage is skipped, not failed, when the allowance is spent or billing cannot answer. */
-  async consumeTriage(customer: BillingCustomer): Promise<boolean> {
-    if (this.exempt(customer)) return true
-    try { return (await this.billing.consume(customer, billingFeatures.triage)).allowed } catch { return false }
+  /**
+   * Holds one triage unit. Confirm it once the message is stored or released,
+   * release it otherwise. Triage is skipped, not failed, when the allowance is
+   * spent or billing cannot answer.
+   */
+  async holdTriage(customer: BillingCustomer): Promise<{ allowed: boolean; hold: BillingHold | null }> {
+    if (this.exempt(customer)) return { allowed: true, hold: null }
+    try {
+      const access = await this.billing.hold(customer, billingFeatures.triage)
+      return { allowed: access.allowed && access.hold !== null, hold: access.hold }
+    } catch { return { allowed: false, hold: null } }
   }
   refundTriage(customer: BillingCustomer, messageId: string): Promise<void> {
     return this.record(customer, "triage", -1, `triage:${messageId}:refund`)

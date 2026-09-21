@@ -192,6 +192,21 @@ describe("plan limits through Autumn", () => {
     await service.processTriage()
     expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: failing.messageId })).toHaveProperty("triage.status", "failed")
     expect(autumn.usage(a.customer.id, "triage")).toBe(1)
+    expect(autumn.openLocks()).toBe(0)
+  })
+
+  it("releases the triage hold when the message cannot be stored", async () => {
+    const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
+    const commit = service.store.commitMessage.bind(service.store)
+    service.store.commitMessage = async () => { throw new MailError("Inbox not found", "not_found", 404) }
+    try {
+      await expect(service.receive(inbox.inboxId, rawMail({ id: "<lost@example.net>" }))).rejects.toMatchObject({ status: 404 })
+    } finally { service.store.commitMessage = commit }
+    expect(autumn.usage(a.customer.id, "triage")).toBe(0)
+    expect(autumn.held(a.customer.id, "triage")).toBe(0)
+    // The same message arriving again is charged once, when it is stored.
+    await service.receive(inbox.inboxId, rawMail({ id: "<lost@example.net>" }))
+    expect(autumn.usage(a.customer.id, "triage")).toBe(1)
   })
 
   it("charges quarantined mail for triage only when it is released", async () => {
@@ -199,8 +214,25 @@ describe("plan limits through Autumn", () => {
     const quarantine = { ...cleanProtection(), status: "quarantined" as const, reasons: ["spam" as const] }
     const held = await service.receive(inbox.inboxId, rawMail({ id: "<held@example.net>", subject: "Suspicious" }), quarantine)
     expect(autumn.usage(a.customer.id, "triage")).toBe(0)
-    await service.releaseQuarantine({ inboxId: inbox.inboxId, messageId: held.messageId, reviewedBy: a.customer.id })
+    // Two people release at once: one release happens, one unit is charged.
+    autumn.grant(a.customer.id, "triage", 5)
+    const release = () => service.releaseQuarantine({ inboxId: inbox.inboxId, messageId: held.messageId, reviewedBy: a.customer.id })
+    const outcomes = await Promise.all([release(), release()])
+    expect(outcomes.filter(Boolean)).toHaveLength(1)
     expect(autumn.usage(a.customer.id, "triage")).toBe(1)
+    expect(autumn.openLocks()).toBe(0)
+    // A message that vanished before release is not charged.
+    const gone = await service.receive(inbox.inboxId, rawMail({ id: "<gone@example.net>", subject: "Suspicious" }), quarantine)
+    const goneRow = await service.store.message((await service.store.inbox(inbox.inboxId)).id, gone.messageId)
+    const message = service.store.message.bind(service.store)
+    service.store.message = async () => goneRow
+    await f.db.query("delete from mail.messages where id = $1", [goneRow.id])
+    try {
+      await expect(service.releaseQuarantine({ inboxId: inbox.inboxId, messageId: gone.messageId, reviewedBy: a.customer.id })).rejects.toMatchObject({ status: 404 })
+    } finally { service.store.message = message }
+    expect(autumn.usage(a.customer.id, "triage")).toBe(1)
+    expect(autumn.held(a.customer.id, "triage")).toBe(0)
+    autumn.grant(a.customer.id, "triage", 1)
     await service.processTriage()
     expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: held.messageId })).toHaveProperty("triage.status", "complete")
     // With nothing left, a release drops the pending analysis instead of running it unpaid.
