@@ -11,7 +11,7 @@ const $ = (selector) => document.querySelector(selector)
 const shell = window.BezalelDashboardShell
 const { icon, node, avatar, snapshot } = shell
 const accountEvents = new BroadcastChannel('bezalel-account')
-accountEvents.addEventListener('message', (event) => { if (event.data === 'signed-out' && state.authMode === 'account') showLogin() })
+accountEvents.addEventListener('message', (event) => { if (event.data === 'signed-out' && state.authMode === 'account') showLogin(state.authMode, '', false) })
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload() })
 const state = { session: null, epoch: 0, inboxes: [], inbox: '', folder: 'inbox', query: '', triageFilters: {}, page: undefined, threads: [], selected: '', listVersion: 0, readVersion: 0, draft: null }
 const folderNames = { inbox: 'Inbox', sent: 'Sent', all: 'All mail', quarantined: 'Quarantine', trash: 'Trash' }
@@ -167,7 +167,7 @@ async function startWorkspace() {
     }
   }
 }
-function showLogin(mode = state.authMode, reason = '') {
+function showLogin(mode = state.authMode, reason = '', keepRoute = true) {
   if (mode === 'account' && state.redirecting) return
   snapshot.clear()
   state.listVersion++; state.readVersion++; state.epoch++
@@ -184,7 +184,12 @@ function showLogin(mode = state.authMode, reason = '') {
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close()
   setWorkspaceLoading(false)
-  if (mode === 'account') { state.redirecting = true; $('#app').hidden = true; location.replace(reason ? `/sign-in?reason=${encodeURIComponent(reason)}` : '/sign-in'); return }
+  if (mode === 'account') {
+    // Keep the requested page through sign-in so a pricing link to #/billing lands on the plans, not the inbox list.
+    // An explicit sign-out drops it: the next person to sign in starts from the inbox list.
+    const route = keepRoute && /^#\/[a-z][a-z0-9-]*(\/[^\s#]*)?$/.test(location.hash) && location.hash !== '#/inboxes' ? location.hash : ''
+    state.redirecting = true; $('#app').hidden = true; location.replace(`${reason ? `/sign-in?reason=${encodeURIComponent(reason)}` : '/sign-in'}${route}`); return
+  }
   $('#password-login').hidden = mode === 'access'
   $('#access-login').hidden = mode !== 'access'
   $('#login-form').elements.password.required = mode !== 'access'
@@ -486,7 +491,7 @@ $('#account-settings').addEventListener('click', () => { $('#account-menu').open
 action($('#logout'), async () => {
   const { logoutUrl } = await request('/api/logout', {})
   if (state.authMode === 'account') accountEvents.postMessage('signed-out')
-  showLogin()
+  showLogin(state.authMode, '', false)
   if (logoutUrl === '/cdn-cgi/access/logout') location.assign(logoutUrl)
 })
 $('#inboxes').addEventListener('change', () => {
