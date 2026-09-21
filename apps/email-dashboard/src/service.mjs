@@ -13,7 +13,8 @@ export class DashboardError extends Error {
 }
 
 export const customerOperations = new Set([...operations, 'session', 'getSettings', 'updateSettings', 'getNotifications', 'listCustomers', 'inviteCustomer',
-  'setCustomerAccess', 'getCredentials', 'rotateCredentials', 'finishInboxSetup', 'setupStatus', 'createApiKey', 'listApiKeys', 'revokeApiKey', 'getInbox', 'updateInbox'])
+  'setCustomerAccess', 'getCredentials', 'rotateCredentials', 'finishInboxSetup', 'setupStatus', 'createApiKey', 'listApiKeys', 'revokeApiKey', 'getInbox', 'updateInbox',
+  'getUsage', 'startCheckout'])
 
 export const nativeReadOperations = new Set([
   'listInboxes', 'listMessages', 'getMessage', 'listThreads', 'getThread', 'searchMessages', 'getAttachment',

@@ -1,6 +1,6 @@
 ---
 title: API overview
-description: The REST API: base URL, authentication, conventions, and the 16 operations shared by every client.
+description: The REST API: base URL, authentication, conventions, and the 17 operations shared by every client.
 ---
 
 ## Base URL
@@ -57,6 +57,12 @@ Every request carries `Authorization: Bearer <key>`, where the key is an account
 | [List threads](/docs/api/list-threads) | `GET /v1/inboxes/{inboxId}/threads` | `messages:read` |
 | [Get a thread](/docs/api/get-thread) | `GET /v1/inboxes/{inboxId}/threads/{threadId}` | `messages:read` |
 | [Update thread labels](/docs/api/update-thread-labels) | `PATCH /v1/inboxes/{inboxId}/threads/{threadId}/labels` | `messages:write` |
+
+### Account
+
+| Operation | Method and path | Scope |
+| --- | --- | --- |
+| [Get usage](/docs/api/get-usage) | `GET /v1/usage` | `inboxes:read` |
 
 ## Validation
 

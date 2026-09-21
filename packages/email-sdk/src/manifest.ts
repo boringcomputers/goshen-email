@@ -795,5 +795,17 @@ export const manifest = {
       ],
       "additionalProperties": false
     }
+  },
+  "getUsage": {
+    "method": "GET",
+    "path": "/v1/usage",
+    "scope": "inboxes:read",
+    "description": "Read the account's plan, inbox count, and remaining monthly balances. A 402 billing_limit error on another operation means a balance here is spent; upgrading is done by a person in the dashboard.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
   }
 } as const

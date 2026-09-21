@@ -223,7 +223,7 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
     const client = new Client({ name: "developer-verification", version: "1.0.0" })
     try {
       await client.connect(transport)
-      expect((await client.listTools()).tools.map(t => t.name)).toEqual(["list_inboxes", "get_inbox"])
+      expect((await client.listTools()).tools.map(t => t.name)).toEqual(["list_inboxes", "get_inbox", "get_usage"])
       expect(await client.callTool({ name: "list_inboxes", arguments: {} })).toMatchObject({ structuredContent: { result: { inboxes: [] } } })
       await manageApiKeys(f.db, a.customer, "revokeApiKey", { keyId: a.key.keyId })
       await expect(client.listTools()).rejects.toBeDefined()

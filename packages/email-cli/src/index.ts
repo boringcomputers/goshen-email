@@ -5,6 +5,7 @@ export const commands = {
   "inboxes update": "updateInbox",
   "messages list": "listMessages", "messages search": "searchMessages", "messages get": "getMessage", "messages send": "send", "messages reply": "reply",
   "messages labels": "updateMessageLabels", "messages attachment": "getAttachment", "threads list": "listThreads", "threads get": "getThread", "threads labels": "updateThreadLabels",
+  "account usage": "getUsage",
 } as const
 const help = `Goshen Email 0.1.0\n\nUsage: bezalel-email <resource> <command> [--json <JSON|->] [flags]\n\n${Object.keys(commands).join("\n")}\n\n--schema       Print the operation schema (or all schemas with no command)\n--dry-run      Validate and show the request without contacting the API\n--base-url     API origin (defaults to BEZALEL_BASE_URL or hosted API)\n--help         Show usage\n--version      Show version\n\nSet BEZALEL_API_KEY in your environment. Output is JSON; errors go to stderr.\nUse --json - to read a body from stdin. Send/reply require --idempotency-key.\n`
 export async function run(argv: string[], io: { env: Record<string, string | undefined>; readStdin(): Promise<string>; out(text: string): void; error(text: string): void; fetch?: typeof fetch }): Promise<number> {

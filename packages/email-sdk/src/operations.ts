@@ -224,6 +224,23 @@ export interface paths {
         patch: operations["updateThreadLabels"];
         trace?: never;
     };
+    "/v1/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the account's plan, inbox count, and remaining monthly balances. A 402 billing_limit error on another operation means a balance here is spent; upgrading is done by a person in the dashboard. */
+        get: operations["getUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1558,6 +1575,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": null;
+                };
+            };
+            /** @description Request failed */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            transient: boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    getUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        billing: "metered" | "exempt" | "disabled";
+                        plan: {
+                            planId: string;
+                            status: string;
+                            currentPeriodEnd: string | null;
+                            canceledAt: string | null;
+                        } | null;
+                        inboxes: {
+                            count: number;
+                            limit: number | null;
+                        };
+                        features: {
+                            feature: string;
+                            granted: number | null;
+                            used: number;
+                            remaining: number | null;
+                            unlimited: boolean;
+                            resetsAt: string | null;
+                        }[];
+                    };
                 };
             };
             /** @description Request failed */

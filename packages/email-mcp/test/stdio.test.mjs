@@ -18,7 +18,7 @@ test('a real stdio client discovers the catalog and calls the API through the SD
   try {
     await client.connect(transport)
     const tools = (await client.listTools()).tools
-    assert.equal(tools.length, 16)
+    assert.equal(tools.length, 17)
     assert.equal(tools.find(tool => tool.name === 'send').annotations.readOnlyHint, false)
     assert.equal(tools.find(tool => tool.name === 'send').annotations.destructiveHint, true)
     assert.equal(tools.find(tool => tool.name === 'delete_inbox').annotations.destructiveHint, true)

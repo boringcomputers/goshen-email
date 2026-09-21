@@ -101,8 +101,10 @@ const operationTitle = (operation) => ({
   deleteInbox: 'Delete an inbox', finishInboxSetup: 'Finish inbox setup', listMessages: 'List messages', searchMessages: 'Search messages',
   getMessage: 'Get a message', send: 'Send a message', reply: 'Reply to a message', updateMessageLabels: 'Update message labels',
   getAttachment: 'Get an attachment', listThreads: 'List threads', getThread: 'Get a thread', updateThreadLabels: 'Update thread labels',
+  getUsage: 'Get usage',
 })[operation.operationId] ?? operation.operationId
-const operationGroup = (operation) => operation.path.includes('/threads') ? 'Threads' : operation.path.includes('/messages') ? 'Messages' : 'Inboxes'
+const operationGroup = (operation) => operation.path.includes('/threads') ? 'Threads' : operation.path.includes('/messages') ? 'Messages' : operation.path.startsWith('/v1/inboxes') ? 'Inboxes' : 'Account'
+const apiGroups = ['Inboxes', 'Messages', 'Threads', 'Account']
 
 function typeLabel(schema) {
   if (!schema || typeof schema !== 'object') return 'any'
@@ -195,11 +197,13 @@ const sdkMethod = {
   listInboxes: 'inboxes.list', createInbox: 'inboxes.create', getInbox: 'inboxes.get', updateInbox: 'inboxes.update', deleteInbox: 'inboxes.delete', finishInboxSetup: 'inboxes.finishSetup',
   listMessages: 'messages.list', searchMessages: 'messages.search', getMessage: 'messages.get', send: 'messages.send', reply: 'messages.reply', updateMessageLabels: 'messages.updateLabels',
   getAttachment: 'messages.getAttachment', listThreads: 'threads.list', getThread: 'threads.get', updateThreadLabels: 'threads.updateLabels',
+  getUsage: 'account.usage',
 }
 const cliCommand = Object.fromEntries(Object.entries({
   'inboxes list': 'listInboxes', 'inboxes create': 'createInbox', 'inboxes get': 'getInbox', 'inboxes delete': 'deleteInbox', 'inboxes finish-setup': 'finishInboxSetup', 'inboxes update': 'updateInbox',
   'messages list': 'listMessages', 'messages search': 'searchMessages', 'messages get': 'getMessage', 'messages send': 'send', 'messages reply': 'reply', 'messages labels': 'updateMessageLabels',
   'messages attachment': 'getAttachment', 'threads list': 'listThreads', 'threads get': 'getThread', 'threads labels': 'updateThreadLabels',
+  'account usage': 'getUsage',
 }).map(([command, id]) => [id, command]))
 function sdkInput(operation) {
   const input = {}
@@ -297,7 +301,7 @@ const header = `<header class="site-header">
 function sidebar(currentPath) {
   const link = (page) => `<li><a href="${page.path}"${page.path === currentPath ? ' aria-current="page"' : ''}>${escape(page.title)}</a></li>`
   const guideSections = sections.map((section) => `<section><h2>${escape(section.title)}</h2><ul>${section.pages.map((slug) => link(pages.get(slug))).join('')}</ul></section>`)
-  const groups = ['Inboxes', 'Messages', 'Threads'].map((group) => `<section><h2>API: ${group}</h2><ul>${apiPages.filter((page) => page.group === group).map(link).join('')}</ul></section>`)
+  const groups = apiGroups.map((group) => `<section><h2>API: ${group}</h2><ul>${apiPages.filter((page) => page.group === group).map(link).join('')}</ul></section>`)
   return `<nav class="docs-nav" aria-label="Documentation"><button type="button" class="docs-nav-toggle" aria-expanded="false" aria-controls="docs-nav-list">Menu</button><div id="docs-nav-list" class="docs-nav-list">${guideSections.join('')}${groups.join('')}</div></nav>`
 }
 

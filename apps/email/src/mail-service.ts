@@ -1,5 +1,6 @@
 import { processTriage } from "./triage-worker.js"
 import type { TriageAnalyzer } from "./triage.js"
+import type { Metering } from "./metering.js"
 import { clientEventTarget } from "./mail-clients.js"
 import { initialDelivery, deliveryEvent } from "./delivery.js"
 import PostalMime, { type Address } from "postal-mime"
@@ -110,6 +111,7 @@ export class MailService {
   readonly customDomains?: CustomDomains
   readonly scanner?: InboundScanner
   readonly triageAnalyzer?: TriageAnalyzer
+  readonly metering?: Metering
   constructor(deps: {
     store: MailboxStore
     objects: ObjectStore
@@ -119,6 +121,7 @@ export class MailService {
     customDomains?: CustomDomains
     scanner?: InboundScanner
     triageAnalyzer?: TriageAnalyzer
+    metering?: Metering
   }) {
     this.store = deps.store
     this.objects = deps.objects
@@ -128,6 +131,7 @@ export class MailService {
     this.customDomains = deps.customDomains
     this.scanner = deps.scanner
     this.triageAnalyzer = deps.triageAnalyzer
+    this.metering = deps.metering
   }
 
   async execute(operation: Operation, raw: unknown, testing = false): Promise<unknown> {
@@ -360,6 +364,13 @@ export class MailService {
   ): Promise<SendResult> {
     let inbox = await this.store.inbox(input.inboxId)
     const signature = fingerprint(JSON.stringify({ input, reply }))
+    // Plan limits are checked before a reservation exists, so a denied send leaves
+    // no record and the same idempotencyKey succeeds after the customer upgrades.
+    // A key that already has a reservation skips the check: retries of a
+    // completed send must return its result even when the allowance is spent.
+    const customer = this.metering ? await this.store.inboxCustomer(inbox.id) : null
+    if (this.metering && customer && !(await this.store.sendReserved(inbox.id, input.idempotencyKey)))
+      await this.metering.assertSendAvailable(customer)
     const existing = await this.store.reserveSend(
       inbox.id,
       input.idempotencyKey,
@@ -482,6 +493,7 @@ export class MailService {
       result,
       ...(!inbox.testing ? { deliveryEvent: deliveryEvent(row, inbox.address, row.delivery) } : {})
     })
+    if (this.metering && customer) await this.metering.recordSend(customer, inbox.id, input.idempotencyKey)
     return result
   }
 
@@ -601,7 +613,7 @@ export class MailService {
       thread_id: threadId,
       timestamp: new Date().toISOString(),
       direction: "received",
-      ...(this.triageAnalyzer ? { triage: { status: "pending" as const } } : {}),
+      ...(await this.triageEnabled(inbox.id) ? { triage: { status: "pending" as const } } : {}),
       labels: protection?.status === "quarantined" ? ["quarantined"] : ["received", "unread"],
       ...(protection ? { protection } : {}),
       data
@@ -645,8 +657,23 @@ export class MailService {
     return result?.status === "released"
   }
 
+  /** Triage runs when the operator enabled it and, under metering, the inbox's account has allowance left. */
+  private async triageEnabled(inboxId: string): Promise<boolean> {
+    if (!this.triageAnalyzer) return false
+    if (!this.metering) return true
+    const customer = await this.store.inboxCustomer(inboxId)
+    return customer ? this.metering.triageAllowed(customer) : true
+  }
+
   async processTriage(): Promise<void> {
-    if (this.triageAnalyzer) await processTriage(this.store.db, this.triageAnalyzer)
+    if (!this.triageAnalyzer) return
+    const analyze = this.triageAnalyzer, metering = this.metering
+    await processTriage(this.store.db, !metering ? analyze : async message => {
+      const result = await analyze(message)
+      const customer = await this.store.inboxCustomer(message.inbox_id)
+      if (customer) await metering.recordTriage(customer, message.id)
+      return result
+    })
   }
 
   async acceptIncoming(recipient: string, raw: Uint8Array, sender?: string): Promise<void> {
