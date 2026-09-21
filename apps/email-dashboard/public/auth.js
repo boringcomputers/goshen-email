@@ -7,10 +7,12 @@ let confirmation
 // A signed-out visit to /app#/billing arrives here as /sign-in#/billing; the route goes back to /app after sign-in.
 // Only a dashboard hash route qualifies, so nothing else in the fragment can steer the redirect.
 const routePattern = /^#\/[a-z][a-z0-9-]*(\/[^\s#]*)?$/
-const returnRoute = !confirming && routePattern.test(location.hash) ? location.hash : ''
-const workspace = `${location.origin}/app${returnRoute}`
-// The magic-link page owns the fragment for its token, so the route waits in sessionStorage until the link is confirmed.
-if (returnRoute) sessionStorage.setItem('bezalel-return', returnRoute)
+// Read at use, not at load: a hash change on the sign-in page is a same-document navigation.
+const returnRoute = () => !confirming && routePattern.test(location.hash) ? location.hash : ''
+const workspace = () => `${location.origin}/app${returnRoute()}`
+// The magic-link page owns the fragment for its token, so the route waits in sessionStorage from the moment a link
+// is sent until it is confirmed. It is stored only then, and cleared by any other way of reaching the workspace or
+// by sign-out, so a stale value cannot steer a later session.
 const confirmedWorkspace = () => { const saved = sessionStorage.getItem('bezalel-return') ?? ''; sessionStorage.removeItem('bezalel-return'); return `/app${routePattern.test(saved) ? saved : ''}` }
 if (confirming) {
   const fragment = new URLSearchParams(location.hash.slice(1))
@@ -39,8 +41,9 @@ function updateButton() { if (!confirming) button.firstChild.textContent = sent 
 form.addEventListener('change', (event) => { if (event.target.name === 'method') { method = event.target.value; updateButton() } })
 async function sendEmail() {
   await post(method === 'code' ? 'email-otp/send-verification-otp' : 'sign-in/magic-link', {
-    email, ...(method === 'code' ? { type: 'sign-in' } : { ...(name ? { name } : {}), callbackURL: workspace, errorCallbackURL: `${location.origin}/sign-in` }),
+    email, ...(method === 'code' ? { type: 'sign-in' } : { ...(name ? { name } : {}), callbackURL: workspace(), errorCallbackURL: `${location.origin}/sign-in` }),
   })
+  if (method === 'link') { const route = returnRoute(); if (route) sessionStorage.setItem('bezalel-return', route); else sessionStorage.removeItem('bezalel-return') }
   sent = true; resendAt = Date.now() + 60_000
   $('#title').textContent = 'Check your email.'
   $('#description').textContent = `We sent ${method === 'code' ? 'a six-digit code' : 'a sign-in link'} to ${email}.`
@@ -64,7 +67,7 @@ form.addEventListener('submit', async (event) => {
       sessionStorage.removeItem('bezalel-link'); location.replace(confirmedWorkspace())
     } else if (sent && method === 'code') {
       await post('sign-in/email-otp', { email, otp: $('#code').value.trim(), ...(name ? { name } : {}) })
-      sessionStorage.removeItem('bezalel-return'); location.replace(workspace)
+      sessionStorage.removeItem('bezalel-return'); location.replace(workspace())
     } else { email = $('#email').value.trim(); name = $('#name').value.trim(); await sendEmail() }
   } catch (failure) { error.textContent = failure.message || 'Could not connect. Please try again.' }
   finally { busy = false; button.disabled = false }
@@ -78,4 +81,4 @@ $('#resend').addEventListener('click', async () => {
   finally { busy = false; $('#resend').disabled = false }
 })
 $('#change-email').addEventListener('click', () => { if (!busy) location.reload() })
-if (!confirming) void fetch('/api/session').then((response) => response.json()).then((session) => { if (session.authenticated) location.replace(workspace) }).catch(() => {})
+if (!confirming) void fetch('/api/session').then((response) => response.json()).then((session) => { if (session.authenticated) { sessionStorage.removeItem('bezalel-return'); location.replace(workspace()) } }).catch(() => {})

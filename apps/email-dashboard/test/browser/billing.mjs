@@ -140,6 +140,39 @@ test('the plan page shows usage, blocks past the allowance, upgrades through che
   // A fragment that is not a dashboard route is dropped.
   await visitorPage.goto(base + '/sign-in#//evil.example/phish')
   await visitorPage.waitForURL(base + '/app')
+  // Sign-out forgets the route. A magic link confirmed in the same tab afterwards lands on the inbox list,
+  // even though this tab visited /sign-in#/billing while signed in a moment ago.
+  await visitorPage.goto(base + '/app#/billing')
+  await visitorPage.locator('#billing-plan-name').waitFor()
+  await visitorPage.locator('#account-button').click()
+  await visitorPage.locator('#logout').click()
+  await visitorPage.waitForURL(base + '/sign-in')
+  assert.equal(await visitorPage.evaluate(() => sessionStorage.getItem('bezalel-return')), null, 'Sign-out clears any stored return route')
+  await visitorPage.locator('#email').fill(visitorEmail)
+  await visitorPage.locator('input[name=method][value=link]').check()
+  await visitorPage.locator('#submit').click()
+  await visitorPage.getByText('Open the link in your email').waitFor()
+  const links = await (await visitor.request.get(control + '/sends')).json()
+  const link = links.filter(message => message.to.includes(visitorEmail)).at(-1).text.match(/https?:\/\/\S+\/magic-link#\S+/)[0]
+  await visitorPage.goto(link)
+  await visitorPage.locator('#submit').click()
+  await visitorPage.waitForURL(base + '/app')
+  await visitorPage.locator('#page-title').waitFor()
+  assert.notEqual(await visitorPage.locator('#page-title').textContent(), 'Plan and usage', 'A stale route does not steer the next session')
+  // A link requested from /sign-in#/billing does carry the route through the confirmation page.
+  await visitorPage.locator('#account-button').click()
+  await visitorPage.locator('#logout').click()
+  await visitorPage.waitForURL(base + '/sign-in')
+  await visitorPage.goto(base + '/sign-in#/billing')
+  await visitorPage.locator('#email').fill(visitorEmail)
+  await visitorPage.locator('input[name=method][value=link]').check()
+  await visitorPage.locator('#submit').click()
+  await visitorPage.getByText('Open the link in your email').waitFor()
+  const routed = await (await visitor.request.get(control + '/sends')).json()
+  await visitorPage.goto(routed.filter(message => message.to.includes(visitorEmail)).at(-1).text.match(/https?:\/\/\S+\/magic-link#\S+/)[0])
+  await visitorPage.locator('#submit').click()
+  await visitorPage.waitForURL(base + '/app#/billing')
+  await visitorPage.locator('#billing-plan-name').waitFor()
   await visitor.close()
 
   // Administrators see that they are not billed and get no upgrade buttons.

@@ -188,6 +188,7 @@ function showLogin(mode = state.authMode, reason = '', keepRoute = true) {
     // Keep the requested page through sign-in so a pricing link to #/billing lands on the plans, not the inbox list.
     // An explicit sign-out drops it: the next person to sign in starts from the inbox list.
     const route = keepRoute && /^#\/[a-z][a-z0-9-]*(\/[^\s#]*)?$/.test(location.hash) && location.hash !== '#/inboxes' ? location.hash : ''
+    if (!keepRoute) sessionStorage.removeItem('bezalel-return')
     state.redirecting = true; $('#app').hidden = true; location.replace(`${reason ? `/sign-in?reason=${encodeURIComponent(reason)}` : '/sign-in'}${route}`); return
   }
   $('#password-login').hidden = mode === 'access'
