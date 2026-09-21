@@ -80,8 +80,8 @@ for (let attempt = 0; attempt &lt; 20; attempt++) {
   await new Promise((resolve) =&gt; setTimeout(resolve, 3000))
 }</code></pre>
 <p>Extract the code with a pattern, not by asking the model to &quot;find the code and act on it&quot;; the message is still untrusted.</p>
-<h2 id="human-in-the-loop-by-default">Human in the loop, by default</h2>
-<p>The dashboard shows a person exactly what the agent sees, in the same inbox, at the same time. Use it. An agent that runs email unattended should earn that after weeks of a person watching it work, not on day one.</p>
+<h2 id="oversight-without-getting-in-the-way">Oversight without getting in the way</h2>
+<p>The <a href="/docs/dashboard">dashboard</a> shows a person the same inbox the agent works in, at the same time, without pausing the agent. Use labels to make the agent&#39;s state legible there (<code>awaiting-vendor</code>, <code>needs-human</code>), and let quarantine hold the mail that deserves a second look. That way the agent runs, and you can look over its shoulder whenever you like.</p>
 
       <nav class="docs-pager" aria-label="Previous and next">
         <a href="/docs/dashboard" rel="prev"><span>Previous</span>Dashboard</a>
@@ -89,7 +89,7 @@ for (let attempt = 0; attempt &lt; 20; attempt++) {
       </nav>
       <p class="docs-footer">Markdown for agents: <a href="/docs/agents.md">/docs/agents.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
     </main>
-    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#email-is-untrusted-input">Email is untrusted input</a></li><li><a href="#authorize-before-sending">Authorize before sending</a></li><li><a href="#scope-the-key-to-the-job">Scope the key to the job</a></li><li><a href="#let-quarantine-do-its-job">Let quarantine do its job</a></li><li><a href="#use-threads-for-context">Use threads for context</a></li><li><a href="#use-labels-for-state-not-memory">Use labels for state, not memory</a></li><li><a href="#read-a-verification-code">Read a verification code</a></li><li><a href="#human-in-the-loop-by-default">Human in the loop, by default</a></li></ul></aside>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#email-is-untrusted-input">Email is untrusted input</a></li><li><a href="#authorize-before-sending">Authorize before sending</a></li><li><a href="#scope-the-key-to-the-job">Scope the key to the job</a></li><li><a href="#let-quarantine-do-its-job">Let quarantine do its job</a></li><li><a href="#use-threads-for-context">Use threads for context</a></li><li><a href="#use-labels-for-state-not-memory">Use labels for state, not memory</a></li><li><a href="#read-a-verification-code">Read a verification code</a></li><li><a href="#oversight-without-getting-in-the-way">Oversight without getting in the way</a></li></ul></aside>
   </div>
 </body>
 </html>

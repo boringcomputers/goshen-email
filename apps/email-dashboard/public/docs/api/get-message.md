@@ -39,9 +39,9 @@ Requires scope `messages:read`. MCP tool `get_message`. SDK `email.messages.get(
 |   `filename` | `string` | Yes |  |
 |   `contentType` | `string` | Yes |  |
 |   `size` | `number` | Yes |  |
-| `triage` | `object | object | object` |  |  |
+| `triage` | `object \| object \| object` |  |  |
 |   `status` | `string` |  |  |
-|   `code` | `"provider_unavailable" | "provider_rejected" | "invalid_response"` |  |  |
+|   `code` | `"provider_unavailable" \| "provider_rejected" \| "invalid_response"` |  |  |
 |   `failedAt` | `string (ISO 8601)` |  |  |
 |   `version` | `number` |  |  |
 |   `model` | `string` |  | 1–100 characters |
@@ -52,32 +52,32 @@ Requires scope `messages:read`. MCP tool `get_message`. SDK `email.messages.get(
 |     `inputTokens` | `integer` | Yes | at least 0 |
 |     `outputTokens` | `integer` | Yes | at least 0 |
 |   `category` | `object` |  |  |
-|     `value` | `"billing" | "support" | "sales" | "personal" | "notification" | "other"` | Yes |  |
+|     `value` | `"billing" \| "support" \| "sales" \| "personal" \| "notification" \| "other"` | Yes |  |
 |     `confidence` | `number` | Yes | 0–1 |
 |     `probabilities` | `object` | Yes |  |
 |   `needsReply` | `object` |  |  |
-|     `value` | `boolean | null` | Yes |  |
+|     `value` | `boolean \| null` | Yes |  |
 |     `probability` | `number` | Yes | 0–1 |
 |   `urgency` | `object` |  |  |
-|     `value` | `"low" | "normal" | "high" | "critical" | null` | Yes |  |
+|     `value` | `"low" \| "normal" \| "high" \| "critical" \| null` | Yes |  |
 |     `score` | `number` | Yes | 0–3 |
 |     `confidence` | `number` | Yes | 0–1 |
 |     `probabilities` | `object` | Yes |  |
 | `protection` | `object` |  |  |
-|   `status` | `"clean" | "quarantined" | "released"` | Yes |  |
+|   `status` | `"clean" \| "quarantined" \| "released"` | Yes |  |
 |   `scannedAt` | `string (ISO 8601)` | Yes |  |
 |   `authentication` | `object` | Yes |  |
-|     `spf` | `"pass" | "fail" | "none" | "temperror" | "permerror" | "unavailable"` | Yes |  |
-|     `dkim` | `"pass" | "fail" | "none" | "temperror" | "permerror" | "unavailable"` | Yes |  |
-|     `dmarc` | `"pass" | "fail" | "none" | "temperror" | "permerror" | "unavailable"` | Yes |  |
+|     `spf` | `"pass" \| "fail" \| "none" \| "temperror" \| "permerror" \| "unavailable"` | Yes |  |
+|     `dkim` | `"pass" \| "fail" \| "none" \| "temperror" \| "permerror" \| "unavailable"` | Yes |  |
+|     `dmarc` | `"pass" \| "fail" \| "none" \| "temperror" \| "permerror" \| "unavailable"` | Yes |  |
 |     `signingDomains` | `string[]` | Yes | up to 20 items |
 |   `spam` | `object` | Yes |  |
 |     `score` | `number` | Yes |  |
 |     `threshold` | `number` | Yes |  |
 |   `antivirus` | `object` | Yes |  |
-|     `status` | `"clean" | "infected" | "unscannable"` | Yes |  |
+|     `status` | `"clean" \| "infected" \| "unscannable"` | Yes |  |
 |     `signatures` | `string[]` | Yes | up to 20 items |
-|   `reasons` | `"malware" | "spam" | "authentication_failed" | "scan_incomplete"[]` | Yes | up to 4 items |
+|   `reasons` | `"malware" \| "spam" \| "authentication_failed" \| "scan_incomplete"[]` | Yes | up to 4 items |
 |   `releasedAt` | `string (ISO 8601)` |  |  |
 |   `releasedBy` | `string` |  | 1–200 characters |
 | `text` | `string` |  |  |

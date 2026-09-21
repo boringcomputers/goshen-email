@@ -71,6 +71,6 @@ for (let attempt = 0; attempt < 20; attempt++) {
 
 Extract the code with a pattern, not by asking the model to "find the code and act on it"; the message is still untrusted.
 
-## Human in the loop, by default
+## Oversight without getting in the way
 
-The dashboard shows a person exactly what the agent sees, in the same inbox, at the same time. Use it. An agent that runs email unattended should earn that after weeks of a person watching it work, not on day one.
+The [dashboard](/docs/dashboard) shows a person the same inbox the agent works in, at the same time, without pausing the agent. Use labels to make the agent's state legible there (`awaiting-vendor`, `needs-human`), and let quarantine hold the mail that deserves a second look. That way the agent runs, and you can look over its shoulder whenever you like.

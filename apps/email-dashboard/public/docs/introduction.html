@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#FFFFFF">
-  <meta name="description" content="Goshen Email gives AI agents their own email inboxes, and gives the people who run them a dashboard that shows the same mail.">
+  <meta name="description" content="Goshen Email is the email inbox API for AI agents. Each agent gets a real address, threads, attachments, and a key scoped to its own mail.">
   <title>Introduction | Goshen Email docs</title>
   <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
   <link rel="alternate" type="text/markdown" href="/docs/introduction.md">
@@ -36,29 +36,31 @@
     <main id="docs-content" class="docs-content">
       <p class="docs-crumbs">Getting started</p>
       <h1>Introduction</h1>
-      <p class="lede">Goshen Email gives AI agents their own email inboxes, and gives the people who run them a dashboard that shows the same mail.</p>
-      <p>An agent that can send and receive email can sign up for services, confirm accounts, ask a vendor a question, and pick up the answer when it arrives. Goshen Email provides the inbox that makes this possible: a real address, a message store, threads, attachments, and an API key scoped to exactly that mail.</p>
-<h2 id="what-you-get">What you get</h2>
+      <p class="lede">Goshen Email is the email inbox API for AI agents. Each agent gets a real address, threads, attachments, and a key scoped to its own mail.</p>
+      <p>Agents need email for the same reasons people do. An address is how you sign up for a service, receive a confirmation, ask a vendor a question, and get the answer back. Goshen Email gives each agent that address, with the inbox behind it: a message store, threads, attachments, labels, and an API key that reaches exactly that mail and nothing else.</p>
+<p>Email is the channel the rest of the world already uses. An agent with an inbox can talk to any business, tool, or person without them installing anything.</p>
+<h2 id="what-an-agent-gets">What an agent gets</h2>
 <ul>
-<li><strong>An inbox per agent.</strong> One API call creates an inbox with its own address on <code>agents.goshenemail.com</code> or on a domain you own. Each inbox keeps its own messages, threads, and labels.</li>
-<li><strong>Two-way mail.</strong> Agents send, receive, and reply. Replies to messages the agent sent land in the same inbox, threaded to the original conversation.</li>
-<li><strong>Scoped keys.</strong> An account key reaches every inbox in the account, limited by the scopes you choose. A mailbox key reaches one inbox and nothing else.</li>
-<li><strong>A dashboard for people.</strong> The same inboxes appear at <a href="https://goshenemail.com/app">goshenemail.com/app</a>, where you can read, reply, search, label, and review quarantined mail.</li>
-<li><strong>Screening before the agent reads.</strong> Incoming mail is scanned. Messages that fail authentication, score as spam, or carry malware wait in quarantine until a person releases them.</li>
-<li><strong>One contract, four clients.</strong> The REST API, the TypeScript and Python SDKs, the CLI, and the MCP server all expose the same 16 operations.</li>
+<li><strong>Its own inbox.</strong> One API call creates an inbox with its own address on <code>agents.goshenemail.com</code> or on a domain you own. Each inbox keeps its own messages, threads, and labels.</li>
+<li><strong>Two-way mail.</strong> The agent sends, receives, and replies. Replies to mail it sent land in the same inbox, threaded to the original conversation.</li>
+<li><strong>Files.</strong> Attachments go out with a message and come back with a download URL.</li>
+<li><strong>A key scoped to the job.</strong> A mailbox key reaches one inbox. An account key reaches every inbox in the account, limited to the scopes you choose. Neither can release quarantine or create other keys.</li>
+<li><strong>Screening before it reads.</strong> Incoming mail is scanned. Messages that fail authentication, score as spam, or carry malware wait in quarantine instead of reaching the agent.</li>
+<li><strong>Tools, not just endpoints.</strong> The <a href="/docs/mcp">MCP server</a> exposes the inbox to Claude Code, Cursor, Codex, or any MCP client as 16 tools. The REST API, TypeScript and Python SDKs, and CLI expose the same 16 operations.</li>
 </ul>
-<h2 id="how-the-pieces-fit">How the pieces fit</h2>
-<pre><code class="language-text">Your agent ──(API key)──▶ Goshen Email API ──▶ inbox: research@agents.goshenemail.com
-                                 │                    ▲
-                                 ▼                    │ SMTP in and out
-                          Dashboard (/app)      the rest of the internet</code></pre>
-<p>The API is the only write path. The dashboard is a client of the same API with a signed-in person instead of a key. Quarantine release is the one action the dashboard can take that no API key can.</p>
+<h2 id="oversight-when-you-want-it">Oversight when you want it</h2>
+<p>The same inboxes appear at <a href="https://goshenemail.com/app">goshenemail.com/app</a>. You can read what an agent received, see what it sent and whether it was delivered, reply in its thread, and release or discard quarantined mail. The dashboard is a client of the same API with a signed-in person instead of a key; releasing quarantine is the one thing it can do that no key can.</p>
+<pre><code class="language-text">Your agent ──(API key or MCP)──▶ Goshen Email API ──▶ inbox: research@agents.goshenemail.com
+                                        │                    ▲
+                                        ▼                    │ SMTP in and out
+                                 Dashboard (/app)      the rest of the internet</code></pre>
 <h2 id="where-to-start">Where to start</h2>
 <ul>
 <li><a href="/docs/quickstart">Quickstart</a>: create a key, create an inbox, send a message, read the reply.</li>
-<li><a href="/docs/inboxes">Inboxes</a>, <a href="/docs/messages">Messages</a>, and <a href="/docs/threads">Threads</a> explain the objects you will work with.</li>
+<li><a href="/docs/mcp">MCP</a>: give an agent an inbox as a set of tools with one configuration block.</li>
+<li><a href="/docs/agents">Building agents on email</a>: the patterns that keep an email-reading agent safe.</li>
+<li><a href="/docs/inboxes">Inboxes</a>, <a href="/docs/messages">Messages</a>, and <a href="/docs/threads">Threads</a> explain the objects the agent works with.</li>
 <li><a href="/docs/authentication">Authentication</a> covers account keys, mailbox keys, and scopes.</li>
-<li><a href="/docs/mcp">MCP</a> connects Claude Code, Cursor, Codex, or any MCP client to an inbox with one configuration block.</li>
 <li><a href="/docs/api">API reference</a> documents every operation with parameters, responses, and examples.</li>
 </ul>
 <h2 id="for-agents-reading-this">For agents reading this</h2>
@@ -71,7 +73,7 @@
       </nav>
       <p class="docs-footer">Markdown for agents: <a href="/docs/introduction.md">/docs/introduction.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
     </main>
-    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#what-you-get">What you get</a></li><li><a href="#how-the-pieces-fit">How the pieces fit</a></li><li><a href="#where-to-start">Where to start</a></li><li><a href="#for-agents-reading-this">For agents reading this</a></li></ul></aside>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#what-an-agent-gets">What an agent gets</a></li><li><a href="#oversight-when-you-want-it">Oversight when you want it</a></li><li><a href="#where-to-start">Where to start</a></li><li><a href="#for-agents-reading-this">For agents reading this</a></li></ul></aside>
   </div>
 </body>
 </html>

@@ -66,6 +66,23 @@ test('every internal link and asset reference in the docs resolves', () => {
   }
 })
 
+test('generated Markdown tables keep one cell per column, including union types', () => {
+  const publicDir = new URL('public/docs/', root)
+  let tables = 0
+  for (const name of readdirSync(publicDir, { recursive: true }).map(String).filter((file) => file.endsWith('.md'))) {
+    const lines = readFileSync(new URL(name, publicDir), 'utf8').split('\n')
+    const cells = (line) => (line.match(/(?<!\\)\|/g) ?? []).length - 1
+    for (let index = 0; index < lines.length - 1; index++) {
+      if (!lines[index].startsWith('|') || !/^\|( --- \|)+$/.test(lines[index + 1])) continue
+      tables++
+      const width = cells(lines[index])
+      for (let row = index + 2; row < lines.length && lines[row].startsWith('|'); row++) assert.equal(cells(lines[row]), width, `${name}: ${lines[row]}`)
+    }
+  }
+  assert.ok(tables > 30)
+  assert.match(readFileSync(new URL('api/update-inbox.md', publicDir), 'utf8'), /`string \\\| null`/)
+})
+
 test('the API reference covers every operation in the contract', () => {
   const openapi = JSON.parse(readFileSync(new URL('../../docs/openapi.json', root), 'utf8'))
   const ids = Object.values(openapi.paths).flatMap((methods) => Object.values(methods).map((operation) => operation.operationId))

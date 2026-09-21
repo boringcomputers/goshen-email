@@ -26,8 +26,8 @@ None.
 | `address` | `string` | Yes |  |
 | `displayName` | `string` |  |  |
 | `createdAt` | `string` | Yes |  |
-| `group` | `string | null` |  |  |
-| `deliveryStatus` | `"pending" | "ready"` |  |  |
+| `group` | `string \| null` |  |  |
+| `deliveryStatus` | `"pending" \| "ready"` |  |  |
 | `setupAvailable` | `boolean` |  |  |
 
 Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5xx status.

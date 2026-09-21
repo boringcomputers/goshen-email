@@ -18,7 +18,7 @@ Requires scope `inboxes:write`. MCP tool `update_inbox`. SDK `email.inboxes.upda
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `group` | `string | null` | Yes |  |
+| `group` | `string \| null` | Yes |  |
 
 ## Response
 
@@ -28,8 +28,8 @@ Requires scope `inboxes:write`. MCP tool `update_inbox`. SDK `email.inboxes.upda
 | `address` | `string` | Yes |  |
 | `displayName` | `string` |  |  |
 | `createdAt` | `string` | Yes |  |
-| `group` | `string | null` |  |  |
-| `deliveryStatus` | `"pending" | "ready"` |  |  |
+| `group` | `string \| null` |  |  |
+| `deliveryStatus` | `"pending" \| "ready"` |  |  |
 | `setupAvailable` | `boolean` |  |  |
 
 Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5xx status.

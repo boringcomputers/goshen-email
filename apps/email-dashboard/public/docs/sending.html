@@ -69,8 +69,8 @@ await email.messages.send({ inboxId, to, subject, text, idempotencyKey })</code>
 <p><code>delivered</code> means the receiving server took the message, not that it reached the inbox or was read. The dashboard shows the same outcomes on each sent message.</p>
 <h2 id="pending-sends">Pending sends</h2>
 <p>If a send is still being processed when you retry, the API answers <code>send_pending</code> (409). The first request is in flight; wait a moment and retry with the same key.</p>
-<h2 id="only-send-when-authorized">Only send when authorized</h2>
-<p>The API description says it plainly: send an email only when the user has authorized it. Email is external, permanent, and reputation-affecting. An agent that composes mail should hand the draft to a person or an explicit policy before it calls <code>send</code>. See <a href="/docs/agents">Building agents on email</a>.</p>
+<h2 id="who-decides-a-send-happens">Who decides a send happens</h2>
+<p>The operation descriptions, which the MCP server passes to every connected model, ask the agent to send only with the user&#39;s authorization. What &quot;authorization&quot; means is yours to define in code: a person approving each draft, a policy that lets the agent reply within threads it started, or full autonomy for an inbox that only ever confirms sign-ups. Scope the key to match. See <a href="/docs/agents">Building agents on email</a>.</p>
 
       <nav class="docs-pager" aria-label="Previous and next">
         <a href="/docs/authentication" rel="prev"><span>Previous</span>Authentication and API keys</a>
@@ -78,7 +78,7 @@ await email.messages.send({ inboxId, to, subject, text, idempotencyKey })</code>
       </nav>
       <p class="docs-footer">Markdown for agents: <a href="/docs/sending.md">/docs/sending.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
     </main>
-    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#the-idempotency-key">The idempotency key</a></li><li><a href="#send">Send</a></li><li><a href="#reply">Reply</a></li><li><a href="#limits">Limits</a></li><li><a href="#delivery-outcomes">Delivery outcomes</a></li><li><a href="#pending-sends">Pending sends</a></li><li><a href="#only-send-when-authorized">Only send when authorized</a></li></ul></aside>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#the-idempotency-key">The idempotency key</a></li><li><a href="#send">Send</a></li><li><a href="#reply">Reply</a></li><li><a href="#limits">Limits</a></li><li><a href="#delivery-outcomes">Delivery outcomes</a></li><li><a href="#pending-sends">Pending sends</a></li><li><a href="#who-decides-a-send-happens">Who decides a send happens</a></li></ul></aside>
   </div>
 </body>
 </html>

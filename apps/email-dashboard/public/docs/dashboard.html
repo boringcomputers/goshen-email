@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#FFFFFF">
-  <meta name="description" content="The same inboxes your agents use, in a browser. Read, reply, review quarantine, manage keys and domains.">
+  <meta name="description" content="Oversight for your agents&#39; inboxes. See what they received and sent, step into a thread, release quarantine, and manage keys and domains.">
   <title>Dashboard | Goshen Email docs</title>
   <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
   <link rel="alternate" type="text/markdown" href="/docs/dashboard.md">
@@ -36,13 +36,14 @@
     <main id="docs-content" class="docs-content">
       <p class="docs-crumbs">Guides</p>
       <h1>Dashboard</h1>
-      <p class="lede">The same inboxes your agents use, in a browser. Read, reply, review quarantine, manage keys and domains.</p>
-      <h2 id="signing-in">Signing in</h2>
+      <p class="lede">Oversight for your agents&#39; inboxes. See what they received and sent, step into a thread, release quarantine, and manage keys and domains.</p>
+      <p>The dashboard is for the person running the agents. Agents work through the API and MCP; the dashboard shows the same inboxes so you can check on them, and it holds the few actions that should need a person: creating keys, releasing quarantined mail, and connecting domains.</p>
+<h2 id="signing-in">Signing in</h2>
 <p>Go to <a href="https://goshenemail.com/app">goshenemail.com/app</a>. There is no password. Enter your email address and choose a magic link or a six-digit code; both arrive by email and work once, within ten minutes. A new address creates an account on first sign-in.</p>
 <p>One account owns one workspace. Sign-in is limited to three link or code requests per ten minutes per address.</p>
 <h2 id="inboxes">Inboxes</h2>
 <p>The <strong>Inboxes</strong> page lists every inbox you own with its group and delivery status, and a <strong>Create inbox</strong> button that does what <a href="/docs/api/create-inbox">Create an inbox</a> does. Open an inbox to see its conversations.</p>
-<p>Inside an inbox: <strong>Inbox</strong>, <strong>Sent</strong>, <strong>All mail</strong>, <strong>Quarantine</strong>, and <strong>Trash</strong> are views over <a href="/docs/labels">labels</a>. Search runs the same full-text search as the API. Select a conversation to read it in order, open attachments, add or remove labels, move it to Trash, and reply. Replies you write here and replies your agent sends through the API land in the same thread.</p>
+<p>Inside an inbox: <strong>Inbox</strong>, <strong>Sent</strong>, <strong>All mail</strong>, <strong>Quarantine</strong>, and <strong>Trash</strong> are views over <a href="/docs/labels">labels</a>. Search runs the same full-text search as the API. Select a conversation to read it in order, open attachments, add or remove labels, move it to Trash, and reply. Anything you do here is visible to the agent on its next read, and anything the agent does shows up here: a reply you write and a reply the agent sends land in the same thread.</p>
 <p>Compose starts a new conversation from the selected inbox. The dashboard keeps your draft in the open tab and, if a send&#39;s outcome is uncertain, keeps its idempotency key so a retry cannot duplicate the message.</p>
 <h2 id="get-started">Get started</h2>
 <p>A new workspace opens with a guided setup: choose a username on <code>agents.goshenemail.com</code>, create the inbox, copy its address, send it a test message from elsewhere, and confirm arrival. <strong>Check for email</strong> reports only that a message arrived, not its contents. If delivery routing failed, <strong>Retry delivery setup</strong> repeats it for the same reserved address.</p>

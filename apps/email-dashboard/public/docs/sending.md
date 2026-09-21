@@ -79,6 +79,6 @@ Sending returns as soon as the message is accepted for delivery. The recipient's
 
 If a send is still being processed when you retry, the API answers `send_pending` (409). The first request is in flight; wait a moment and retry with the same key.
 
-## Only send when authorized
+## Who decides a send happens
 
-The API description says it plainly: send an email only when the user has authorized it. Email is external, permanent, and reputation-affecting. An agent that composes mail should hand the draft to a person or an explicit policy before it calls `send`. See [Building agents on email](/docs/agents).
+The operation descriptions, which the MCP server passes to every connected model, ask the agent to send only with the user's authorization. What "authorization" means is yours to define in code: a person approving each draft, a policy that lets the agent reply within threads it started, or full autonomy for an inbox that only ever confirms sign-ups. Scope the key to match. See [Building agents on email](/docs/agents).

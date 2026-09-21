@@ -253,7 +253,9 @@ function apiPageMarkdown(operation) {
   const params = operation.parameters ?? []
   const body = operation.requestBody?.content?.['application/json']?.schema
   const response = operation.responses?.['200']?.content?.['application/json']?.schema
-  const rows = (items) => items.length ? ['| Field | Type | Required | Notes |', '| --- | --- | --- | --- |', ...items.map((row) => `| ${'  '.repeat(row.depth)}\`${row.name}\` | \`${row.type}\` | ${row.required ? 'Yes' : ''} | ${[row.notes, row.description].filter(Boolean).join('. ')} |`)].join('\n') : 'None.'
+  // Union and enum type labels contain "|", which would split a Markdown table cell.
+  const cell = (text) => String(text).replaceAll('|', '\\|').replaceAll('\n', ' ')
+  const rows = (items) => items.length ? ['| Field | Type | Required | Notes |', '| --- | --- | --- | --- |', ...items.map((row) => `| ${'  '.repeat(row.depth)}\`${cell(row.name)}\` | \`${cell(row.type)}\` | ${row.required ? 'Yes' : ''} | ${cell([row.notes, row.description].filter(Boolean).join('. '))} |`)].join('\n') : 'None.'
   const paramRows = (items) => items.map((param) => ({ name: param.name, depth: 0, type: typeLabel(param.schema), required: param.required, notes: constraints(param.schema ?? {}), description: param.description ?? '' }))
   return [
     `# ${operationTitle(operation)}`, '', operation.summary ?? '', '', `\`${operation.method} ${operation.path}\``, '',
@@ -359,7 +361,7 @@ for (const page of apiPages) {
 }
 output.set('docs/llms.txt', [
   `# ${site.name} | Documentation`, '',
-  `> ${site.name} gives AI agents their own email inboxes: a real address, threaded conversations, attachments, and an API key scoped to one account or one mailbox. A dashboard shows the same mail to the people who run the agents.`, '',
+  `> ${site.name} is the email inbox API for AI agents. Each agent gets a real address, threaded conversations, attachments, and an API key scoped to one account or one mailbox. The same inboxes are available as MCP tools, and a dashboard gives the people running the agents oversight.`, '',
   '## Instructions for AI agents', '',
   '- For Markdown of any page, append `.md` to the page URL.',
   `- The OpenAPI 3.1 document is at ${site.apiBase}/openapi.json.`,

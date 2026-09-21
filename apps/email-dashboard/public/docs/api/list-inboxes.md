@@ -25,8 +25,8 @@ Requires scope `inboxes:read`. MCP tool `list_inboxes`. SDK `email.inboxes.list(
 |   `address` | `string` | Yes |  |
 |   `displayName` | `string` |  |  |
 |   `createdAt` | `string` | Yes |  |
-|   `group` | `string | null` |  |  |
-|   `deliveryStatus` | `"pending" | "ready"` |  |  |
+|   `group` | `string \| null` |  |  |
+|   `deliveryStatus` | `"pending" \| "ready"` |  |  |
 |   `setupAvailable` | `boolean` |  |  |
 | `nextPageToken` | `string` |  |  |
 

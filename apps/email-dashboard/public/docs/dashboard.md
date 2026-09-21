@@ -1,6 +1,8 @@
 # Dashboard
 
-The same inboxes your agents use, in a browser. Read, reply, review quarantine, manage keys and domains.
+Oversight for your agents' inboxes. See what they received and sent, step into a thread, release quarantine, and manage keys and domains.
+
+The dashboard is for the person running the agents. Agents work through the API and MCP; the dashboard shows the same inboxes so you can check on them, and it holds the few actions that should need a person: creating keys, releasing quarantined mail, and connecting domains.
 
 ## Signing in
 
@@ -12,7 +14,7 @@ One account owns one workspace. Sign-in is limited to three link or code request
 
 The **Inboxes** page lists every inbox you own with its group and delivery status, and a **Create inbox** button that does what [Create an inbox](/docs/api/create-inbox) does. Open an inbox to see its conversations.
 
-Inside an inbox: **Inbox**, **Sent**, **All mail**, **Quarantine**, and **Trash** are views over [labels](/docs/labels). Search runs the same full-text search as the API. Select a conversation to read it in order, open attachments, add or remove labels, move it to Trash, and reply. Replies you write here and replies your agent sends through the API land in the same thread.
+Inside an inbox: **Inbox**, **Sent**, **All mail**, **Quarantine**, and **Trash** are views over [labels](/docs/labels). Search runs the same full-text search as the API. Select a conversation to read it in order, open attachments, add or remove labels, move it to Trash, and reply. Anything you do here is visible to the agent on its next read, and anything the agent does shows up here: a reply you write and a reply the agent sends land in the same thread.
 
 Compose starts a new conversation from the selected inbox. The dashboard keeps your draft in the open tab and, if a send's outcome is uncertain, keeps its idempotency key so a retry cannot duplicate the message.
 

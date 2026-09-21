@@ -1,6 +1,6 @@
 # Goshen Email | Documentation
 
-> Goshen Email gives AI agents their own email inboxes: a real address, threaded conversations, attachments, and an API key scoped to one account or one mailbox. A dashboard shows the same mail to the people who run the agents.
+> Goshen Email is the email inbox API for AI agents. Each agent gets a real address, threaded conversations, attachments, and an API key scoped to one account or one mailbox. The same inboxes are available as MCP tools, and a dashboard gives the people running the agents oversight.
 
 ## Instructions for AI agents
 
@@ -10,7 +10,7 @@
 
 ## Docs
 
-- [Introduction](https://goshenemail.com/docs/introduction.md): Goshen Email gives AI agents their own email inboxes, and gives the people who run them a dashboard that shows the same mail.
+- [Introduction](https://goshenemail.com/docs/introduction.md): Goshen Email is the email inbox API for AI agents. Each agent gets a real address, threads, attachments, and a key scoped to its own mail.
 - [Quickstart](https://goshenemail.com/docs/quickstart.md): Create an API key, create an inbox, send a message, and read the reply, in about five minutes.
 - [Inboxes](https://goshenemail.com/docs/inboxes.md): An inbox is a real email address with its own message store. Create one per agent, per project, or per task.
 - [Messages](https://goshenemail.com/docs/messages.md): A message is one email, sent or received. Read, list, search, and label messages in an inbox.
@@ -25,7 +25,7 @@
 - [Pagination](https://goshenemail.com/docs/pagination.md): Lists return a page and a token for the next one. Pass the token back unchanged.
 - [Webhooks and polling](https://goshenemail.com/docs/webhooks.md): How to learn that mail arrived. Polling works for every key today; signed webhooks exist for platform-provisioned inboxes.
 - [Custom domains](https://goshenemail.com/docs/custom-domains.md): Send and receive from addresses on a domain you own, with the DNS records to publish and how verification works.
-- [Dashboard](https://goshenemail.com/docs/dashboard.md): The same inboxes your agents use, in a browser. Read, reply, review quarantine, manage keys and domains.
+- [Dashboard](https://goshenemail.com/docs/dashboard.md): Oversight for your agents' inboxes. See what they received and sent, step into a thread, release quarantine, and manage keys and domains.
 - [Building agents on email](https://goshenemail.com/docs/agents.md): Patterns that keep an email-reading agent safe and useful, and the mistakes that cause real damage.
 - [TypeScript and JavaScript SDK](https://goshenemail.com/docs/typescript.md): A typed client for Node.js 24 and other modern runtimes. One method per API operation, plus page iteration.
 - [Python SDK](https://goshenemail.com/docs/python.md): A synchronous client for Python 3.10 and later, built on the standard library. One method per API operation.

@@ -18,9 +18,9 @@ Requires scope `messages:read`. MCP tool `list_threads`. SDK `email.threads.list
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `category` | `"billing" | "support" | "sales" | "personal" | "notification" | "other"` |  |  |
-| `needsReply` | `"yes" | "no" | "uncertain"` |  |  |
-| `urgency` | `"low" | "normal" | "high" | "critical"` |  |  |
+| `category` | `"billing" \| "support" \| "sales" \| "personal" \| "notification" \| "other"` |  |  |
+| `needsReply` | `"yes" \| "no" \| "uncertain"` |  |  |
+| `urgency` | `"low" \| "normal" \| "high" \| "critical"` |  |  |
 | `limit` | `integer` |  | 1–100, default 20 |
 | `pageToken` | `string` |  | up to 200 characters |
 | `labels` | `string[]` |  | up to 50 items |
@@ -36,9 +36,9 @@ Requires scope `messages:read`. MCP tool `list_threads`. SDK `email.threads.list
 |   `subject` | `string` | Yes |  |
 |   `preview` | `string` | Yes |  |
 |   `timestamp` | `string` |  |  |
-|   `triage` | `object | object | object` |  |  |
+|   `triage` | `object \| object \| object` |  |  |
 |     `status` | `string` |  |  |
-|     `code` | `"provider_unavailable" | "provider_rejected" | "invalid_response"` |  |  |
+|     `code` | `"provider_unavailable" \| "provider_rejected" \| "invalid_response"` |  |  |
 |     `failedAt` | `string (ISO 8601)` |  |  |
 |     `version` | `number` |  |  |
 |     `model` | `string` |  | 1–100 characters |

@@ -18,9 +18,9 @@ Requires scope `messages:read`. MCP tool `search_messages`. SDK `email.messages.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `category` | `"billing" | "support" | "sales" | "personal" | "notification" | "other"` |  |  |
-| `needsReply` | `"yes" | "no" | "uncertain"` |  |  |
-| `urgency` | `"low" | "normal" | "high" | "critical"` |  |  |
+| `category` | `"billing" \| "support" \| "sales" \| "personal" \| "notification" \| "other"` |  |  |
+| `needsReply` | `"yes" \| "no" \| "uncertain"` |  |  |
+| `urgency` | `"low" \| "normal" \| "high" \| "critical"` |  |  |
 | `limit` | `integer` |  | 1–100, default 20 |
 | `pageToken` | `string` |  | up to 200 characters |
 | `query` | `string` | Yes | 1–1000 characters |
@@ -44,9 +44,9 @@ Requires scope `messages:read`. MCP tool `search_messages`. SDK `email.messages.
 |     `filename` | `string` | Yes |  |
 |     `contentType` | `string` | Yes |  |
 |     `size` | `number` | Yes |  |
-|   `triage` | `object | object | object` |  |  |
+|   `triage` | `object \| object \| object` |  |  |
 |     `status` | `string` |  |  |
-|     `code` | `"provider_unavailable" | "provider_rejected" | "invalid_response"` |  |  |
+|     `code` | `"provider_unavailable" \| "provider_rejected" \| "invalid_response"` |  |  |
 |     `failedAt` | `string (ISO 8601)` |  |  |
 |     `version` | `number` |  |  |
 |     `model` | `string` |  | 1–100 characters |
@@ -58,12 +58,12 @@ Requires scope `messages:read`. MCP tool `search_messages`. SDK `email.messages.
 |     `needsReply` | `object` |  |  |
 |     `urgency` | `object` |  |  |
 |   `protection` | `object` |  |  |
-|     `status` | `"clean" | "quarantined" | "released"` | Yes |  |
+|     `status` | `"clean" \| "quarantined" \| "released"` | Yes |  |
 |     `scannedAt` | `string (ISO 8601)` | Yes |  |
 |     `authentication` | `object` | Yes |  |
 |     `spam` | `object` | Yes |  |
 |     `antivirus` | `object` | Yes |  |
-|     `reasons` | `"malware" | "spam" | "authentication_failed" | "scan_incomplete"[]` | Yes | up to 4 items |
+|     `reasons` | `"malware" \| "spam" \| "authentication_failed" \| "scan_incomplete"[]` | Yes | up to 4 items |
 |     `releasedAt` | `string (ISO 8601)` |  |  |
 |     `releasedBy` | `string` |  | 1–200 characters |
 |   `text` | `string` |  |  |
