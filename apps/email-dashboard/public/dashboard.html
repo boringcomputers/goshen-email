@@ -44,7 +44,7 @@
         <a id="native-mail" href="#/native-mail" data-page="native-mail" hidden><span data-icon="inbox"></span>Bezalel inboxes</a>
       </nav>
       <div class="sidebar-bottom">
-        <nav class="resource-nav" aria-label="Workspace"><a id="settings" href="#/settings" data-page="settings" hidden><span data-icon="settings"></span>Settings</a></nav>
+        <nav class="resource-nav" aria-label="Workspace"><a id="billing" href="#/billing" data-page="billing" hidden><span data-icon="card"></span>Plan and usage</a><a id="settings" href="#/settings" data-page="settings" hidden><span data-icon="settings"></span>Settings</a></nav>
         <button id="get-started" hidden><span data-icon="arrow-right"></span><span>Get started</span></button>
         <details id="account-menu" class="actions-menu account-menu">
           <summary id="account-button"><span id="account-avatar" class="avatar" aria-hidden="true">B</span><div class="account-copy"><strong id="account-name">Your workspace</strong><p id="account" class="account">Owner</p></div><span data-icon="chevron-updown"></span></summary>
@@ -136,6 +136,31 @@
         <section id="api-keys-page" class="resource-page" aria-labelledby="api-keys-heading" hidden><header class="resource-heading"><div><h1 id="api-keys-heading" tabindex="-1">API keys</h1><p>Connect your agents to every inbox in your account.</p></div><button id="new-api-key" class="primary"><span data-icon="plus"></span>Create API key</button></header><p id="api-keys-error" class="error" role="alert"></p><div id="developer-key-list"></div></section>
         <section id="integrations-page" class="resource-page" aria-labelledby="integrations-heading" hidden><header class="resource-heading"><div><h1 id="integrations-heading" tabindex="-1">Integrations</h1><p>One account key. All your inboxes.</p></div><a class="button-link" href="#/api-keys">Manage API keys <span data-icon="arrow-right"></span></a></header><div class="integration-grid"><section class="integration-card"><span data-icon="code"></span><h2>REST API</h2><p>Create inboxes, read mail, and send messages from your application.</p><label>API URL<code id="developer-base-url"></code></label><a id="developer-api-docs" target="_blank" rel="noopener">View API specification <span data-icon="arrow-right"></span></a></section><section class="integration-card"><span data-icon="stack"></span><h2>MCP</h2><p>Give an MCP client access to your email tools. Connect with an account API key.</p><label>Server URL<code id="developer-mcp-url"></code></label></section><section class="integration-card"><span data-icon="terminal"></span><h2>SDKs &amp; CLI</h2><p>Use the TypeScript SDK, Python SDK, or CLI to work with your inboxes and named groups.</p><a href="/docs" target="_blank" rel="noopener">Setup and examples <span data-icon="arrow-right"></span></a></section></div></section>
         <section id="domains-page" class="resource-page" aria-labelledby="domains-heading" hidden><header class="resource-heading"><div><h1 id="domains-heading" tabindex="-1">Domains</h1><p>Send and receive email on your own domain.</p></div><button id="new-domain" class="primary"><span data-icon="plus"></span>Add domain</button></header><p id="domains-error" class="error" role="alert"></p><div id="domain-list"></div></section>
+        <section id="billing-page" class="resource-page" aria-labelledby="billing-heading" hidden>
+          <header class="resource-heading"><div><h1 id="billing-heading" tabindex="-1">Plan and usage</h1><p>What your plan includes and what your agents have used this month.</p></div><button id="billing-refresh" class="icon-button" aria-label="Refresh usage" title="Refresh usage"><span data-icon="refresh"></span></button></header>
+          <p id="billing-loading" class="settings-loading" role="status" hidden>Loading usage…</p>
+          <p id="billing-error" class="error" role="alert"></p>
+          <button id="billing-retry" hidden>Try again</button>
+          <div id="billing-content" class="settings-content" hidden>
+            <section class="settings-card" aria-labelledby="billing-plan-heading">
+              <div class="settings-card-body billing-plan">
+                <div class="billing-plan-heading"><h2 id="billing-plan-heading">Current plan</h2><span id="billing-plan-badge" class="badge" hidden></span></div>
+                <p id="billing-plan-name" class="billing-plan-name"></p>
+                <p id="billing-plan-description"></p>
+                <p id="billing-plan-renewal" class="settings-hint"></p>
+              </div>
+              <footer class="settings-card-footer"><span class="settings-hint">Payment, receipts, top-ups, and cancellation are handled on the billing page.</span><button id="billing-portal" type="button" hidden>Manage billing</button></footer>
+            </section>
+            <section class="settings-card settings-card-body" aria-labelledby="billing-usage-heading">
+              <h2 id="billing-usage-heading">Usage</h2><p id="billing-usage-description"></p>
+              <ul id="billing-meters" class="billing-meters" aria-label="Usage by feature"></ul>
+            </section>
+            <section id="billing-plans" class="billing-plans" aria-labelledby="billing-plans-heading" hidden>
+              <div class="billing-plans-heading"><h2 id="billing-plans-heading">Plans</h2><p>Upgrades take effect right away. Paid plans add $2 top-ups for one inbox, one domain, 1,000 sends, or 1,000 triage analyses a month.</p></div>
+              <div id="billing-plan-list" class="billing-plan-grid"></div>
+            </section>
+          </div>
+        </section>
         <section id="settings-page" class="resource-page" aria-labelledby="settings-heading" hidden>
           <header class="resource-heading"><div><h1 id="settings-heading" tabindex="-1">Settings</h1><p>Make this workspace yours.</p></div></header>
           <p id="settings-loading" class="settings-loading" role="status" hidden>Loading settings…</p>

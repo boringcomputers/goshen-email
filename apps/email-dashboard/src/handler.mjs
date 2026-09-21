@@ -29,6 +29,7 @@ export const assets = new Map([
   ['/console.css', ['console.css', 'text/css; charset=utf-8']],
   ['/notifications.js', ['notifications.js', 'text/javascript; charset=utf-8']],
   ['/settings.js', ['settings.js', 'text/javascript; charset=utf-8']],
+  ['/billing.js', ['billing.js', 'text/javascript; charset=utf-8']],
   ['/native-mail.js', ['native-mail.js', 'text/javascript; charset=utf-8']],
   ['/native-mail.css', ['native-mail.css', 'text/css; charset=utf-8']],
   ['/setup.js', ['setup.js', 'text/javascript; charset=utf-8']],

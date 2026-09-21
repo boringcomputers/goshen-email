@@ -113,6 +113,7 @@ section[id], div[id] { scroll-margin-top: 24px; }
 .pricing { display: flex; flex-direction: column; gap: 48px; padding-bottom: 112px; width: 100%; }
 .pricing-heading { align-items: center; display: flex; flex-direction: column; gap: 12px; }
 .pricing-title { color: var(--color-text); display: flex; flex-wrap: wrap; font-size: 44px; font-weight: var(--font-weight-semibold); justify-content: center; letter-spacing: -0.025em; line-height: 48px; text-align: center; }
+.pricing-note { max-width: 640px; text-align: center; line-height: 20px; }
 .plan { border-color: var(--color-border); border-radius: var(--radius-lg); border-style: solid; border-width: 1px; display: flex; flex-basis: 0%; flex-direction: column; flex-grow: 1; gap: 24px; padding: 32px; }
 .pricing-starter { color: var(--color-text); font-size: var(--text-md); font-weight: var(--font-weight-medium); line-height: 20px; }
 .pricing-0-month { align-items: baseline; display: flex; gap: 4px; }
@@ -120,17 +121,17 @@ section[id], div[id] { scroll-margin-top: 24px; }
 .pricing-200-conversations-mo { display: flex; gap: 8px; }
 .pricing-shape { color: var(--color-success); flex-shrink: 0; font-size: var(--text-sm); line-height: 16px; width: 16px; }
 .pricing-200-conversations-mo-3 { color: var(--color-text); font-size: var(--text-sm); line-height: 16px; }
-.pricing-start-free { align-items: center; border-color: var(--color-border); border-radius: var(--radius-full); border-style: solid; border-width: 1px; display: flex; font-weight: var(--font-weight-medium); justify-content: center; padding-block: 12px; padding-inline: 20px; }
+.pricing-start-free { margin-top: auto; align-items: center; border-color: var(--color-border); border-radius: var(--radius-full); border-style: solid; border-width: 1px; display: flex; font-weight: var(--font-weight-medium); justify-content: center; padding-block: 12px; padding-inline: 20px; }
 .pricing-start-free-2 { color: var(--color-text); display: flex; font-size: var(--text-base); font-weight: var(--font-weight-medium); line-height: 18px; }
 .plan-popular { background-color: var(--color-ink); border-radius: var(--radius-lg); display: flex; flex-basis: 0%; flex-direction: column; flex-grow: 1; gap: 24px; padding: 32px; }
 .pricing-growth-for-teams-answering { align-items: center; display: flex; justify-content: space-between; }
 .pricing-growth { color: #FFFFFF; font-size: var(--text-md); font-weight: var(--font-weight-medium); line-height: 20px; }
 .pricing-for-teams-answering-every { color: #FFFFFF99; font-size: var(--text-sm); line-height: 16px; }
-.pricing-popular { background-color: #FFFFFF1F; border-radius: var(--radius-full); font-weight: var(--font-weight-medium); padding-block: 3px; padding-inline: 10px; }
+.pricing-popular { white-space: nowrap; flex-shrink: 0; background-color: #FFFFFF1F; border-radius: var(--radius-full); font-weight: var(--font-weight-medium); padding-block: 3px; padding-inline: 10px; }
 .pricing-149 { color: #FFFFFF; font-size: 44px; font-weight: var(--font-weight-semibold); letter-spacing: -0.025em; line-height: 48px; }
 .pricing-shape-2 { color: #FFFFFF; flex-shrink: 0; font-size: var(--text-sm); line-height: 16px; width: 16px; }
 .pricing-5-000-conversations-mo { color: #FFFFFF; font-size: var(--text-sm); line-height: 16px; }
-.pricing-start-14-day-trial { align-items: center; background-color: #FFFFFF; border-radius: var(--radius-full); display: flex; font-weight: var(--font-weight-medium); justify-content: center; padding-block: 12px; padding-inline: 20px; }
+.pricing-start-14-day-trial { margin-top: auto; align-items: center; background-color: #FFFFFF; border-radius: var(--radius-full); display: flex; font-weight: var(--font-weight-medium); justify-content: center; padding-block: 12px; padding-inline: 20px; }
 .pricing-start-14-day-trial-2 { color: var(--color-ink); display: flex; font-size: var(--text-base); font-weight: var(--font-weight-medium); line-height: 18px; }
 .closing { align-items: center; background-color: var(--color-surface-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 28px; padding-block: 96px; width: 100%; }
 .closing-title { color: var(--color-text); display: flex; flex-wrap: wrap; font-size: 44px; font-weight: var(--font-weight-semibold); justify-content: center; letter-spacing: -0.025em; line-height: 48px; text-align: center; width: 640px; }

@@ -41,6 +41,10 @@ Add a domain, see the DNS records to publish, verify them, and remove the domain
 
 Each inbox has a **Quarantine** view listing held messages with the scanner's reasons. A message can be released when its antivirus result is clean; released mail moves to the inbox and gets the `received` and `unread` labels. Only a signed-in person can release; no API key can. See [Quarantine](/docs/quarantine).
 
+## Plan and usage
+
+Shows your plan, how many inboxes you have, and how many sends and triage analyses your agents have used this billing month, with the date the monthly allowances reset. A spent allowance is marked; until you upgrade or add capacity, the API returns `billing_limit` (402) for that action and your agents can read the same numbers with [`getUsage`](/docs/api/get-usage). The plan cards below the meters upgrade through a hosted checkout page, and **Manage billing** opens the hosted billing portal for payment details, receipts, top-ups, and cancellation. Self-hosted deployments without billing show the inbox count and any operator quota instead.
+
 ## Settings
 
 Change the organization name (shown in the breadcrumb) and your profile name (shown in the account menu), and turn on notifications for new mail in your inboxes:

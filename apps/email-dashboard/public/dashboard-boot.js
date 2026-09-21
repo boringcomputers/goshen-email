@@ -1,6 +1,6 @@
 // Select the initial view before styles and the application module finish loading.
 (() => {
-  const titles = Object.freeze({ inboxes: 'Inboxes', mail: 'Inboxes', 'api-keys': 'API keys', integrations: 'Integrations', domains: 'Domains', setup: 'Get started', settings: 'Settings', 'native-mail': 'Bezalel inboxes' })
+  const titles = Object.freeze({ inboxes: 'Inboxes', mail: 'Inboxes', 'api-keys': 'API keys', integrations: 'Integrations', domains: 'Domains', setup: 'Get started', settings: 'Settings', billing: 'Plan and usage', 'native-mail': 'Bezalel inboxes' })
   function parse(hash) {
     let parts
     try { parts = hash.slice(2).split('/').map(decodeURIComponent) } catch { parts = [] }

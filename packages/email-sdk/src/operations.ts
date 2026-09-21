@@ -1630,6 +1630,22 @@ export interface operations {
                             unlimited: boolean;
                             resetsAt: string | null;
                         }[];
+                        plans: {
+                            /** @enum {string} */
+                            planId: "free" | "developer" | "team";
+                            name: string;
+                            description: string;
+                            price: number;
+                            included: {
+                                inboxes: number;
+                                sends: number;
+                                triage: number;
+                                customDomains: number;
+                                storageMb: number;
+                                seats: number;
+                            };
+                            topUps: boolean;
+                        }[];
                     };
                 };
             };

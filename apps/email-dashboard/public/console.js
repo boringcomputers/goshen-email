@@ -6,7 +6,7 @@ export function createDashboardConsole({ state, rpc, notify, selectInbox, loadIn
   const pageSize = 10
   const { titles, parse } = window.BezalelDashboardRoutes
   const pages = Object.keys(titles)
-  const allowed = name => !['api-keys', 'integrations', 'domains', 'settings', 'native-mail'].includes(name) || !$(name === 'api-keys' ? '#developers' : `#${name}`).hidden
+  const allowed = name => !['api-keys', 'integrations', 'domains', 'settings', 'billing', 'native-mail'].includes(name) || !$(name === 'api-keys' ? '#developers' : `#${name}`).hidden
   const mailRoute = inboxId => `#/inboxes/${encodeURIComponent(inboxId)}`
   function navigate(hash, replace = false) {
     if (location.hash !== hash) history[replace ? 'replaceState' : 'pushState'](null, '', hash)

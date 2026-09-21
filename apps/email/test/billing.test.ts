@@ -14,6 +14,7 @@ import { developerOperations } from "../src/developer-contract.js"
 import { mailboxCredentials } from "../src/mail-clients.js"
 import { MailService } from "../src/mail-service.js"
 import { Metering } from "../src/metering.js"
+import { pricingPlans, topUpPrice, type PlanView } from "../src/pricing.js"
 import { handleRequest } from "../src/worker.js"
 import { fakeAutumn } from "./autumn-fixture.js"
 import { cleanProtection, fixture, rawMail } from "./support.js"
@@ -44,12 +45,28 @@ describe("plan limits through Autumn", () => {
   const reservations = async (address: string) => (await f.db.query<{ n: number }>(
     "select count(*)::int as n from mail.sends s join mail.inboxes i on i.id = s.inbox_id where i.address = $1", [address]))[0]!.n
 
-  it("keeps the Autumn config and the Worker's feature ids in step", async () => {
+  it("keeps the Autumn config, the Worker's feature ids, and the plan catalog in step", async () => {
     const config = await readFile(new URL("../../../ops/autumn/autumn.config.ts", import.meta.url), "utf8")
     const featureIds = [...config.matchAll(/featureId: "([a-z_]+)"/g)].map(m => m[1]).sort()
     const planIds = [...config.matchAll(/planId: "([a-z_]+)"/g)].map(m => m[1]).sort()
     expect(featureIds).toEqual(Object.values(billingFeatures).sort())
     expect(planIds).toEqual([...billingPlans].sort())
+    expect(pricingPlans.map(p => p.planId)).toEqual([...billingPlans])
+    const variables: Record<keyof PlanView["included"], string> = { inboxes: "inboxes", sends: "sends", triage: "triage", customDomains: "customDomains", storageMb: "storage", seats: "seats" }
+    for (const plan of pricingPlans) {
+      const block = config.slice(config.indexOf(`planId: "${plan.planId}"`), config.indexOf("})", config.indexOf(`planId: "${plan.planId}"`)))
+      expect(block, plan.planId).toContain(`name: "${plan.name}"`)
+      if (plan.price) expect(block, plan.planId).toContain(`price: { amount: ${plan.price}, interval: "month" }`)
+      else expect(block, plan.planId).not.toMatch(/\bprice: \{ amount/)
+      for (const [feature, variable] of Object.entries(variables) as [keyof PlanView["included"], string][]) {
+        const included = plan.included[feature]
+        const item = new RegExp(`featureId: ${variable}\\.featureId, included: ([0-9_]+)`).exec(block)
+        expect(item ? Number(item[1]!.replaceAll("_", "")) : 0, `${plan.planId} ${feature}`).toBe(included)
+        const topUp = new RegExp(`featureId: ${variable}\\.featureId, included: [0-9_]+(, reset: monthly)?, price: topUp\\(`).test(block)
+        expect(topUp, `${plan.planId} ${feature} top-up`).toBe(plan.topUps && ["inboxes", "sends", "triage", "customDomains"].includes(feature))
+      }
+    }
+    expect(config).toContain(`amount: ${topUpPrice}, billingUnits`)
   })
 
   it("caps inboxes by plan, ignores retries of an existing username, and credits deletions", async () => {
@@ -169,7 +186,7 @@ describe("plan limits through Autumn", () => {
     for (const key of ["a", "b", "c"]) await a.client.messages.send({ inboxId: inbox.inboxId, to: ["receiver@example.net"], subject: "Hi", text: "hello", idempotencyKey: key })
     expect(autumn.state.calls.length).toBe(calls)
     expect(autumn.has(a.customer.id)).toBe(false)
-    expect(await a.client.account.usage()).toMatchObject({ billing: "exempt", plan: null, inboxes: { count: 3, limit: null }, features: [] })
+    expect(await a.client.account.usage()).toMatchObject({ billing: "exempt", plan: null, inboxes: { count: 3, limit: null }, features: [], plans: pricingPlans })
   })
 
   it("consumes a triage unit at receipt, skips triage once spent, and refunds a failed analysis", async () => {
@@ -273,6 +290,7 @@ describe("plan limits through Autumn", () => {
     const usage = await a.client.account.usage()
     expect(developerOperations.getUsage.output.safeParse(usage).success).toBe(true)
     expect(usage).toMatchObject({ billing: "metered", plan: { planId: "free", status: "active" }, inboxes: { count: 1, limit: null } })
+    expect(usage.plans.map(p => [p.planId, p.price])).toEqual([["free", 0], ["developer", 20], ["team", 99]])
     expect(usage.features.find(feature => feature.feature === "inboxes")).toMatchObject({ granted: 2, used: 1, remaining: 1, unlimited: false })
     expect(usage.features.find(feature => feature.feature === "sends")).toMatchObject({ granted: 2, used: 0, remaining: 2 })
     const response = await request(`${service.config.publicUrl}/v1/usage`, { headers: { authorization: `Bearer ${a.key}` } })
@@ -302,6 +320,10 @@ describe("plan limits through Autumn", () => {
     const [ownerRow] = await f.db.query<{ id: string }>("select id from mail.customers where email = $1", [admin])
     const owner: Customer = { id: ownerRow!.id, email: admin, role: "admin", inboxLimit: null }
     await expect(dashboard(owner, "startCheckout", { planId: "developer" })).rejects.toMatchObject({ status: 403 })
+    expect(await dashboard(a.customer, "openBillingPortal")).toEqual({ url: `https://billing.stripe.test/session/${a.customer.id}` })
+    await expect(dashboard(owner, "openBillingPortal")).rejects.toMatchObject({ status: 403 })
+    await expect(dashboard(a.customer, "openBillingPortal", { returnUrl: "https://evil.example" })).rejects.toMatchObject({ status: 400 })
+    expect((await request(`${service.config.publicUrl}/v1/billing/portal`, { method: "POST", headers: { authorization: `Bearer ${a.key}`, "content-type": "application/json" }, body: "{}" })).status).toBe(404)
     expect((await request(`${service.config.publicUrl}/v1/checkout`, { method: "POST", headers: { authorization: `Bearer ${a.key}`, "content-type": "application/json" }, body: "{}" })).status).toBe(404)
     expect(Object.keys(developerOperations)).not.toContain("startCheckout")
   })
@@ -314,7 +336,7 @@ describe("plan limits through Autumn", () => {
     const client = new BezalelEmail({ apiKey: key.apiKey, baseUrl: plain.config.publicUrl, fetch: unmetered })
     for (let i = 0; i < 3; i++) await client.inboxes.create({ username: name() })
     await expect(client.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 422, code: "inbox_limit" })
-    expect(await client.account.usage()).toEqual({ billing: "disabled", plan: null, inboxes: { count: 3, limit: 3 }, features: [] })
+    expect(await client.account.usage()).toEqual({ billing: "disabled", plan: null, inboxes: { count: 3, limit: 3 }, features: [], plans: [] })
     await expect(executeCustomerRequest(new Request("https://dashboard.test/rpc", { method: "POST", body: JSON.stringify({ planId: "developer" }) }), plain, store, customer, "startCheckout"))
       .rejects.toMatchObject({ status: 503, code: "not_configured" })
     expect(autumn.has(customer.id)).toBe(false)

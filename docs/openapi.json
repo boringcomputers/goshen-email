@@ -5129,13 +5129,81 @@
                           "resetsAt"
                         ]
                       }
+                    },
+                    "plans": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "planId": {
+                            "type": "string",
+                            "enum": [
+                              "free",
+                              "developer",
+                              "team"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "price": {
+                            "type": "number"
+                          },
+                          "included": {
+                            "type": "object",
+                            "properties": {
+                              "inboxes": {
+                                "type": "number"
+                              },
+                              "sends": {
+                                "type": "number"
+                              },
+                              "triage": {
+                                "type": "number"
+                              },
+                              "customDomains": {
+                                "type": "number"
+                              },
+                              "storageMb": {
+                                "type": "number"
+                              },
+                              "seats": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "inboxes",
+                              "sends",
+                              "triage",
+                              "customDomains",
+                              "storageMb",
+                              "seats"
+                            ]
+                          },
+                          "topUps": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "planId",
+                          "name",
+                          "description",
+                          "price",
+                          "included",
+                          "topUps"
+                        ]
+                      }
                     }
                   },
                   "required": [
                     "billing",
                     "plan",
                     "inboxes",
-                    "features"
+                    "features",
+                    "plans"
                   ]
                 }
               }

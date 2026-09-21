@@ -9,7 +9,7 @@ import { CustomerStore, inviteInput, updateSettingsInput, type CustomerInbox, ty
 import { mailboxCredentials } from "./mail-clients.js"
 import type { MailService } from "./mail-service.js"
 import { readBytes } from "./security.js"
-import { accountUsage, startCheckoutInput, type BillableCustomer } from "./usage.js"
+import { accountUsage, openBillingPortalInput, startCheckoutInput, type BillableCustomer } from "./usage.js"
 
 const mailboxOperations = new Set<Operation>([
   "deleteInbox", "inboxQuota", "listMessages", "getMessage", "listThreads", "getThread", "reviewThread",
@@ -73,6 +73,11 @@ export async function executeCustomerRequest(request: Request, service: MailServ
       const input = startCheckoutInput.safeParse(raw)
       if (!input.success) throw new MailError("Choose a plan")
       return service.metering.checkout(billable(customer), input.data.planId)
+    }
+    if (operation === "openBillingPortal") {
+      if (!service.metering) throw new MailError("Billing is not configured on this deployment", "not_configured", 503)
+      if (!openBillingPortalInput.safeParse(raw).success) throw new MailError("Invalid billing request")
+      return service.metering.portal(billable(customer))
     }
     if (operation === "updateSettings") {
       const input = updateSettingsInput.safeParse(raw)

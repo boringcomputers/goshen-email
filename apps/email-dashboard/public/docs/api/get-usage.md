@@ -28,6 +28,19 @@ Requires scope `inboxes:read`. MCP tool `get_usage`. SDK `email.account.usage()`
 |   `remaining` | `number \| null` | Yes |  |
 |   `unlimited` | `boolean` | Yes |  |
 |   `resetsAt` | `string \| null` | Yes |  |
+| `plans` | `object[]` | Yes |  |
+|   `planId` | `"free" \| "developer" \| "team"` | Yes |  |
+|   `name` | `string` | Yes |  |
+|   `description` | `string` | Yes |  |
+|   `price` | `number` | Yes |  |
+|   `included` | `object` | Yes |  |
+|     `inboxes` | `number` | Yes |  |
+|     `sends` | `number` | Yes |  |
+|     `triage` | `number` | Yes |  |
+|     `customDomains` | `number` | Yes |  |
+|     `storageMb` | `number` | Yes |  |
+|     `seats` | `number` | Yes |  |
+|   `topUps` | `boolean` | Yes |  |
 
 Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5xx status.
 

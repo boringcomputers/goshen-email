@@ -42,6 +42,8 @@ export interface BillingProvider {
   track(customer: BillingCustomer, feature: BillingFeature, value: number, idempotencyKey: string): Promise<void>
   usage(customer: BillingCustomer): Promise<BillingUsage>
   checkout(customer: BillingCustomer, planId: BillingPlan, successUrl?: string): Promise<{ paymentUrl: string | null }>
+  /** A hosted page where the customer manages payment, top-up quantities, and cancellation. */
+  portal(customer: BillingCustomer, returnUrl?: string): Promise<{ url: string }>
 }
 /** Holds release themselves after this long if the Worker never finalizes them. */
 export const holdLifetimeMs = 10 * 60 * 1000
@@ -62,6 +64,7 @@ const customerResponse = z.object({
   balances: z.record(z.string(), balance.nullable()).default({}),
 }).loose()
 const attachResponse = z.object({ payment_url: z.string().nullable().optional() }).loose()
+const portalResponse = z.object({ url: z.string() }).loose()
 const errorResponse = z.object({ code: z.string().optional(), message: z.string().optional() }).loose()
 
 const epoch = (value: number | null | undefined) => value == null ? null : new Date(value).toISOString()
@@ -150,6 +153,10 @@ export function autumnBilling(secretKey: string, request: typeof fetch = fetch, 
         ...identity(customer), plan_id: planId, redirect_mode: "always", ...(successUrl ? { success_url: successUrl } : {}),
       }, attachResponse))
       return { paymentUrl: result.payment_url ?? null }
+    },
+    async portal(customer, returnUrl) {
+      const result = await withCustomer(customer, () => call("billing.open_customer_portal", { customer_id: customer.id, ...(returnUrl ? { return_url: returnUrl } : {}) }, portalResponse))
+      return { url: result.url }
     },
   }
 }

@@ -77,6 +77,7 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
       state.checkouts.push({ customerId: id, planId: String(body.plan_id) })
       return json({ customer_id: id, payment_url: `https://checkout.stripe.test/${body.plan_id}`, required_action: null })
     }
+    if (path === "billing.open_customer_portal") return json({ customer_id: id, url: `https://billing.stripe.test/session/${id}` })
     return json({ code: "not_found" }, 404)
   }
   return {

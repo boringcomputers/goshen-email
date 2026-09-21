@@ -4,6 +4,7 @@ import { createDeveloperPanel } from "./developer.js"
 import { createInboxSetup, connectionCommand } from './setup.js'
 import { createDashboardConsole } from './console.js'
 import { createSettingsPanel } from './settings.js'
+import { createBillingPanel } from './billing.js'
 import { createNativeMailPanel } from './native-mail.js'
 const $ = (selector) => document.querySelector(selector)
 // dashboard-shell.js paints the last saved workspace before this module loads; the same painters render fresh data.
@@ -130,12 +131,14 @@ const settings = createSettingsPanel({ rpc, getAuthMode: () => state.authMode, g
   state.session.customer = customer
   updateAccount(); rememberSession()
 } })
+const billing = createBillingPanel({ rpc, notify, getCustomer: () => state.session?.customer })
 const dashboard = createDashboardConsole({ state, rpc, notify, selectInbox, loadInboxes,
   closeSetup: () => setup.close(), openSetup: () => setup.open(), closeNavigation: () => setMenu(false, false),
   loadPage: async page => {
     if (page === 'api-keys') await developers.load()
     if (page === 'domains') { $('#domains-error').textContent = ''; await loadDomains() }
     if (page === 'settings') await settings.load()
+    if (page === 'billing') await billing.load()
     if (page === 'native-mail') await nativeMail.load()
   },
 })
@@ -169,7 +172,7 @@ function showLogin(mode = state.authMode, reason = '') {
   snapshot.clear()
   state.listVersion++; state.readVersion++; state.epoch++
   state.draft = null; state.inbox = ''; state.inboxes = []; state.threads = []; state.session = null
-  dashboard.reset(); setup.reset(); developers.reset(); settings.reset(); notifications.reset(); nativeMail.reset(); resetTriageFilters()
+  dashboard.reset(); setup.reset(); developers.reset(); settings.reset(); billing.reset(); notifications.reset(); nativeMail.reset(); resetTriageFilters()
   $('#native-mail').hidden = true
   $('#compose-form').reset(); $('#threads').replaceChildren(); $('#inboxes').replaceChildren(); emptyReader()
   $('#domain-list').replaceChildren(); $('#api-key').value = ''

@@ -17,6 +17,7 @@ any of this.
 | Storage | 1 GB | 10 GB | 100 GB |
 | Seats | 1 | 2 | 10 |
 | Top-ups | none | $2/unit | $2/unit |
+| Support | GitHub issues | email | priority email |
 
 A top-up unit is one inbox, one custom domain, 1,000 sends, or 1,000 triage
 analyses per month. Monthly balances reset on the billing date. Inbox and
@@ -95,9 +96,26 @@ Design points:
   metered.
 
 Denials return `billing_limit` (402). Agents can read balances with
-`getUsage` (`GET /v1/usage`, `inboxes:read`). Upgrading is a human action in
-the dashboard: `startCheckout` returns an Autumn or Stripe checkout URL and is
-not part of the developer API.
+`getUsage` (`GET /v1/usage`, `inboxes:read`); the response also carries the
+plan catalog from `apps/email/src/pricing.ts`. Upgrading is a human action in
+the dashboard: `startCheckout` returns an Autumn or Stripe checkout URL and
+`openBillingPortal` returns the hosted billing portal URL. Neither is part of
+the developer API.
+
+## Dashboard and landing page
+
+The dashboard's Plan and usage page (`#/billing`) shows the current plan with
+its renewal date, meters for inboxes, sends, and triage analyses, and a card
+per plan with an upgrade button. Upgrading calls `startCheckout` and sends the
+browser to the returned URL; Manage billing does the same with
+`openBillingPortal`. A spent allowance is marked on its meter. Administrators
+see that they are not billed and get no upgrade buttons. Deployments without
+`AUTUMN_SECRET_KEY` show the inbox count and any operator quota and no plans.
+
+The landing page's pricing section lists the same three plans from the same
+numbers. Both surfaces read their copy from the catalog rather than repeating
+it, except the landing page, which is static HTML and is checked by eye
+against `pricing.ts` when either changes.
 
 ## Rollout
 
@@ -117,8 +135,7 @@ Schema: none. This release adds no tables or columns.
    record one `inboxes` event per account from an operator script before
    turning the key on, or grant those accounts a matching balance in Autumn.
 
-The dashboard's plan page, the landing page's plan cards, and the operator
-backfill script are follow-up work.
+The operator backfill script is follow-up work.
 
 ## Local verification
 
@@ -129,5 +146,20 @@ a top-up, one winner among simultaneous sends on the last unit, a retried
 storage failure being checked again, no charge for rejected sends, mailbox-key
 sends, provider outage, administrator exemption, triage holds and refunds
 including a failed commit, simultaneous and missing quarantine releases,
-`getUsage` through REST, SDK, CLI, and MCP, and checkout from the dashboard.
-No test contacts Autumn or Stripe.
+`getUsage` through REST, SDK, CLI, and MCP, and checkout and the billing
+portal from the dashboard. A test also checks that the catalog in
+`pricing.ts` matches the plans, prices, and included amounts in
+`ops/autumn/autumn.config.ts`. No test contacts Autumn or Stripe.
+
+For the dashboard page, start `apps/email/test/dashboard-fixture.ts` with
+`FIXTURE_AUTH_MODE=account FIXTURE_BILLING=true FIXTURE_TRIAGE=true
+FIXTURE_PORT=3196` and run
+`node --test apps/email-dashboard/test/browser/billing.mjs`. The fixture meters
+accounts against the Autumn double on the Free plan; its control server
+accepts `POST /billing` to change a customer's granted amount or take billing
+down. The check signs in, creates usage, reads the meters, spends the send
+allowance and confirms the 402, follows the upgrade button to the fixture's
+checkout URL, opens the portal, recovers from an outage, checks four viewport
+widths for overflow, and signs in as an administrator. Set `PLAYWRIGHT_MODULE`
+and `CHROMIUM_PATH` for external installs; `DASHBOARD_EVIDENCE_DIR` saves
+screenshots.

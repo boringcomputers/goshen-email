@@ -68,4 +68,9 @@ export class Metering {
     if (this.exempt(customer)) throw new MailError("Administrator accounts are not billed", "forbidden", 403)
     return this.billing.checkout(customer, planId as BillingPlan, successUrl)
   }
+
+  async portal(customer: BillingCustomer, returnUrl?: string): Promise<{ url: string }> {
+    if (this.exempt(customer)) throw new MailError("Administrator accounts are not billed", "forbidden", 403)
+    return this.billing.portal(customer, returnUrl)
+  }
 }

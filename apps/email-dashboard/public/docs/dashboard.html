@@ -56,6 +56,8 @@
 <p>Add a domain, see the DNS records to publish, verify them, and remove the domain. See <a href="/docs/custom-domains">Custom domains</a>.</p>
 <h2 id="quarantine">Quarantine</h2>
 <p>Each inbox has a <strong>Quarantine</strong> view listing held messages with the scanner&#39;s reasons. A message can be released when its antivirus result is clean; released mail moves to the inbox and gets the <code>received</code> and <code>unread</code> labels. Only a signed-in person can release; no API key can. See <a href="/docs/quarantine">Quarantine</a>.</p>
+<h2 id="plan-and-usage">Plan and usage</h2>
+<p>Shows your plan, how many inboxes you have, and how many sends and triage analyses your agents have used this billing month, with the date the monthly allowances reset. A spent allowance is marked; until you upgrade or add capacity, the API returns <code>billing_limit</code> (402) for that action and your agents can read the same numbers with <a href="/docs/api/get-usage"><code>getUsage</code></a>. The plan cards below the meters upgrade through a hosted checkout page, and <strong>Manage billing</strong> opens the hosted billing portal for payment details, receipts, top-ups, and cancellation. Self-hosted deployments without billing show the inbox count and any operator quota instead.</p>
 <h2 id="settings">Settings</h2>
 <p>Change the organization name (shown in the breadcrumb) and your profile name (shown in the account menu), and turn on notifications for new mail in your inboxes:</p>
 <ul>
@@ -72,7 +74,7 @@
       </nav>
       <p class="docs-footer">Markdown for agents: <a href="/docs/dashboard.md">/docs/dashboard.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
     </main>
-    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#signing-in">Signing in</a></li><li><a href="#inboxes">Inboxes</a></li><li><a href="#get-started">Get started</a></li><li><a href="#api-keys">API keys</a></li><li><a href="#integrations">Integrations</a></li><li><a href="#domains">Domains</a></li><li><a href="#quarantine">Quarantine</a></li><li><a href="#settings">Settings</a></li><li><a href="#what-the-dashboard-cannot-do">What the dashboard cannot do</a></li></ul></aside>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#signing-in">Signing in</a></li><li><a href="#inboxes">Inboxes</a></li><li><a href="#get-started">Get started</a></li><li><a href="#api-keys">API keys</a></li><li><a href="#integrations">Integrations</a></li><li><a href="#domains">Domains</a></li><li><a href="#quarantine">Quarantine</a></li><li><a href="#plan-and-usage">Plan and usage</a></li><li><a href="#settings">Settings</a></li><li><a href="#what-the-dashboard-cannot-do">What the dashboard cannot do</a></li></ul></aside>
   </div>
 </body>
 </html>
