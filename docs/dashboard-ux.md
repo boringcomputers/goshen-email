@@ -22,6 +22,11 @@ billing opens the hosted billing portal. Administrators see that they are not
 billed and get no upgrade buttons; deployments without billing show the inbox
 count and operator quota. See [pricing](pricing.md).
 
+A signed-out visit to a dashboard route keeps that route through sign-in: the
+dashboard redirects to `/sign-in#/billing`, the sign-in page carries the
+fragment back to `/app#/billing` after a code or link, and only fragments that
+look like dashboard routes qualify. An explicit sign-out drops the route.
+
 Settings sits above the account button. It edits notification preferences and the organization and profile
 names, shows the verified sign-in email, and links to API keys. The saved
 organization name appears in the breadcrumb. See
