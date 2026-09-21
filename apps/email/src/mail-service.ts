@@ -364,19 +364,24 @@ export class MailService {
   ): Promise<SendResult> {
     let inbox = await this.store.inbox(input.inboxId)
     const signature = fingerprint(JSON.stringify({ input, reply }))
-    // Plan limits are checked before a reservation exists, so a denied send leaves
+    // One send unit is held before the reservation exists, so a denied send leaves
     // no record and the same idempotencyKey succeeds after the customer upgrades.
-    // A key that already has a reservation skips the check: retries of a
+    // A key whose reservation will be answered as-is skips the hold: retries of a
     // completed send must return its result even when the allowance is spent.
+    // The hold is confirmed after commit and released on every other exit.
     const customer = this.metering ? await this.store.inboxCustomer(inbox.id) : null
-    if (this.metering && customer && !(await this.store.sendReserved(inbox.id, input.idempotencyKey)))
-      await this.metering.assertSendAvailable(customer)
-    const existing = await this.store.reserveSend(
-      inbox.id,
-      input.idempotencyKey,
-      signature
-    )
+    const hold = this.metering && customer && !(await this.store.sendSettled(inbox.id, input.idempotencyKey))
+      ? await this.metering.holdSend(customer) : null
+    const settle = (action: "confirm" | "release") => this.metering?.settle(hold, action) ?? Promise.resolve()
+    let existing
+    try {
+      existing = await this.store.reserveSend(inbox.id, input.idempotencyKey, signature)
+    } catch (error) {
+      await settle("release")
+      throw error
+    }
     if (existing) {
+      await settle("release")
       if (existing.fingerprint !== signature)
         throw new MailError(
           "Idempotency key was used for a different email",
@@ -430,6 +435,7 @@ export class MailService {
     } catch {
       const error = new MailError("Attachment storage failed before sending. Retry this request.", "attachment_storage_error", 503)
       await this.store.failSend(inbox.id, input.idempotencyKey, error)
+      await settle("release")
       throw error
     }
     let receipt
@@ -451,6 +457,8 @@ export class MailService {
     } catch (error) {
       if (error instanceof MailError && !error.transient)
         await this.store.failSend(inbox.id, input.idempotencyKey, error)
+      // An uncertain outcome is not charged either; the reservation already stops a resend.
+      await settle("release")
       throw error
     }
     const threadId = reply?.threadId ?? crypto.randomUUID()
@@ -488,12 +496,17 @@ export class MailService {
           occurredAt: row.timestamp
         }
       : null
-    await this.store.commitMessage(row, event, {
-      key: input.idempotencyKey,
-      result,
-      ...(!inbox.testing ? { deliveryEvent: deliveryEvent(row, inbox.address, row.delivery) } : {})
-    })
-    if (this.metering && customer) await this.metering.recordSend(customer, inbox.id, input.idempotencyKey)
+    try {
+      await this.store.commitMessage(row, event, {
+        key: input.idempotencyKey,
+        result,
+        ...(!inbox.testing ? { deliveryEvent: deliveryEvent(row, inbox.address, row.delivery) } : {})
+      })
+    } catch (error) {
+      await settle("release")
+      throw error
+    }
+    await settle("confirm")
     return result
   }
 
@@ -613,7 +626,8 @@ export class MailService {
       thread_id: threadId,
       timestamp: new Date().toISOString(),
       direction: "received",
-      ...(await this.triageEnabled(inbox.id) ? { triage: { status: "pending" as const } } : {}),
+      // Quarantined mail is not analysed unless released, so its unit is consumed at release instead.
+      ...((protection?.status === "quarantined" ? Boolean(this.triageAnalyzer) : await this.triageEnabled(inbox.id)) ? { triage: { status: "pending" as const } } : {}),
       labels: protection?.status === "quarantined" ? ["quarantined"] : ["received", "unread"],
       ...(protection ? { protection } : {}),
       data
@@ -648,6 +662,9 @@ export class MailService {
     const released = { ...row, protection: { ...row.protection, status: "released" as const,
       releasedAt: new Date().toISOString(), releasedBy: input.reviewedBy },
       labels: [...new Set([...row.labels.filter((label) => !["quarantined", "trash"].includes(label)), "received", "unread"])] }
+    // Release makes the pending analysis eligible, so this is where its unit is consumed.
+    if (row.triage?.status === "pending" && !(await this.triageEnabled(inbox.id)))
+      await this.store.db.query("update mail.messages set triage = null where id = $1 and triage->>'status' = 'pending'", [row.id])
     const [result] = await this.store.db.query<{ status: string }>(
       "select mail.release_quarantine($1, $2, $3::jsonb, $4::jsonb) as status",
       [inbox.id, row.id, JSON.stringify(released.protection),
@@ -657,22 +674,25 @@ export class MailService {
     return result?.status === "released"
   }
 
-  /** Triage runs when the operator enabled it and, under metering, the inbox's account has allowance left. */
+  /**
+   * Triage runs when the operator enabled it and, under metering, the inbox's
+   * account has allowance left. The unit is consumed here, at receipt, so a
+   * burst of mail cannot overspend; an analysis that ends in failure refunds it.
+   */
   private async triageEnabled(inboxId: string): Promise<boolean> {
     if (!this.triageAnalyzer) return false
     if (!this.metering) return true
     const customer = await this.store.inboxCustomer(inboxId)
-    return customer ? this.metering.triageAllowed(customer) : true
+    return customer ? this.metering.consumeTriage(customer) : true
   }
 
   async processTriage(): Promise<void> {
     if (!this.triageAnalyzer) return
-    const analyze = this.triageAnalyzer, metering = this.metering
-    await processTriage(this.store.db, !metering ? analyze : async message => {
-      const result = await analyze(message)
+    const metering = this.metering
+    await processTriage(this.store.db, this.triageAnalyzer, !metering ? undefined : async (message, status) => {
+      if (status !== "failed") return
       const customer = await this.store.inboxCustomer(message.inbox_id)
-      if (customer) await metering.recordTriage(customer, message.id)
-      return result
+      if (customer) await metering.refundTriage(customer, message.id)
     })
   }
 

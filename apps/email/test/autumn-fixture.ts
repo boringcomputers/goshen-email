@@ -7,9 +7,10 @@ import { billingFeatures, type BillingFeature } from "../src/billing.js"
 export interface FakeAutumnOptions { included?: Partial<Record<BillingFeature, number>> }
 export function fakeAutumn(options: FakeAutumnOptions = {}) {
   const included: Record<string, number> = { [billingFeatures.inboxes]: 2, [billingFeatures.sends]: 2, [billingFeatures.triage]: 1, ...options.included }
-  const customers = new Map<string, { email: string; name?: string; granted: Record<string, number>; usage: Record<string, number> }>()
+  const customers = new Map<string, { email: string; name?: string; granted: Record<string, number>; usage: Record<string, number>; held: Record<string, number> }>()
   const events = new Map<string, number>()
-  const state = { down: false, calls: [] as string[], checkouts: [] as { customerId: string; planId: string }[] }
+  const locks = new Map<string, { customerId: string; feature: string; expiresAt: number }>()
+  const state = { down: false, calls: [] as string[], checkouts: [] as { customerId: string; planId: string }[], finalized: [] as string[] }
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
   const customerView = (id: string) => {
     const c = customers.get(id)!
@@ -19,11 +20,12 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
       balances: Object.fromEntries(Object.keys(c.granted).map(feature => [feature, balance(id, feature)])),
     }
   }
+  // Held units are unavailable to other requests but not yet usage.
   const balance = (id: string, feature: string) => {
     const c = customers.get(id)!
     if (!(feature in c.granted)) return null
-    const usage = c.usage[feature] ?? 0
-    return { feature_id: feature, granted: c.granted[feature], usage, remaining: c.granted[feature]! - usage, unlimited: false, next_reset_at: Date.UTC(2026, 9, 1) }
+    const usage = c.usage[feature] ?? 0, held = c.held[feature] ?? 0
+    return { feature_id: feature, granted: c.granted[feature], usage, remaining: c.granted[feature]! - usage - held, unlimited: false, next_reset_at: Date.UTC(2026, 9, 1) }
   }
   const request: typeof fetch = async (input, init) => {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url)
@@ -34,14 +36,34 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
     const body = JSON.parse(String(init.body)) as Record<string, unknown>
     const id = String(body.customer_id)
     if (path === "customers.get_or_create") {
-      if (!customers.has(id)) customers.set(id, { email: String(body.email), ...(body.name ? { name: String(body.name) } : {}), granted: { ...included }, usage: {} })
+      if (!customers.has(id)) customers.set(id, { email: String(body.email), ...(body.name ? { name: String(body.name) } : {}), granted: { ...included }, usage: {}, held: {} })
       return json(customerView(id))
+    }
+    if (path === "balances.finalize") {
+      const lock = locks.get(String(body.lock_id))
+      if (!lock) return json({ code: "lock_not_found", message: "Lock not found" }, 404)
+      locks.delete(String(body.lock_id))
+      state.finalized.push(`${body.action}:${lock.feature}`)
+      const c = customers.get(lock.customerId)!
+      c.held[lock.feature] = (c.held[lock.feature] ?? 0) - 1
+      if (body.action === "confirm") c.usage[lock.feature] = (c.usage[lock.feature] ?? 0) + 1
+      return json({ success: true })
     }
     if (!customers.has(id)) return json({ code: "customer_not_found", message: "Customer not found" }, 404)
     if (path === "balances.check") {
-      const current = balance(id, String(body.feature_id))
+      const feature = String(body.feature_id), current = balance(id, feature)
       const required = typeof body.required_balance === "number" ? body.required_balance : 1
-      return json({ allowed: current ? current.remaining >= required : false, customer_id: id, feature_id: body.feature_id, required_balance: required, balance: current })
+      const allowed = current ? current.remaining >= required : false
+      const lock = body.lock as { enabled?: boolean; lock_id?: string; expires_at?: number } | undefined
+      if (allowed && body.send_event) {
+        const c = customers.get(id)!
+        if (lock?.enabled) {
+          if (!lock.lock_id || typeof lock.expires_at !== "number" || lock.expires_at <= Date.now()) return json({ code: "invalid_lock" }, 400)
+          locks.set(lock.lock_id, { customerId: id, feature, expiresAt: lock.expires_at })
+          c.held[feature] = (c.held[feature] ?? 0) + required
+        } else c.usage[feature] = (c.usage[feature] ?? 0) + required
+      }
+      return json({ allowed, customer_id: id, feature_id: feature, required_balance: required, balance: balance(id, feature) })
     }
     if (path === "balances.track") {
       const key = String(body.idempotency_key), value = typeof body.value === "number" ? body.value : 1
@@ -60,6 +82,8 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
   return {
     request, state, events,
     usage: (id: string, feature: BillingFeature) => customers.get(id)?.usage[feature] ?? 0,
+    held: (id: string, feature: BillingFeature) => customers.get(id)?.held[feature] ?? 0,
+    openLocks: () => locks.size,
     grant: (id: string, feature: BillingFeature, granted: number) => { customers.get(id)!.granted[feature] = granted },
     has: (id: string) => customers.has(id),
   }

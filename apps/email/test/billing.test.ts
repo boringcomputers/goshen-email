@@ -16,7 +16,7 @@ import { MailService } from "../src/mail-service.js"
 import { Metering } from "../src/metering.js"
 import { handleRequest } from "../src/worker.js"
 import { fakeAutumn } from "./autumn-fixture.js"
-import { fixture, rawMail } from "./support.js"
+import { cleanProtection, fixture, rawMail } from "./support.js"
 import { fixtureTriage } from "./triage-fixture.js"
 
 const admin = "owner@example.net"
@@ -88,12 +88,53 @@ describe("plan limits through Autumn", () => {
       .rejects.toMatchObject({ status: 402, code: "billing_limit" })
   })
 
+  it("lets exactly one of two simultaneous sends through on the last unit", async () => {
+    const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
+    autumn.grant(a.customer.id, "sends", 1)
+    const results = await Promise.allSettled(["left", "right"].map(idempotencyKey =>
+      a.client.messages.send({ inboxId: inbox.inboxId, to: ["receiver@example.net"], subject: "Hi", text: "hello", idempotencyKey })))
+    expect(results.filter(r => r.status === "fulfilled")).toHaveLength(1)
+    expect(results.find(r => r.status === "rejected")).toMatchObject({ reason: { status: 402, code: "billing_limit" } })
+    expect(autumn.usage(a.customer.id, "sends")).toBe(1)
+    expect(await reservations(inbox.inboxId)).toBe(1)
+    expect(autumn.openLocks()).toBe(0)
+    // Ten more in parallel with nothing left: none sent, no reservations.
+    const burst = await Promise.allSettled(Array.from({ length: 10 }, (_, i) =>
+      a.client.messages.send({ inboxId: inbox.inboxId, to: ["receiver@example.net"], subject: "Hi", text: "hello", idempotencyKey: `burst-${i}` })))
+    expect(burst.every(r => r.status === "rejected")).toBe(true)
+    expect(await reservations(inbox.inboxId)).toBe(1)
+  })
+
+  it("checks the allowance again when a retriable failure is retried", async () => {
+    const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
+    const send = (idempotencyKey: string, attachments?: { filename: string; contentType: string; content: string }[]) =>
+      a.client.messages.send({ inboxId: inbox.inboxId, to: ["receiver@example.net"], subject: "Hi", text: "hello", idempotencyKey, ...(attachments ? { attachments } : {}) })
+    const put = f.objects.put
+    f.objects.put = async () => { throw new Error("storage down") }
+    try {
+      await expect(send("attached", [{ filename: "a.txt", contentType: "text/plain", content: Buffer.from("hi").toString("base64") }]))
+        .rejects.toMatchObject({ status: 503, code: "attachment_storage_error" })
+    } finally { f.objects.put = put }
+    // The failed attempt released its hold and consumed nothing.
+    expect(autumn.usage(a.customer.id, "sends")).toBe(0)
+    expect(autumn.held(a.customer.id, "sends")).toBe(0)
+    await send("one"); await send("two")
+    await expect(send("attached", [{ filename: "a.txt", contentType: "text/plain", content: Buffer.from("hi").toString("base64") }]))
+      .rejects.toMatchObject({ status: 402, code: "billing_limit" })
+    expect(autumn.usage(a.customer.id, "sends")).toBe(2)
+    autumn.grant(a.customer.id, "sends", 3)
+    await expect(send("attached", [{ filename: "a.txt", contentType: "text/plain", content: Buffer.from("hi").toString("base64") }])).resolves.toHaveProperty("messageId")
+    expect(autumn.usage(a.customer.id, "sends")).toBe(3)
+  })
+
   it("does not charge for a send the provider rejected", async () => {
     const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
     f.send.mockRejectedValueOnce(new MailError("Recipient rejected", "invalid_argument", 422))
     await expect(a.client.messages.send({ inboxId: inbox.inboxId, to: ["receiver@example.net"], subject: "Hi", text: "hello", idempotencyKey: "rejected" }))
       .rejects.toMatchObject({ status: 422 })
     expect(autumn.usage(a.customer.id, "sends")).toBe(0)
+    expect(autumn.held(a.customer.id, "sends")).toBe(0)
+    expect(autumn.state.finalized.at(-1)).toBe("release:sends")
   })
 
   it("meters sends made with a mailbox key", async () => {
@@ -131,16 +172,42 @@ describe("plan limits through Autumn", () => {
     expect(await a.client.account.usage()).toMatchObject({ billing: "exempt", plan: null, inboxes: { count: 3, limit: null }, features: [] })
   })
 
-  it("skips triage once the allowance is spent and records analyses that ran", async () => {
+  it("consumes a triage unit at receipt, skips triage once spent, and refunds a failed analysis", async () => {
     const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
-    const first = await service.receive(inbox.inboxId, rawMail({ id: "<first@example.net>", subject: "Duplicate charge" }))
-    expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: first.messageId })).toHaveProperty("triage.status", "pending")
-    await service.processTriage()
-    expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: first.messageId })).toHaveProperty("triage.status", "complete")
+    // A burst arriving together cannot overspend: the unit is taken when the message is stored.
+    const [first, second] = await Promise.all([
+      service.receive(inbox.inboxId, rawMail({ id: "<first@example.net>", subject: "Duplicate charge" })),
+      service.receive(inbox.inboxId, rawMail({ id: "<second@example.net>", subject: "Another charge" })),
+    ])
+    const statuses = await Promise.all([first, second].map(async m => (await a.client.messages.get({ inboxId: inbox.inboxId, messageId: m.messageId })).triage?.status))
+    expect(statuses.filter(s => s === "pending")).toHaveLength(1)
+    expect(statuses.filter(s => s === undefined)).toHaveLength(1)
     expect(autumn.usage(a.customer.id, "triage")).toBe(1)
-    const second = await service.receive(inbox.inboxId, rawMail({ id: "<second@example.net>", subject: "Another charge" }))
-    expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: second.messageId })).not.toHaveProperty("triage")
     await service.processTriage()
+    expect(autumn.usage(a.customer.id, "triage")).toBe(1)
+    // An analysis that ends in failure hands the unit back.
+    autumn.grant(a.customer.id, "triage", 2)
+    const failing = await service.receive(inbox.inboxId, rawMail({ id: "<failing@example.net>", subject: "Unavailable analysis" }))
+    expect(autumn.usage(a.customer.id, "triage")).toBe(2)
+    await service.processTriage()
+    expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: failing.messageId })).toHaveProperty("triage.status", "failed")
+    expect(autumn.usage(a.customer.id, "triage")).toBe(1)
+  })
+
+  it("charges quarantined mail for triage only when it is released", async () => {
+    const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
+    const quarantine = { ...cleanProtection(), status: "quarantined" as const, reasons: ["spam" as const] }
+    const held = await service.receive(inbox.inboxId, rawMail({ id: "<held@example.net>", subject: "Suspicious" }), quarantine)
+    expect(autumn.usage(a.customer.id, "triage")).toBe(0)
+    await service.releaseQuarantine({ inboxId: inbox.inboxId, messageId: held.messageId, reviewedBy: a.customer.id })
+    expect(autumn.usage(a.customer.id, "triage")).toBe(1)
+    await service.processTriage()
+    expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: held.messageId })).toHaveProperty("triage.status", "complete")
+    // With nothing left, a release drops the pending analysis instead of running it unpaid.
+    const second = await service.receive(inbox.inboxId, rawMail({ id: "<held-2@example.net>", subject: "Suspicious" }), quarantine)
+    await service.releaseQuarantine({ inboxId: inbox.inboxId, messageId: second.messageId, reviewedBy: a.customer.id })
+    await service.processTriage()
+    expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: second.messageId })).not.toHaveProperty("triage")
     expect(autumn.usage(a.customer.id, "triage")).toBe(1)
   })
 

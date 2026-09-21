@@ -3,7 +3,9 @@ import type { MessageRow } from "./contracts.js"
 import { triageResult } from "./triage-contract.js"
 import { TriageError, type TriageAnalyzer } from "./triage.js"
 
-export async function processTriage(db: Database, analyze: TriageAnalyzer): Promise<void> {
+/** `settled` runs after a message's triage reaches a final status, once the update was ours. */
+export async function processTriage(db: Database, analyze: TriageAnalyzer,
+  settled?: (message: MessageRow, status: "complete" | "failed") => Promise<void>): Promise<void> {
   // Lease one message at a time. A crashed invocation is reclaimed by the cron;
   // a late worker cannot overwrite the result from a newer lease.
   for (let count = 0; count < 10; count++) {
@@ -27,11 +29,13 @@ export async function processTriage(db: Database, analyze: TriageAnalyzer): Prom
       if (failure.retryable && message.triage_attempts < 5) retryIn = Math.max(failure.retryAfter, 30 * 2 ** (message.triage_attempts - 1))
       result = retryIn ? { status: "pending" } : { status: "failed", code: failure.code, failedAt: new Date().toISOString() }
     }
-    await db.query(`update mail.messages m set triage = $3::jsonb, triage_lease = null,
+    const updated = await db.query<{ id: string }>(`update mail.messages m set triage = $3::jsonb, triage_lease = null,
       triage_available_at = now() + $4 * interval '1 second'
       where id = $1 and triage_lease = $2 and triage->>'status' = 'pending'
         and coalesce(protection->>'status', '') <> 'quarantined'
-        and exists(select 1 from mail.inboxes i where i.id = m.inbox_id and i.deleted_at is null)`,
+        and exists(select 1 from mail.inboxes i where i.id = m.inbox_id and i.deleted_at is null) returning m.id`,
     [message.id, lease, JSON.stringify(result), retryIn])
+    const status = (result as { status: string }).status
+    if (settled && updated.length && status !== "pending") await settled(message, status as "complete" | "failed").catch(() => {})
   }
 }

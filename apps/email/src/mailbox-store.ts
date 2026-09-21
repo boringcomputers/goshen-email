@@ -48,8 +48,15 @@ export class MailboxStore {
     return row ? { id: row.id, email: row.email, ...(row.display_name ? { name: row.display_name } : {}) } : null
   }
 
-  async sendReserved(inboxId: string, key: string): Promise<boolean> {
-    const [row] = await this.db.query("select 1 from mail.sends where inbox_id = $1 and key = $2", [inboxId, key])
+  /**
+   * True when reserve_send will answer this key from its existing reservation
+   * instead of sending again. Failures that reserve_send lets the caller retry
+   * (rate_limited, attachment_storage_error) do not count; a retry of those is a new send.
+   */
+  async sendSettled(inboxId: string, key: string): Promise<boolean> {
+    const [row] = await this.db.query(
+      `select 1 from mail.sends where inbox_id = $1 and key = $2
+         and (state <> 'failed' or error->>'code' not in ('rate_limited', 'attachment_storage_error'))`, [inboxId, key])
     return Boolean(row)
   }
 

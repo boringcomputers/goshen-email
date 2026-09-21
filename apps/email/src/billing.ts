@@ -31,14 +31,22 @@ export interface FeatureBalance {
 export interface BillingAccess { allowed: boolean; balance: FeatureBalance | null }
 export interface BillingSubscription { planId: string; status: string; currentPeriodEnd: string | null; canceledAt: string | null }
 export interface BillingUsage { subscriptions: BillingSubscription[]; balances: FeatureBalance[] }
+/** A unit of a feature held for one in-flight action. Confirm it when the action commits, release it otherwise. */
+export interface BillingHold { lockId: string; feature: BillingFeature }
 
 /** Reusable billing mechanics. Policy (who is exempt, which feature gates what) lives in metering.ts. */
 export interface BillingProvider {
-  check(customer: BillingCustomer, feature: BillingFeature, required?: number): Promise<BillingAccess>
+  /** Checks and, when allowed, consumes one unit atomically. Concurrent callers cannot both pass on the last unit. */
+  consume(customer: BillingCustomer, feature: BillingFeature): Promise<BillingAccess>
+  /** Checks and, when allowed, holds one unit atomically until finalize() or the hold expires. */
+  hold(customer: BillingCustomer, feature: BillingFeature): Promise<BillingAccess & { hold: BillingHold | null }>
+  finalize(hold: BillingHold, action: "confirm" | "release"): Promise<void>
   track(customer: BillingCustomer, feature: BillingFeature, value: number, idempotencyKey: string): Promise<void>
   usage(customer: BillingCustomer): Promise<BillingUsage>
   checkout(customer: BillingCustomer, planId: BillingPlan, successUrl?: string): Promise<{ paymentUrl: string | null }>
 }
+/** Holds release themselves after this long if the Worker never finalizes them. */
+export const holdLifetimeMs = 10 * 60 * 1000
 
 const unavailable = () => new MailError("Billing is temporarily unavailable. Retry shortly.", "billing_unavailable", 503, true)
 const optionalNumber = z.number().nullable().optional()
@@ -111,10 +119,19 @@ export function autumnBilling(secretKey: string, request: typeof fetch = fetch, 
       throw rethrow(error)
     }
   }
+  const check = async (customer: BillingCustomer, feature: BillingFeature, extra: Record<string, unknown>) => {
+    const result = await withCustomer(customer, () => call("balances.check", { ...identity(customer), feature_id: feature, required_balance: 1, ...extra }, checkResponse))
+    return { allowed: result.allowed, balance: result.balance ? balanceView(result.balance) : null }
+  }
   return {
-    async check(customer, feature, required = 1) {
-      const result = await withCustomer(customer, () => call("balances.check", { ...identity(customer), feature_id: feature, required_balance: required }, checkResponse))
-      return { allowed: result.allowed, balance: result.balance ? balanceView(result.balance) : null }
+    consume: (customer, feature) => check(customer, feature, { send_event: true }),
+    async hold(customer, feature) {
+      const lockId = crypto.randomUUID()
+      const access = await check(customer, feature, { send_event: true, lock: { enabled: true, lock_id: lockId, expires_at: Date.now() + holdLifetimeMs } })
+      return { ...access, hold: access.allowed ? { lockId, feature } : null }
+    },
+    async finalize(hold, action) {
+      await call("balances.finalize", { lock_id: hold.lockId, action }, z.unknown()).catch(failWith)
     },
     async track(customer, feature, value, idempotencyKey) {
       try {

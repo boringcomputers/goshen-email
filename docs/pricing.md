@@ -51,31 +51,39 @@ decision.
 
 ## What the Worker meters
 
-| Feature id | Checked at | Recorded at | Enforced in this release |
+| Feature id | Held or consumed at | Settled at | Enforced in this release |
 | --- | --- | --- | --- |
-| `inboxes` | `createInbox`, before provisioning a new address | after provisioning (+1) and after `deleteInbox` (-1) | yes |
-| `sends` | `send` and `reply`, before the idempotency reservation | after the message is committed | yes |
-| `triage` | when an incoming message is stored | after Jev returns a result | yes |
+| `inboxes` | `createInbox` holds one unit before provisioning a new address | confirmed after provisioning, released if it fails; `deleteInbox` credits one back | yes |
+| `sends` | `send` and `reply` hold one unit before the idempotency reservation | confirmed after the message is committed, released on every other exit | yes |
+| `triage` | consumed when an incoming message is stored; for quarantined mail, when it is released | refunded if the analysis ends in failure | yes |
 | `custom_domains` | not yet; domain operations are administrator-only today | | no |
 | `storage_mb` | not yet | | no |
 | `seats` | not yet; accounts have one member | | no |
 
 Design points:
 
-- The send check runs before a reservation exists. A denied send leaves no
+- Checks and deductions are one atomic step. Sends and inbox creation use
+  Autumn balance locks: `check` with `send_event` and a `lock` holds the unit,
+  and `balances.finalize` confirms or releases it. Two requests cannot both
+  pass on the last unit. A hold the Worker never finalizes expires after ten
+  minutes and releases itself.
+- The send hold happens before a reservation exists. A denied send leaves no
   row, so the same `idempotencyKey` succeeds after the customer upgrades. A key
-  that already has a reservation skips the check, so retries of a completed
-  send return its result even when the allowance is spent.
-- Recording uses Autumn idempotency keys (`send:<inbox>:<key>`,
-  `inbox:<id>:create`, `triage:<message>`), so a retried request cannot count
-  twice. A send the provider rejected is not recorded.
+  whose reservation will be answered as-is (sent, pending, or failed for good)
+  skips the hold, so retries of a completed send return its result even when
+  the allowance is spent. Failures that `reserve_send` lets the caller retry
+  (`rate_limited`, `attachment_storage_error`) are checked again on retry.
+- A send is charged only when its message is committed. Rejected sends,
+  attachment storage failures, and uncertain outcomes release the hold.
 - Checks fail closed. If Autumn does not answer, metered operations return
   `billing_unavailable` (503, `transient: true`) and nothing is written.
-  Recording failures after a successful action are swallowed: the customer's
-  action already happened, and a lost usage event costs us, not them.
-- Triage is checked when the message arrives and recorded when the analysis
-  finishes, so a burst of mail can run a few analyses past the allowance. That
-  is accepted; the alternative would charge for analyses that failed.
+  Settlement failures after the action is decided are swallowed: the
+  customer's action already happened, and a hold that fails to confirm
+  expires in our favour, not theirs.
+- Triage consumes its unit at receipt so a burst of mail cannot overspend. An
+  analysis that ends in `failed` refunds the unit with a negative usage event.
+  Quarantined mail is not charged unless someone releases it; a release with
+  no allowance left drops the pending analysis instead of running it unpaid.
 - Administrators listed in `DASHBOARD_ADMIN_EMAILS` are exempt from every
   check and are never created in Autumn.
 - Inboxes provisioned with the platform token rather than an account are not
@@ -112,6 +120,8 @@ backfill script are follow-up work.
 `apps/email/test/billing.test.ts` runs the Worker against an in-memory Autumn
 double (`apps/email/test/autumn-fixture.ts`) with small allowances. It covers
 the inbox cap and retry path, send denial before reservation and success after
-a top-up, no charge for rejected sends, mailbox-key sends, provider outage,
-administrator exemption, triage skipping, `getUsage` through REST, SDK, CLI,
-and MCP, and checkout from the dashboard. No test contacts Autumn or Stripe.
+a top-up, one winner among simultaneous sends on the last unit, a retried
+storage failure being checked again, no charge for rejected sends, mailbox-key
+sends, provider outage, administrator exemption, triage consumption and refund,
+quarantine release, `getUsage` through REST, SDK, CLI, and MCP, and checkout
+from the dashboard. No test contacts Autumn or Stripe.
