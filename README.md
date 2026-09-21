@@ -37,6 +37,17 @@ scope and remaining gaps. These additions require the documented migration and
 deployment; packages are not yet published to registries.
 Bezalel's billing, approval policies, and analytics stay in Bezalel.
 
+## Documentation site
+
+Public docs live at <https://goshenemail.com/docs>. The dashboard Worker serves
+them as fixed assets. Sources are Markdown pages in `apps/email-dashboard/docs/`
+with a title and description in front matter; `scripts/build-docs.mjs` renders
+them and generates one API reference page per operation from `docs/openapi.json`,
+plus a `.md` twin for every page and `/docs/llms.txt` for agents. The output in
+`apps/email-dashboard/public/docs/` and the route list in `src/docs-assets.mjs`
+are committed. After editing a page or the contract, run `pnpm docs:generate`;
+`pnpm check` fails when the committed output is out of date.
+
 ## Homepage
 
 The root page uses Fancy's **Bezalel Email Landing** layout from

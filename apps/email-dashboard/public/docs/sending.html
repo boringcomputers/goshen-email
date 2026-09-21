@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description" content="Sends and replies are idempotent by design. Learn how to retry safely, what the limits are, and how to read delivery outcomes.">
+  <title>Sending mail | Goshen Email docs</title>
+  <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
+  <link rel="alternate" type="text/markdown" href="/docs/sending.md">
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/site-header.css">
+  <link rel="stylesheet" href="/docs.css">
+  <script src="/docs.js" defer></script>
+</head>
+<body>
+  <a href="#docs-content" class="skip-link">Skip to content</a>
+  <header class="site-header">
+  <a href="/" aria-label="Goshen Email home" class="brand">
+    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon"><path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path><circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle></svg>
+    <span class="brand-name">Goshen Email</span>
+  </a>
+  <nav aria-label="Main navigation" class="site-nav">
+    <a href="/#product" class="site-header-product">Product</a>
+    <a href="/docs" class="site-header-product" aria-current="page">Docs</a>
+    <a href="/docs/api" class="site-header-product">API reference</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="/app" class="site-header-log-in">Log in</a>
+    <a href="/app" class="site-header-start-free"><span class="site-header-start-free-2">Get started</span></a>
+  </div>
+</header>
+  <div class="docs-layout">
+    <nav class="docs-nav" aria-label="Documentation"><button type="button" class="docs-nav-toggle" aria-expanded="false" aria-controls="docs-nav-list">Menu</button><div id="docs-nav-list" class="docs-nav-list"><section><h2>Getting started</h2><ul><li><a href="/docs/introduction">Introduction</a></li><li><a href="/docs/quickstart">Quickstart</a></li></ul></section><section><h2>Core concepts</h2><ul><li><a href="/docs/inboxes">Inboxes</a></li><li><a href="/docs/messages">Messages</a></li><li><a href="/docs/threads">Threads</a></li><li><a href="/docs/labels">Labels</a></li><li><a href="/docs/attachments">Attachments</a></li><li><a href="/docs/groups">Groups</a></li><li><a href="/docs/quarantine">Quarantine</a></li><li><a href="/docs/triage">Triage</a></li></ul></section><section><h2>Guides</h2><ul><li><a href="/docs/authentication">Authentication and API keys</a></li><li><a href="/docs/sending" aria-current="page">Sending mail</a></li><li><a href="/docs/pagination">Pagination</a></li><li><a href="/docs/webhooks">Webhooks and polling</a></li><li><a href="/docs/custom-domains">Custom domains</a></li><li><a href="/docs/dashboard">Dashboard</a></li><li><a href="/docs/agents">Building agents on email</a></li></ul></section><section><h2>Integrations</h2><ul><li><a href="/docs/typescript">TypeScript and JavaScript SDK</a></li><li><a href="/docs/python">Python SDK</a></li><li><a href="/docs/cli">CLI</a></li><li><a href="/docs/mcp">MCP server</a></li></ul></section><section><h2>Reference</h2><ul><li><a href="/docs/api">API overview</a></li><li><a href="/docs/errors">Errors</a></li><li><a href="/docs/limits">Limits</a></li></ul></section><section><h2>API: Inboxes</h2><ul><li><a href="/docs/api/list-inboxes">List inboxes</a></li><li><a href="/docs/api/create-inbox">Create an inbox</a></li><li><a href="/docs/api/get-inbox">Get an inbox</a></li><li><a href="/docs/api/update-inbox">Update an inbox</a></li><li><a href="/docs/api/delete-inbox">Delete an inbox</a></li><li><a href="/docs/api/finish-inbox-setup">Finish inbox setup</a></li></ul></section><section><h2>API: Messages</h2><ul><li><a href="/docs/api/list-messages">List messages</a></li><li><a href="/docs/api/search-messages">Search messages</a></li><li><a href="/docs/api/get-message">Get a message</a></li><li><a href="/docs/api/send">Send a message</a></li><li><a href="/docs/api/reply">Reply to a message</a></li><li><a href="/docs/api/update-message-labels">Update message labels</a></li><li><a href="/docs/api/get-attachment">Get an attachment</a></li></ul></section><section><h2>API: Threads</h2><ul><li><a href="/docs/api/list-threads">List threads</a></li><li><a href="/docs/api/get-thread">Get a thread</a></li><li><a href="/docs/api/update-thread-labels">Update thread labels</a></li></ul></section></div></nav>
+    <main id="docs-content" class="docs-content">
+      <p class="docs-crumbs">Guides</p>
+      <h1>Sending mail</h1>
+      <p class="lede">Sends and replies are idempotent by design. Learn how to retry safely, what the limits are, and how to read delivery outcomes.</p>
+      <h2 id="the-idempotency-key">The idempotency key</h2>
+<p>Every <code>send</code> and <code>reply</code> requires an <code>idempotencyKey</code>, a string of 1 to 200 characters that you generate. Goshen Email uses it to make sure one intended email is sent at most once:</p>
+<ul>
+<li>A new intended email gets a new key. A UUID is a good choice.</li>
+<li>If the request times out, the connection drops, or you get a 5xx, retry with the <strong>same key and the same contents</strong>. The server returns the original result, and <code>deduplicated: true</code> tells you it was a replay.</li>
+<li>Never mint a new key because a response was lost. That is how duplicate emails happen.</li>
+<li>A retry with the same key but different contents is refused with <code>idempotency_conflict</code> (409).</li>
+</ul>
+<pre><code class="language-ts">// Save the key before the first attempt so a crash and restart can still retry safely.
+const idempotencyKey = crypto.randomUUID()
+await saveDraftKey(taskId, idempotencyKey)
+await email.messages.send({ inboxId, to, subject, text, idempotencyKey })</code></pre>
+<p>REST callers may pass the key in an <code>Idempotency-Key</code> header instead of the body. If both are present they must match.</p>
+<p>The clients never retry on their own. A <code>network_error</code> from the SDK means the outcome is unknown; it is your signal to retry with the saved key, not proof that the send failed.</p>
+<h2 id="send">Send</h2>
+<p><code>POST /v1/inboxes/{inboxId}/messages/send</code></p>
+<div class="table-scroll"><table><thead><tr><th>Field</th><th>Notes</th></tr></thead><tbody><tr><td><code>to</code></td><td>Required. 1 to 50 addresses.</td></tr><tr><td><code>cc</code>, <code>bcc</code></td><td>Optional. The total across <code>to</code>, <code>cc</code>, and <code>bcc</code> is capped at 50.</td></tr><tr><td><code>subject</code></td><td>Up to 998 characters, no line breaks. Defaults to empty.</td></tr><tr><td><code>text</code>, <code>html</code></td><td>At least one is required. Together they must fit in 512 KiB.</td></tr><tr><td><code>attachments</code></td><td>Up to 10 files, 2 MiB combined. See <a href="/docs/attachments">Attachments</a>.</td></tr><tr><td><code>labels</code></td><td>Up to 50 labels to apply to the sent message.</td></tr><tr><td><code>idempotencyKey</code></td><td>Required.</td></tr></tbody></table></div>
+<p>The response is <code>{ &quot;messageId&quot;, &quot;threadId&quot;, &quot;deduplicated&quot;? }</code>. The message appears in the inbox with the <code>sent</code> label right away; delivery happens asynchronously.</p>
+<p>The sender name on outgoing mail is the inbox&#39;s <code>displayName</code>; the address is the inbox address.</p>
+<h2 id="reply">Reply</h2>
+<p><code>POST /v1/inboxes/{inboxId}/messages/{messageId}/reply</code></p>
+<p>A reply keeps the thread. By default it goes to the original sender, or to the <code>Reply-To</code> address when the sender set one; replying to a message the inbox itself sent addresses that message&#39;s recipients. Set <code>replyAll: true</code> to also <code>cc</code> everyone else on the original message, or pass your own <code>to</code>, <code>cc</code>, and <code>bcc</code>. The inbox&#39;s own address is never added. Body, attachments, labels, and <code>idempotencyKey</code> work as in <code>send</code>.</p>
+<p>You cannot reply to a quarantined message (<code>message_quarantined</code>, 403) until a person releases it.</p>
+<h2 id="limits">Limits</h2>
+<div class="table-scroll"><table><thead><tr><th>Limit</th><th>Value</th></tr></thead><tbody><tr><td>Recipients per message</td><td>50 across <code>to</code>, <code>cc</code>, and <code>bcc</code></td></tr><tr><td>Body size</td><td>512 KiB, <code>text</code> and <code>html</code> combined</td></tr><tr><td>Attachments</td><td>10 files, 2 MiB combined</td></tr><tr><td>Subject</td><td>998 characters</td></tr><tr><td>Sends per inbox</td><td>250 in any rolling 24-hour window by default</td></tr></tbody></table></div>
+<p>Hitting the send limit returns <code>rate_limited</code> (429) with <code>transient: true</code>. Wait and retry with the same idempotency key; the send is not lost. See <a href="/docs/limits">Limits</a>.</p>
+<h2 id="delivery-outcomes">Delivery outcomes</h2>
+<p>Sending returns as soon as the message is accepted for delivery. The recipient&#39;s server answers later, and that answer is recorded on the message as <code>delivery</code> with one entry per recipient:</p>
+<div class="table-scroll"><table><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody><tr><td><code>queued</code>, <code>accepted</code></td><td>Handed to the outbound path; no remote answer yet</td></tr><tr><td><code>delivered</code></td><td>The recipient&#39;s server accepted the message (SMTP 250)</td></tr><tr><td><code>deferred</code></td><td>The remote server asked us to try again later</td></tr><tr><td><code>bounced</code></td><td>The remote server rejected it permanently; see <code>reason</code> and the SMTP codes</td></tr><tr><td><code>failed</code>, <code>rejected</code></td><td>Delivery could not be completed</td></tr><tr><td><code>complained</code></td><td>The recipient reported the message as spam</td></tr></tbody></table></div>
+<p><code>delivered</code> means the receiving server took the message, not that it reached the inbox or was read. The dashboard shows the same outcomes on each sent message.</p>
+<h2 id="pending-sends">Pending sends</h2>
+<p>If a send is still being processed when you retry, the API answers <code>send_pending</code> (409). The first request is in flight; wait a moment and retry with the same key.</p>
+<h2 id="only-send-when-authorized">Only send when authorized</h2>
+<p>The API description says it plainly: send an email only when the user has authorized it. Email is external, permanent, and reputation-affecting. An agent that composes mail should hand the draft to a person or an explicit policy before it calls <code>send</code>. See <a href="/docs/agents">Building agents on email</a>.</p>
+
+      <nav class="docs-pager" aria-label="Previous and next">
+        <a href="/docs/authentication" rel="prev"><span>Previous</span>Authentication and API keys</a>
+        <a href="/docs/pagination" rel="next"><span>Next</span>Pagination</a>
+      </nav>
+      <p class="docs-footer">Markdown for agents: <a href="/docs/sending.md">/docs/sending.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
+    </main>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#the-idempotency-key">The idempotency key</a></li><li><a href="#send">Send</a></li><li><a href="#reply">Reply</a></li><li><a href="#limits">Limits</a></li><li><a href="#delivery-outcomes">Delivery outcomes</a></li><li><a href="#pending-sends">Pending sends</a></li><li><a href="#only-send-when-authorized">Only send when authorized</a></li></ul></aside>
+  </div>
+</body>
+</html>

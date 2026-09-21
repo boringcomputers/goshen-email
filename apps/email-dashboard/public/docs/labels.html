@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description" content="Labels mark state on messages and threads. Five are set by Goshen Email; the rest are yours.">
+  <title>Labels | Goshen Email docs</title>
+  <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
+  <link rel="alternate" type="text/markdown" href="/docs/labels.md">
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/site-header.css">
+  <link rel="stylesheet" href="/docs.css">
+  <script src="/docs.js" defer></script>
+</head>
+<body>
+  <a href="#docs-content" class="skip-link">Skip to content</a>
+  <header class="site-header">
+  <a href="/" aria-label="Goshen Email home" class="brand">
+    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon"><path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path><circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle></svg>
+    <span class="brand-name">Goshen Email</span>
+  </a>
+  <nav aria-label="Main navigation" class="site-nav">
+    <a href="/#product" class="site-header-product">Product</a>
+    <a href="/docs" class="site-header-product" aria-current="page">Docs</a>
+    <a href="/docs/api" class="site-header-product">API reference</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="/app" class="site-header-log-in">Log in</a>
+    <a href="/app" class="site-header-start-free"><span class="site-header-start-free-2">Get started</span></a>
+  </div>
+</header>
+  <div class="docs-layout">
+    <nav class="docs-nav" aria-label="Documentation"><button type="button" class="docs-nav-toggle" aria-expanded="false" aria-controls="docs-nav-list">Menu</button><div id="docs-nav-list" class="docs-nav-list"><section><h2>Getting started</h2><ul><li><a href="/docs/introduction">Introduction</a></li><li><a href="/docs/quickstart">Quickstart</a></li></ul></section><section><h2>Core concepts</h2><ul><li><a href="/docs/inboxes">Inboxes</a></li><li><a href="/docs/messages">Messages</a></li><li><a href="/docs/threads">Threads</a></li><li><a href="/docs/labels" aria-current="page">Labels</a></li><li><a href="/docs/attachments">Attachments</a></li><li><a href="/docs/groups">Groups</a></li><li><a href="/docs/quarantine">Quarantine</a></li><li><a href="/docs/triage">Triage</a></li></ul></section><section><h2>Guides</h2><ul><li><a href="/docs/authentication">Authentication and API keys</a></li><li><a href="/docs/sending">Sending mail</a></li><li><a href="/docs/pagination">Pagination</a></li><li><a href="/docs/webhooks">Webhooks and polling</a></li><li><a href="/docs/custom-domains">Custom domains</a></li><li><a href="/docs/dashboard">Dashboard</a></li><li><a href="/docs/agents">Building agents on email</a></li></ul></section><section><h2>Integrations</h2><ul><li><a href="/docs/typescript">TypeScript and JavaScript SDK</a></li><li><a href="/docs/python">Python SDK</a></li><li><a href="/docs/cli">CLI</a></li><li><a href="/docs/mcp">MCP server</a></li></ul></section><section><h2>Reference</h2><ul><li><a href="/docs/api">API overview</a></li><li><a href="/docs/errors">Errors</a></li><li><a href="/docs/limits">Limits</a></li></ul></section><section><h2>API: Inboxes</h2><ul><li><a href="/docs/api/list-inboxes">List inboxes</a></li><li><a href="/docs/api/create-inbox">Create an inbox</a></li><li><a href="/docs/api/get-inbox">Get an inbox</a></li><li><a href="/docs/api/update-inbox">Update an inbox</a></li><li><a href="/docs/api/delete-inbox">Delete an inbox</a></li><li><a href="/docs/api/finish-inbox-setup">Finish inbox setup</a></li></ul></section><section><h2>API: Messages</h2><ul><li><a href="/docs/api/list-messages">List messages</a></li><li><a href="/docs/api/search-messages">Search messages</a></li><li><a href="/docs/api/get-message">Get a message</a></li><li><a href="/docs/api/send">Send a message</a></li><li><a href="/docs/api/reply">Reply to a message</a></li><li><a href="/docs/api/update-message-labels">Update message labels</a></li><li><a href="/docs/api/get-attachment">Get an attachment</a></li></ul></section><section><h2>API: Threads</h2><ul><li><a href="/docs/api/list-threads">List threads</a></li><li><a href="/docs/api/get-thread">Get a thread</a></li><li><a href="/docs/api/update-thread-labels">Update thread labels</a></li></ul></section></div></nav>
+    <main id="docs-content" class="docs-content">
+      <p class="docs-crumbs">Core concepts</p>
+      <h1>Labels</h1>
+      <p class="lede">Labels mark state on messages and threads. Five are set by Goshen Email; the rest are yours.</p>
+      <h2 id="system-labels">System labels</h2>
+<div class="table-scroll"><table><thead><tr><th>Label</th><th>Set when</th></tr></thead><tbody><tr><td><code>received</code></td><td>The message arrived from outside.</td></tr><tr><td><code>sent</code></td><td>The inbox sent the message.</td></tr><tr><td><code>unread</code></td><td>The message arrived and nobody has removed the label yet.</td></tr><tr><td><code>trash</code></td><td>The message or thread was moved to Trash. Trashed mail is hidden from lists unless you ask for it.</td></tr><tr><td><code>quarantined</code></td><td>The scanner held the message. Only a person can release it from the dashboard. See <a href="/docs/quarantine">Quarantine</a>.</td></tr></tbody></table></div>
+<p><code>quarantined</code> is the one label no API key can add or remove; the request fails with <code>quarantine_review_required</code>. <code>received</code> and <code>sent</code> are set by Goshen Email when mail arrives or leaves. The API does not stop you from removing them, but the dashboard&#39;s Inbox and Sent views depend on them, so leave them alone. <code>unread</code> and <code>trash</code> are meant to be changed.</p>
+<h2 id="your-labels">Your labels</h2>
+<p>Any other label is yours to define. Labels are 1 to 64 characters. A message can carry up to 50 labels when sent. Typical uses:</p>
+<ul>
+<li><strong>Workflow state.</strong> <code>needs-human</code>, <code>awaiting-vendor</code>, <code>done</code>.</li>
+<li><strong>Campaign or task.</strong> <code>q3-outreach</code>, <code>ticket-4821</code>.</li>
+<li><strong>Classification your agent made.</strong> <code>invoice</code>, <code>newsletter</code>, <code>spam-suspect</code>.</li>
+</ul>
+<p>Labels are free text, so decide on a vocabulary before your agents start inventing their own.</p>
+<h2 id="adding-and-removing-labels">Adding and removing labels</h2>
+<p>On a message:</p>
+<pre><code class="language-sh">curl &quot;https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages/%3Cid%40example.net%3E/labels&quot; \
+  -H &quot;Authorization: Bearer $BEZALEL_API_KEY&quot; -X PATCH \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#39;{&quot;addLabels&quot;:[&quot;invoice&quot;,&quot;needs-human&quot;],&quot;removeLabels&quot;:[&quot;unread&quot;]}&#39;</code></pre>
+<p>On a thread, <code>PATCH /v1/inboxes/{inboxId}/threads/{threadId}/labels</code> takes the same body and applies to every message in the thread.</p>
+<p>Both operations need the <code>messages:write</code> scope. They return an empty 200 on success.</p>
+<h2 id="labels-on-outgoing-mail">Labels on outgoing mail</h2>
+<p><code>send</code> and <code>reply</code> accept a <code>labels</code> array so a message is tagged from the moment it leaves. The <code>sent</code> label is added regardless.</p>
+<h2 id="filtering-by-label">Filtering by label</h2>
+<p><code>listMessages</code> and <code>listThreads</code> take <code>labels</code> as a repeated query parameter and return items that carry every label given:</p>
+<pre><code class="language-sh">curl &quot;https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages?labels=received&amp;labels=invoice&quot; \
+  -H &quot;Authorization: Bearer $BEZALEL_API_KEY&quot;</code></pre>
+<h2 id="in-the-dashboard">In the dashboard</h2>
+<p>The dashboard shows labels on each conversation and lets you add or remove them, move mail to Trash, and mark it read. Inbox, Sent, All mail, Quarantine, and Trash are views over these labels, not separate folders.</p>
+
+      <nav class="docs-pager" aria-label="Previous and next">
+        <a href="/docs/threads" rel="prev"><span>Previous</span>Threads</a>
+        <a href="/docs/attachments" rel="next"><span>Next</span>Attachments</a>
+      </nav>
+      <p class="docs-footer">Markdown for agents: <a href="/docs/labels.md">/docs/labels.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
+    </main>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#system-labels">System labels</a></li><li><a href="#your-labels">Your labels</a></li><li><a href="#adding-and-removing-labels">Adding and removing labels</a></li><li><a href="#labels-on-outgoing-mail">Labels on outgoing mail</a></li><li><a href="#filtering-by-label">Filtering by label</a></li><li><a href="#in-the-dashboard">In the dashboard</a></li></ul></aside>
+  </div>
+</body>
+</html>

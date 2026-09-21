@@ -99,6 +99,7 @@ Use Node.js 24 and pnpm 10.15.1.
 | `pnpm test:postgres` | The Worker's PostgreSQL suite; needs `TEST_DATABASE_URL` for a disposable local database |
 | `pnpm source:check` | Verifies `SOURCE.json` against the extracted Bezalel files |
 | `pnpm api:generate` | Regenerates the OpenAPI document, SDK types, and CLI and MCP schemas after a contract change |
+| `pnpm docs:generate` | Regenerates the public docs site under `apps/email-dashboard/public/docs/` from the Markdown pages and the OpenAPI document; `pnpm check` fails on drift |
 | `pnpm dev` and `pnpm dev:worker` | Local dashboard, and the local Worker on port 8788 |
 
 A successful test run on `main` deploys the API Worker, then the native Worker, then the dashboard. That job does not apply SQL. Apply reviewed schema changes before the code that needs them reaches `main`. `pnpm deploy:worker` and `pnpm deploy:dashboard` still deploy by hand.

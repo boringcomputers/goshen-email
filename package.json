@@ -19,6 +19,8 @@
     "source:check": "node scripts/verify-source.mjs",
     "deploy:dashboard": "pnpm --filter @bezalel/email-dashboard run deploy",
     "api:generate": "pnpm --filter @bezalel/email api:generate",
-    "api:check": "pnpm --filter @bezalel/email api:check"
+    "api:check": "pnpm --filter @bezalel/email api:check",
+    "docs:generate": "pnpm --filter @bezalel/email-dashboard docs:generate",
+    "docs:check": "pnpm --filter @bezalel/email-dashboard docs:check"
   }
 }

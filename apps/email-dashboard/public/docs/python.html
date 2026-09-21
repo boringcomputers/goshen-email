@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description" content="A synchronous client for Python 3.10 and later, built on the standard library. One method per API operation.">
+  <title>Python SDK | Goshen Email docs</title>
+  <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
+  <link rel="alternate" type="text/markdown" href="/docs/python.md">
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/site-header.css">
+  <link rel="stylesheet" href="/docs.css">
+  <script src="/docs.js" defer></script>
+</head>
+<body>
+  <a href="#docs-content" class="skip-link">Skip to content</a>
+  <header class="site-header">
+  <a href="/" aria-label="Goshen Email home" class="brand">
+    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon"><path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path><circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle></svg>
+    <span class="brand-name">Goshen Email</span>
+  </a>
+  <nav aria-label="Main navigation" class="site-nav">
+    <a href="/#product" class="site-header-product">Product</a>
+    <a href="/docs" class="site-header-product" aria-current="page">Docs</a>
+    <a href="/docs/api" class="site-header-product">API reference</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="/app" class="site-header-log-in">Log in</a>
+    <a href="/app" class="site-header-start-free"><span class="site-header-start-free-2">Get started</span></a>
+  </div>
+</header>
+  <div class="docs-layout">
+    <nav class="docs-nav" aria-label="Documentation"><button type="button" class="docs-nav-toggle" aria-expanded="false" aria-controls="docs-nav-list">Menu</button><div id="docs-nav-list" class="docs-nav-list"><section><h2>Getting started</h2><ul><li><a href="/docs/introduction">Introduction</a></li><li><a href="/docs/quickstart">Quickstart</a></li></ul></section><section><h2>Core concepts</h2><ul><li><a href="/docs/inboxes">Inboxes</a></li><li><a href="/docs/messages">Messages</a></li><li><a href="/docs/threads">Threads</a></li><li><a href="/docs/labels">Labels</a></li><li><a href="/docs/attachments">Attachments</a></li><li><a href="/docs/groups">Groups</a></li><li><a href="/docs/quarantine">Quarantine</a></li><li><a href="/docs/triage">Triage</a></li></ul></section><section><h2>Guides</h2><ul><li><a href="/docs/authentication">Authentication and API keys</a></li><li><a href="/docs/sending">Sending mail</a></li><li><a href="/docs/pagination">Pagination</a></li><li><a href="/docs/webhooks">Webhooks and polling</a></li><li><a href="/docs/custom-domains">Custom domains</a></li><li><a href="/docs/dashboard">Dashboard</a></li><li><a href="/docs/agents">Building agents on email</a></li></ul></section><section><h2>Integrations</h2><ul><li><a href="/docs/typescript">TypeScript and JavaScript SDK</a></li><li><a href="/docs/python" aria-current="page">Python SDK</a></li><li><a href="/docs/cli">CLI</a></li><li><a href="/docs/mcp">MCP server</a></li></ul></section><section><h2>Reference</h2><ul><li><a href="/docs/api">API overview</a></li><li><a href="/docs/errors">Errors</a></li><li><a href="/docs/limits">Limits</a></li></ul></section><section><h2>API: Inboxes</h2><ul><li><a href="/docs/api/list-inboxes">List inboxes</a></li><li><a href="/docs/api/create-inbox">Create an inbox</a></li><li><a href="/docs/api/get-inbox">Get an inbox</a></li><li><a href="/docs/api/update-inbox">Update an inbox</a></li><li><a href="/docs/api/delete-inbox">Delete an inbox</a></li><li><a href="/docs/api/finish-inbox-setup">Finish inbox setup</a></li></ul></section><section><h2>API: Messages</h2><ul><li><a href="/docs/api/list-messages">List messages</a></li><li><a href="/docs/api/search-messages">Search messages</a></li><li><a href="/docs/api/get-message">Get a message</a></li><li><a href="/docs/api/send">Send a message</a></li><li><a href="/docs/api/reply">Reply to a message</a></li><li><a href="/docs/api/update-message-labels">Update message labels</a></li><li><a href="/docs/api/get-attachment">Get an attachment</a></li></ul></section><section><h2>API: Threads</h2><ul><li><a href="/docs/api/list-threads">List threads</a></li><li><a href="/docs/api/get-thread">Get a thread</a></li><li><a href="/docs/api/update-thread-labels">Update thread labels</a></li></ul></section></div></nav>
+    <main id="docs-content" class="docs-content">
+      <p class="docs-crumbs">Integrations</p>
+      <h1>Python SDK</h1>
+      <p class="lede">A synchronous client for Python 3.10 and later, built on the standard library. One method per API operation.</p>
+      <h2 id="availability">Availability</h2>
+<p>The package is <code>bezalel_email</code>. It is built from the Goshen Email repository and is not yet published to PyPI. From a checkout, <code>python3 -m pip install ./packages/email-python</code> installs it. It has no third-party dependencies. The <a href="/docs/api">REST API</a> works from <code>requests</code>, <code>httpx</code>, or <code>urllib</code> in the meantime.</p>
+<h2 id="create-a-client">Create a client</h2>
+<pre><code class="language-python">import os
+from bezalel_email import BezalelEmail
+
+email = BezalelEmail(
+    api_key=os.environ[&#39;BEZALEL_API_KEY&#39;],
+    base_url=os.environ.get(&#39;BEZALEL_BASE_URL&#39;, &#39;https://bezalel-email-standalone.michaelwasihun96.workers.dev&#39;),
+    timeout=30,  # seconds, default
+)</code></pre>
+<p><code>base_url</code> must be an HTTPS origin (HTTP is allowed only on loopback for local development). <code>timeout</code> is between 0 and 300 seconds. The client is synchronous; wrap calls in a thread pool if you need concurrency.</p>
+<h2 id="methods">Methods</h2>
+<p>Keyword arguments use snake case. Responses are plain dictionaries with the API&#39;s camel-case field names.</p>
+<div class="table-scroll"><table><thead><tr><th>Method</th><th>Operation</th></tr></thead><tbody><tr><td><code>email.inboxes.list(**kw)</code></td><td><a href="/docs/api/list-inboxes">List inboxes</a></td></tr><tr><td><code>email.inboxes.create(**kw)</code></td><td><a href="/docs/api/create-inbox">Create an inbox</a></td></tr><tr><td><code>email.inboxes.get(**kw)</code></td><td><a href="/docs/api/get-inbox">Get an inbox</a></td></tr><tr><td><code>email.inboxes.update(**kw)</code></td><td><a href="/docs/api/update-inbox">Update an inbox</a></td></tr><tr><td><code>email.inboxes.delete(**kw)</code></td><td><a href="/docs/api/delete-inbox">Delete an inbox</a></td></tr><tr><td><code>email.inboxes.finish_setup(**kw)</code></td><td><a href="/docs/api/finish-inbox-setup">Finish inbox setup</a></td></tr><tr><td><code>email.messages.list(**kw)</code></td><td><a href="/docs/api/list-messages">List messages</a></td></tr><tr><td><code>email.messages.search(**kw)</code></td><td><a href="/docs/api/search-messages">Search messages</a></td></tr><tr><td><code>email.messages.get(**kw)</code></td><td><a href="/docs/api/get-message">Get a message</a></td></tr><tr><td><code>email.messages.send(**kw)</code></td><td><a href="/docs/api/send">Send a message</a></td></tr><tr><td><code>email.messages.reply(**kw)</code></td><td><a href="/docs/api/reply">Reply to a message</a></td></tr><tr><td><code>email.messages.update_labels(**kw)</code></td><td><a href="/docs/api/update-message-labels">Update message labels</a></td></tr><tr><td><code>email.messages.get_attachment(**kw)</code></td><td><a href="/docs/api/get-attachment">Get an attachment</a></td></tr><tr><td><code>email.threads.list(**kw)</code></td><td><a href="/docs/api/list-threads">List threads</a></td></tr><tr><td><code>email.threads.get(**kw)</code></td><td><a href="/docs/api/get-thread">Get a thread</a></td></tr><tr><td><code>email.threads.update_labels(**kw)</code></td><td><a href="/docs/api/update-thread-labels">Update thread labels</a></td></tr></tbody></table></div>
+<h2 id="example">Example</h2>
+<pre><code class="language-python">import uuid
+
+inbox = email.inboxes.create(username=&#39;research&#39;, group=&#39;agents&#39;)
+
+idempotency_key = str(uuid.uuid4())  # store it before sending
+email.messages.send(
+    inbox_id=inbox[&#39;inboxId&#39;], to=[&#39;vendor@example.net&#39;], subject=&#39;Quote request&#39;,
+    text=&#39;Could you send the current quote for 200 units?&#39;, idempotency_key=idempotency_key,
+)
+
+page = email.messages.list(inbox_id=inbox[&#39;inboxId&#39;], labels=[&#39;received&#39;, &#39;unread&#39;], limit=20)
+for message in page[&#39;messages&#39;]:
+    print(message[&#39;from&#39;], message[&#39;subject&#39;])
+    email.messages.update_labels(inbox_id=inbox[&#39;inboxId&#39;], message_id=message[&#39;messageId&#39;], remove_labels=[&#39;unread&#39;])</code></pre>
+<h2 id="paging">Paging</h2>
+<pre><code class="language-python">for page in email.pages(&#39;listThreads&#39;, inbox_id=inbox[&#39;inboxId&#39;], labels=[&#39;unread&#39;]):
+    for thread in page[&#39;threads&#39;]:
+        print(thread[&#39;subject&#39;])</code></pre>
+<p><code>pages</code> takes the operation id in camel case (<code>listInboxes</code>, <code>listMessages</code>, <code>searchMessages</code>, <code>listThreads</code>) and follows <code>nextPageToken</code> until it runs out.</p>
+<h2 id="errors">Errors</h2>
+<p>Failures raise <code>BezalelError</code> with <code>status</code>, <code>code</code>, and <code>transient</code>:</p>
+<pre><code class="language-python">from bezalel_email import BezalelError
+
+try:
+    email.messages.send(...)
+except BezalelError as error:
+    if error.code == &#39;network_error&#39; or error.transient:
+        retry_later_with_same_key()      # outcome unknown, or 429 / 502 / 503
+    else:
+        report(error.code, error.message)  # fix the request</code></pre>
+<p><code>network_error</code> means the request may have reached the server; retry a send with the same <code>idempotency_key</code>. The client never retries on its own.</p>
+
+      <nav class="docs-pager" aria-label="Previous and next">
+        <a href="/docs/typescript" rel="prev"><span>Previous</span>TypeScript and JavaScript SDK</a>
+        <a href="/docs/cli" rel="next"><span>Next</span>CLI</a>
+      </nav>
+      <p class="docs-footer">Markdown for agents: <a href="/docs/python.md">/docs/python.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
+    </main>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#availability">Availability</a></li><li><a href="#create-a-client">Create a client</a></li><li><a href="#methods">Methods</a></li><li><a href="#example">Example</a></li><li><a href="#paging">Paging</a></li><li><a href="#errors">Errors</a></li></ul></aside>
+  </div>
+</body>
+</html>

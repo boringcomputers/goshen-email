@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description" content="Add or remove message labels. Quarantine requires human review in the dashboard.">
+  <title>Update message labels | Goshen Email docs</title>
+  <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
+  <link rel="alternate" type="text/markdown" href="/docs/api/update-message-labels.md">
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/site-header.css">
+  <link rel="stylesheet" href="/docs.css">
+  <script src="/docs.js" defer></script>
+</head>
+<body>
+  <a href="#docs-content" class="skip-link">Skip to content</a>
+  <header class="site-header">
+  <a href="/" aria-label="Goshen Email home" class="brand">
+    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon"><path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path><circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle></svg>
+    <span class="brand-name">Goshen Email</span>
+  </a>
+  <nav aria-label="Main navigation" class="site-nav">
+    <a href="/#product" class="site-header-product">Product</a>
+    <a href="/docs" class="site-header-product" aria-current="page">Docs</a>
+    <a href="/docs/api" class="site-header-product">API reference</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="/app" class="site-header-log-in">Log in</a>
+    <a href="/app" class="site-header-start-free"><span class="site-header-start-free-2">Get started</span></a>
+  </div>
+</header>
+  <div class="docs-layout">
+    <nav class="docs-nav" aria-label="Documentation"><button type="button" class="docs-nav-toggle" aria-expanded="false" aria-controls="docs-nav-list">Menu</button><div id="docs-nav-list" class="docs-nav-list"><section><h2>Getting started</h2><ul><li><a href="/docs/introduction">Introduction</a></li><li><a href="/docs/quickstart">Quickstart</a></li></ul></section><section><h2>Core concepts</h2><ul><li><a href="/docs/inboxes">Inboxes</a></li><li><a href="/docs/messages">Messages</a></li><li><a href="/docs/threads">Threads</a></li><li><a href="/docs/labels">Labels</a></li><li><a href="/docs/attachments">Attachments</a></li><li><a href="/docs/groups">Groups</a></li><li><a href="/docs/quarantine">Quarantine</a></li><li><a href="/docs/triage">Triage</a></li></ul></section><section><h2>Guides</h2><ul><li><a href="/docs/authentication">Authentication and API keys</a></li><li><a href="/docs/sending">Sending mail</a></li><li><a href="/docs/pagination">Pagination</a></li><li><a href="/docs/webhooks">Webhooks and polling</a></li><li><a href="/docs/custom-domains">Custom domains</a></li><li><a href="/docs/dashboard">Dashboard</a></li><li><a href="/docs/agents">Building agents on email</a></li></ul></section><section><h2>Integrations</h2><ul><li><a href="/docs/typescript">TypeScript and JavaScript SDK</a></li><li><a href="/docs/python">Python SDK</a></li><li><a href="/docs/cli">CLI</a></li><li><a href="/docs/mcp">MCP server</a></li></ul></section><section><h2>Reference</h2><ul><li><a href="/docs/api">API overview</a></li><li><a href="/docs/errors">Errors</a></li><li><a href="/docs/limits">Limits</a></li></ul></section><section><h2>API: Inboxes</h2><ul><li><a href="/docs/api/list-inboxes">List inboxes</a></li><li><a href="/docs/api/create-inbox">Create an inbox</a></li><li><a href="/docs/api/get-inbox">Get an inbox</a></li><li><a href="/docs/api/update-inbox">Update an inbox</a></li><li><a href="/docs/api/delete-inbox">Delete an inbox</a></li><li><a href="/docs/api/finish-inbox-setup">Finish inbox setup</a></li></ul></section><section><h2>API: Messages</h2><ul><li><a href="/docs/api/list-messages">List messages</a></li><li><a href="/docs/api/search-messages">Search messages</a></li><li><a href="/docs/api/get-message">Get a message</a></li><li><a href="/docs/api/send">Send a message</a></li><li><a href="/docs/api/reply">Reply to a message</a></li><li><a href="/docs/api/update-message-labels" aria-current="page">Update message labels</a></li><li><a href="/docs/api/get-attachment">Get an attachment</a></li></ul></section><section><h2>API: Threads</h2><ul><li><a href="/docs/api/list-threads">List threads</a></li><li><a href="/docs/api/get-thread">Get a thread</a></li><li><a href="/docs/api/update-thread-labels">Update thread labels</a></li></ul></section></div></nav>
+    <main id="docs-content" class="docs-content">
+      <p class="docs-crumbs">API reference / Messages</p>
+      <h1>Update message labels</h1>
+      <p class="lede">Add or remove message labels. Quarantine requires human review in the dashboard.</p>
+      
+<p class="endpoint"><span class="method method-patch">PATCH</span><code>/v1/inboxes/{inboxId}/messages/{messageId}/labels</code></p>
+
+<p class="scope">Requires an API key with the <code>messages:write</code> scope. MCP tool: <code>update_message_labels</code>. SDK: <code>email.messages.updateLabels()</code>. CLI: <code>bezalel-email messages labels</code>.</p>
+<h2 id="request">Request</h2>
+<h3>Path parameters</h3><div class="table-scroll"><table class="schema"><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead><tbody><tr><td><code>inboxId</code></td><td><code>string (email)</code></td><td>Yes</td><td>up to 254 characters</td></tr><tr><td><code>messageId</code></td><td><code>string</code></td><td>Yes</td><td>1–998 characters</td></tr></tbody></table></div>
+
+<h3>Body</h3><div class="table-scroll"><table class="schema"><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead><tbody><tr><td class="depth-0"><code>addLabels</code></td><td><code>string[]</code></td><td></td><td>up to 50 items, default []</td></tr><tr><td class="depth-0"><code>removeLabels</code></td><td><code>string[]</code></td><td></td><td>up to 50 items, default []</td></tr></tbody></table></div>
+<h2 id="response">Response</h2>
+<p class="muted">None.</p>
+<p>Errors return <code>{ "error": { "code", "message", "transient" } }</code> with a 4xx or 5xx status. See <a href="/docs/errors">Errors</a>.</p>
+<h2 id="examples">Examples</h2>
+<h3>curl</h3>
+<pre><code class="language-sh">curl &quot;https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages/%3C20260920.12345%40agents.goshenemail.com%3E/labels&quot; \
+  -H &quot;Authorization: Bearer $BEZALEL_API_KEY&quot; \
+  -X PATCH \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#39;{
+    &quot;addLabels&quot;: [
+      &quot;reviewed&quot;
+    ],
+    &quot;removeLabels&quot;: [
+      &quot;unread&quot;
+    ]
+  }&#39;</code></pre>
+<h3>TypeScript</h3><pre><code class="language-ts">const result = await email.messages.updateLabels({
+  inboxId: &#39;research@agents.goshenemail.com&#39;,
+  messageId: &#39;&lt;20260920.12345@agents.goshenemail.com&gt;&#39;,
+  addLabels: [
+    &#39;reviewed&#39;
+  ],
+  removeLabels: [
+    &#39;unread&#39;
+  ]
+})</code></pre>
+<h3>Python</h3><pre><code class="language-python">result = email.messages.update_labels(inbox_id=&quot;research@agents.goshenemail.com&quot;, message_id=&quot;&lt;20260920.12345@agents.goshenemail.com&gt;&quot;, add_labels=[&quot;reviewed&quot;], remove_labels=[&quot;unread&quot;])</code></pre>
+<h3>CLI</h3><pre><code class="language-sh">bezalel-email messages labels --json &#39;{&quot;inboxId&quot;:&quot;research@agents.goshenemail.com&quot;,&quot;messageId&quot;:&quot;&lt;20260920.12345@agents.goshenemail.com&gt;&quot;,&quot;addLabels&quot;:[&quot;reviewed&quot;],&quot;removeLabels&quot;:[&quot;unread&quot;]}&#39;</code></pre>
+
+      <nav class="docs-pager" aria-label="Previous and next">
+        <a href="/docs/api/reply" rel="prev"><span>Previous</span>Reply to a message</a>
+        <a href="/docs/api/get-attachment" rel="next"><span>Next</span>Get an attachment</a>
+      </nav>
+      <p class="docs-footer">Markdown for agents: <a href="/docs/api/update-message-labels.md">/docs/api/update-message-labels.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
+    </main>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#request">Request</a></li><li><a href="#response">Response</a></li><li><a href="#examples">Examples</a></li></ul></aside>
+  </div>
+</body>
+</html>

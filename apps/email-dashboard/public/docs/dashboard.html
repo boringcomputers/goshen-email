@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description" content="The same inboxes your agents use, in a browser. Read, reply, review quarantine, manage keys and domains.">
+  <title>Dashboard | Goshen Email docs</title>
+  <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
+  <link rel="alternate" type="text/markdown" href="/docs/dashboard.md">
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/site-header.css">
+  <link rel="stylesheet" href="/docs.css">
+  <script src="/docs.js" defer></script>
+</head>
+<body>
+  <a href="#docs-content" class="skip-link">Skip to content</a>
+  <header class="site-header">
+  <a href="/" aria-label="Goshen Email home" class="brand">
+    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon"><path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path><circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle></svg>
+    <span class="brand-name">Goshen Email</span>
+  </a>
+  <nav aria-label="Main navigation" class="site-nav">
+    <a href="/#product" class="site-header-product">Product</a>
+    <a href="/docs" class="site-header-product" aria-current="page">Docs</a>
+    <a href="/docs/api" class="site-header-product">API reference</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="/app" class="site-header-log-in">Log in</a>
+    <a href="/app" class="site-header-start-free"><span class="site-header-start-free-2">Get started</span></a>
+  </div>
+</header>
+  <div class="docs-layout">
+    <nav class="docs-nav" aria-label="Documentation"><button type="button" class="docs-nav-toggle" aria-expanded="false" aria-controls="docs-nav-list">Menu</button><div id="docs-nav-list" class="docs-nav-list"><section><h2>Getting started</h2><ul><li><a href="/docs/introduction">Introduction</a></li><li><a href="/docs/quickstart">Quickstart</a></li></ul></section><section><h2>Core concepts</h2><ul><li><a href="/docs/inboxes">Inboxes</a></li><li><a href="/docs/messages">Messages</a></li><li><a href="/docs/threads">Threads</a></li><li><a href="/docs/labels">Labels</a></li><li><a href="/docs/attachments">Attachments</a></li><li><a href="/docs/groups">Groups</a></li><li><a href="/docs/quarantine">Quarantine</a></li><li><a href="/docs/triage">Triage</a></li></ul></section><section><h2>Guides</h2><ul><li><a href="/docs/authentication">Authentication and API keys</a></li><li><a href="/docs/sending">Sending mail</a></li><li><a href="/docs/pagination">Pagination</a></li><li><a href="/docs/webhooks">Webhooks and polling</a></li><li><a href="/docs/custom-domains">Custom domains</a></li><li><a href="/docs/dashboard" aria-current="page">Dashboard</a></li><li><a href="/docs/agents">Building agents on email</a></li></ul></section><section><h2>Integrations</h2><ul><li><a href="/docs/typescript">TypeScript and JavaScript SDK</a></li><li><a href="/docs/python">Python SDK</a></li><li><a href="/docs/cli">CLI</a></li><li><a href="/docs/mcp">MCP server</a></li></ul></section><section><h2>Reference</h2><ul><li><a href="/docs/api">API overview</a></li><li><a href="/docs/errors">Errors</a></li><li><a href="/docs/limits">Limits</a></li></ul></section><section><h2>API: Inboxes</h2><ul><li><a href="/docs/api/list-inboxes">List inboxes</a></li><li><a href="/docs/api/create-inbox">Create an inbox</a></li><li><a href="/docs/api/get-inbox">Get an inbox</a></li><li><a href="/docs/api/update-inbox">Update an inbox</a></li><li><a href="/docs/api/delete-inbox">Delete an inbox</a></li><li><a href="/docs/api/finish-inbox-setup">Finish inbox setup</a></li></ul></section><section><h2>API: Messages</h2><ul><li><a href="/docs/api/list-messages">List messages</a></li><li><a href="/docs/api/search-messages">Search messages</a></li><li><a href="/docs/api/get-message">Get a message</a></li><li><a href="/docs/api/send">Send a message</a></li><li><a href="/docs/api/reply">Reply to a message</a></li><li><a href="/docs/api/update-message-labels">Update message labels</a></li><li><a href="/docs/api/get-attachment">Get an attachment</a></li></ul></section><section><h2>API: Threads</h2><ul><li><a href="/docs/api/list-threads">List threads</a></li><li><a href="/docs/api/get-thread">Get a thread</a></li><li><a href="/docs/api/update-thread-labels">Update thread labels</a></li></ul></section></div></nav>
+    <main id="docs-content" class="docs-content">
+      <p class="docs-crumbs">Guides</p>
+      <h1>Dashboard</h1>
+      <p class="lede">The same inboxes your agents use, in a browser. Read, reply, review quarantine, manage keys and domains.</p>
+      <h2 id="signing-in">Signing in</h2>
+<p>Go to <a href="https://goshenemail.com/app">goshenemail.com/app</a>. There is no password. Enter your email address and choose a magic link or a six-digit code; both arrive by email and work once, within ten minutes. A new address creates an account on first sign-in.</p>
+<p>One account owns one workspace. Sign-in is limited to three link or code requests per ten minutes per address.</p>
+<h2 id="inboxes">Inboxes</h2>
+<p>The <strong>Inboxes</strong> page lists every inbox you own with its group and delivery status, and a <strong>Create inbox</strong> button that does what <a href="/docs/api/create-inbox">Create an inbox</a> does. Open an inbox to see its conversations.</p>
+<p>Inside an inbox: <strong>Inbox</strong>, <strong>Sent</strong>, <strong>All mail</strong>, <strong>Quarantine</strong>, and <strong>Trash</strong> are views over <a href="/docs/labels">labels</a>. Search runs the same full-text search as the API. Select a conversation to read it in order, open attachments, add or remove labels, move it to Trash, and reply. Replies you write here and replies your agent sends through the API land in the same thread.</p>
+<p>Compose starts a new conversation from the selected inbox. The dashboard keeps your draft in the open tab and, if a send&#39;s outcome is uncertain, keeps its idempotency key so a retry cannot duplicate the message.</p>
+<h2 id="get-started">Get started</h2>
+<p>A new workspace opens with a guided setup: choose a username on <code>agents.goshenemail.com</code>, create the inbox, copy its address, send it a test message from elsewhere, and confirm arrival. <strong>Check for email</strong> reports only that a message arrived, not its contents. If delivery routing failed, <strong>Retry delivery setup</strong> repeats it for the same reserved address.</p>
+<p>The guide also hands out a mailbox key for a single agent and a <code>curl</code> command that references it from the environment. <strong>Check connection</strong> confirms the first successful request with that key. See <a href="/docs/authentication">Authentication</a>.</p>
+<h2 id="api-keys">API keys</h2>
+<p>Create, name, scope, expire, and revoke account keys. Keys are shown once. Up to 20 can be active at a time. See <a href="/docs/authentication">Authentication</a>.</p>
+<h2 id="integrations">Integrations</h2>
+<p>Shows the API base URL, a link to the OpenAPI document, and a link to manage keys. Configuration snippets for the SDKs, CLI, and MCP are in these docs: <a href="/docs/typescript">TypeScript</a>, <a href="/docs/python">Python</a>, <a href="/docs/cli">CLI</a>, <a href="/docs/mcp">MCP</a>.</p>
+<h2 id="domains">Domains</h2>
+<p>Add a domain, see the DNS records to publish, verify them, and remove the domain. See <a href="/docs/custom-domains">Custom domains</a>.</p>
+<h2 id="quarantine">Quarantine</h2>
+<p>Each inbox has a <strong>Quarantine</strong> view listing held messages with the scanner&#39;s reasons. A message can be released when its antivirus result is clean; released mail moves to the inbox and gets the <code>received</code> and <code>unread</code> labels. Only a signed-in person can release; no API key can. See <a href="/docs/quarantine">Quarantine</a>.</p>
+<h2 id="settings">Settings</h2>
+<p>Change the organization name (shown in the breadcrumb) and your profile name (shown in the account menu), and turn on notifications for new mail in your inboxes:</p>
+<ul>
+<li><strong>Desktop notifications</strong> show a browser alert while the dashboard is open. The browser asks for permission when you turn it on.</li>
+<li><strong>Email notifications</strong> send a short &quot;New mail in Goshen Email&quot; message to your sign-in address. The notification names the inbox and never includes message contents.</li>
+</ul>
+<p>Both are off by default and skip quarantined, spam, and trashed mail. Your sign-in email is read-only.</p>
+<h2 id="what-the-dashboard-cannot-do">What the dashboard cannot do</h2>
+<p>It cannot show you an API key after creation, cannot add or remove the <code>quarantined</code> label except through <strong>Release</strong>, and cannot read inboxes owned by other accounts. Deployment administrators may see an additional read-only view of the upstream platform&#39;s inboxes; that view is not part of the customer product.</p>
+
+      <nav class="docs-pager" aria-label="Previous and next">
+        <a href="/docs/custom-domains" rel="prev"><span>Previous</span>Custom domains</a>
+        <a href="/docs/agents" rel="next"><span>Next</span>Building agents on email</a>
+      </nav>
+      <p class="docs-footer">Markdown for agents: <a href="/docs/dashboard.md">/docs/dashboard.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
+    </main>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#signing-in">Signing in</a></li><li><a href="#inboxes">Inboxes</a></li><li><a href="#get-started">Get started</a></li><li><a href="#api-keys">API keys</a></li><li><a href="#integrations">Integrations</a></li><li><a href="#domains">Domains</a></li><li><a href="#quarantine">Quarantine</a></li><li><a href="#settings">Settings</a></li><li><a href="#what-the-dashboard-cannot-do">What the dashboard cannot do</a></li></ul></aside>
+  </div>
+</body>
+</html>
