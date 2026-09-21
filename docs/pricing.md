@@ -81,11 +81,13 @@ Design points:
   customer's action already happened, and a hold that fails to confirm
   expires in our favour, not theirs.
 - Triage holds its unit at receipt so a burst of mail cannot overspend, and
-  confirms it only when the message is stored. An analysis that ends in
+  confirms it only for the delivery that stored the message; a duplicate
+  delivery of the same Message-ID releases its hold. An analysis that ends in
   `failed` refunds the unit with a negative usage event. Quarantined mail is
   not charged unless someone releases it, and only the release that changes
-  the message's state is charged; a release with no allowance left drops the
-  pending analysis instead of running it unpaid.
+  the message's state is charged. If that release had no allowance left it
+  drops the pending analysis instead of running it unpaid; a caller that lost
+  the release never touches the analysis another caller's hold is paying for.
 - Administrators listed in `DASHBOARD_ADMIN_EMAILS` are exempt from every
   check and are never created in Autumn.
 - Inboxes provisioned with the platform token rather than an account are not

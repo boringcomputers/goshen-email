@@ -209,6 +209,20 @@ describe("plan limits through Autumn", () => {
     expect(autumn.usage(a.customer.id, "triage")).toBe(1)
   })
 
+  it("charges one delivery when the same message arrives twice at once", async () => {
+    const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
+    autumn.grant(a.customer.id, "triage", 5)
+    const [x, y] = await Promise.all([
+      service.receive(inbox.inboxId, rawMail({ id: "<twice@example.net>" })),
+      service.receive(inbox.inboxId, rawMail({ id: "<twice@example.net>" })),
+    ])
+    expect(x.messageId).toBe(y.messageId)
+    expect((await f.db.query("select 1 from mail.messages where wire_id = '<twice@example.net>'")).length).toBe(1)
+    expect(autumn.usage(a.customer.id, "triage")).toBe(1)
+    expect(autumn.held(a.customer.id, "triage")).toBe(0)
+    expect(autumn.openLocks()).toBe(0)
+  })
+
   it("charges quarantined mail for triage only when it is released", async () => {
     const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
     const quarantine = { ...cleanProtection(), status: "quarantined" as const, reasons: ["spam" as const] }
@@ -232,7 +246,17 @@ describe("plan limits through Autumn", () => {
     } finally { service.store.message = message }
     expect(autumn.usage(a.customer.id, "triage")).toBe(1)
     expect(autumn.held(a.customer.id, "triage")).toBe(0)
-    autumn.grant(a.customer.id, "triage", 1)
+    // Two releases with one unit left: whichever caller wins, the message is analysed if and only if it was charged.
+    autumn.grant(a.customer.id, "triage", 2)
+    const contested = await service.receive(inbox.inboxId, rawMail({ id: "<contested@example.net>", subject: "Suspicious" }), quarantine)
+    const attempts = await Promise.all([1, 2].map(() => service.releaseQuarantine({ inboxId: inbox.inboxId, messageId: contested.messageId, reviewedBy: a.customer.id })))
+    expect(attempts.filter(Boolean)).toHaveLength(1)
+    const charged = autumn.usage(a.customer.id, "triage") - 1
+    const pending = (await a.client.messages.get({ inboxId: inbox.inboxId, messageId: contested.messageId })).triage?.status === "pending"
+    expect(charged).toBe(pending ? 1 : 0)
+    expect(autumn.held(a.customer.id, "triage")).toBe(0)
+    const spent = autumn.usage(a.customer.id, "triage")
+    autumn.grant(a.customer.id, "triage", spent)
     await service.processTriage()
     expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: held.messageId })).toHaveProperty("triage.status", "complete")
     // With nothing left, a release drops the pending analysis instead of running it unpaid.
@@ -240,7 +264,7 @@ describe("plan limits through Autumn", () => {
     await service.releaseQuarantine({ inboxId: inbox.inboxId, messageId: second.messageId, reviewedBy: a.customer.id })
     await service.processTriage()
     expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: second.messageId })).not.toHaveProperty("triage")
-    expect(autumn.usage(a.customer.id, "triage")).toBe(1)
+    expect(autumn.usage(a.customer.id, "triage")).toBe(spent)
   })
 
   it("reports usage through REST, SDK, CLI, and hosted MCP with the same shape", async () => {

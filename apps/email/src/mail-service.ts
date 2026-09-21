@@ -645,7 +645,8 @@ export class MailService {
       await this.metering?.settle(triage.hold, "release")
       throw error
     }
-    await this.metering?.settle(triage.hold, "confirm")
+    // A duplicate delivery that lost the insert gets the stored row back; only the insert that won pays.
+    await this.metering?.settle(triage.hold, saved.id === id ? "confirm" : "release")
     return { messageId: saved.wire_id, threadId: saved.thread_id }
   }
 
@@ -675,8 +676,6 @@ export class MailService {
     // Release makes the pending analysis eligible, so its unit is held here and
     // confirmed only if this call is the one that releases the message.
     const triage = row.triage?.status === "pending" ? await this.triageHold(inbox.id) : { enabled: false, hold: null }
-    if (row.triage?.status === "pending" && !triage.enabled)
-      await this.store.db.query("update mail.messages set triage = null where id = $1 and triage->>'status' = 'pending'", [row.id])
     let result: { status: string } | undefined
     try {
       ;[result] = await this.store.db.query<{ status: string }>(
@@ -687,7 +686,12 @@ export class MailService {
       await this.metering?.settle(triage.hold, "release")
       throw error
     }
-    await this.metering?.settle(triage.hold, result?.status === "released" ? "confirm" : "release")
+    const won = result?.status === "released"
+    await this.metering?.settle(triage.hold, won ? "confirm" : "release")
+    // Only the call that released the message may drop its unpaid analysis. A concurrent
+    // caller that was denied a hold must not clear work another caller's hold is paying for.
+    if (won && row.triage?.status === "pending" && !triage.enabled)
+      await this.store.db.query("update mail.messages set triage = null where id = $1 and triage->>'status' = 'pending' and triage_lease is null", [row.id])
     if (result?.status === "missing") throw new MailError("Message not found", "not_found", 404)
     if (result?.status === "infected") throw new MailError("Attachments did not pass scanning", "malware_blocked", 403)
     return result?.status === "released"
