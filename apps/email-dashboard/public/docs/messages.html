@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description" content="A message is one email, sent or received. Read, list, search, and label messages in an inbox.">
+  <title>Messages | Goshen Email docs</title>
+  <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
+  <link rel="alternate" type="text/markdown" href="/docs/messages.md">
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/site-header.css">
+  <link rel="stylesheet" href="/docs.css">
+  <script src="/docs.js" defer></script>
+</head>
+<body>
+  <a href="#docs-content" class="skip-link">Skip to content</a>
+  <header class="site-header">
+  <a href="/" aria-label="Goshen Email home" class="brand">
+    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon"><path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path><circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle></svg>
+    <span class="brand-name">Goshen Email</span>
+  </a>
+  <nav aria-label="Main navigation" class="site-nav">
+    <a href="/#product" class="site-header-product">Product</a>
+    <a href="/docs" class="site-header-product" aria-current="page">Docs</a>
+    <a href="/docs/api" class="site-header-product">API reference</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="/app" class="site-header-log-in">Log in</a>
+    <a href="/app" class="site-header-start-free"><span class="site-header-start-free-2">Get started</span></a>
+  </div>
+</header>
+  <div class="docs-layout">
+    <nav class="docs-nav" aria-label="Documentation"><button type="button" class="docs-nav-toggle" aria-expanded="false" aria-controls="docs-nav-list">Menu</button><div id="docs-nav-list" class="docs-nav-list"><section><h2>Getting started</h2><ul><li><a href="/docs/introduction">Introduction</a></li><li><a href="/docs/quickstart">Quickstart</a></li></ul></section><section><h2>Core concepts</h2><ul><li><a href="/docs/inboxes">Inboxes</a></li><li><a href="/docs/messages" aria-current="page">Messages</a></li><li><a href="/docs/threads">Threads</a></li><li><a href="/docs/labels">Labels</a></li><li><a href="/docs/attachments">Attachments</a></li><li><a href="/docs/groups">Groups</a></li><li><a href="/docs/quarantine">Quarantine</a></li><li><a href="/docs/triage">Triage</a></li></ul></section><section><h2>Guides</h2><ul><li><a href="/docs/authentication">Authentication and API keys</a></li><li><a href="/docs/sending">Sending mail</a></li><li><a href="/docs/pagination">Pagination</a></li><li><a href="/docs/webhooks">Webhooks and polling</a></li><li><a href="/docs/custom-domains">Custom domains</a></li><li><a href="/docs/dashboard">Dashboard</a></li><li><a href="/docs/agents">Building agents on email</a></li></ul></section><section><h2>Integrations</h2><ul><li><a href="/docs/typescript">TypeScript and JavaScript SDK</a></li><li><a href="/docs/python">Python SDK</a></li><li><a href="/docs/cli">CLI</a></li><li><a href="/docs/mcp">MCP server</a></li></ul></section><section><h2>Reference</h2><ul><li><a href="/docs/api">API overview</a></li><li><a href="/docs/errors">Errors</a></li><li><a href="/docs/limits">Limits</a></li></ul></section><section><h2>API: Inboxes</h2><ul><li><a href="/docs/api/list-inboxes">List inboxes</a></li><li><a href="/docs/api/create-inbox">Create an inbox</a></li><li><a href="/docs/api/get-inbox">Get an inbox</a></li><li><a href="/docs/api/update-inbox">Update an inbox</a></li><li><a href="/docs/api/delete-inbox">Delete an inbox</a></li><li><a href="/docs/api/finish-inbox-setup">Finish inbox setup</a></li></ul></section><section><h2>API: Messages</h2><ul><li><a href="/docs/api/list-messages">List messages</a></li><li><a href="/docs/api/search-messages">Search messages</a></li><li><a href="/docs/api/get-message">Get a message</a></li><li><a href="/docs/api/send">Send a message</a></li><li><a href="/docs/api/reply">Reply to a message</a></li><li><a href="/docs/api/update-message-labels">Update message labels</a></li><li><a href="/docs/api/get-attachment">Get an attachment</a></li></ul></section><section><h2>API: Threads</h2><ul><li><a href="/docs/api/list-threads">List threads</a></li><li><a href="/docs/api/get-thread">Get a thread</a></li><li><a href="/docs/api/update-thread-labels">Update thread labels</a></li></ul></section></div></nav>
+    <main id="docs-content" class="docs-content">
+      <p class="docs-crumbs">Core concepts</p>
+      <h1>Messages</h1>
+      <p class="lede">A message is one email, sent or received. Read, list, search, and label messages in an inbox.</p>
+      <h2 id="the-message-object">The message object</h2>
+<div class="table-scroll"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody><tr><td><code>messageId</code></td><td>The RFC 5322 Message-ID. Identifies the message in paths; URL encode it.</td></tr><tr><td><code>threadId</code></td><td>The thread this message belongs to. See <a href="/docs/threads">Threads</a>.</td></tr><tr><td><code>inboxId</code></td><td>The inbox address.</td></tr><tr><td><code>from</code>, <code>to</code>, <code>cc</code>, <code>bcc</code>, <code>replyTo</code></td><td>Addresses. <code>cc</code>, <code>bcc</code>, and <code>replyTo</code> appear when present.</td></tr><tr><td><code>subject</code>, <code>preview</code></td><td>The subject and a short plain-text preview.</td></tr><tr><td><code>timestamp</code></td><td>When the message was sent or received, ISO 8601.</td></tr><tr><td><code>labels</code></td><td>System and custom labels. See <a href="/docs/labels">Labels</a>.</td></tr><tr><td><code>attachments</code></td><td><code>attachmentId</code>, <code>filename</code>, <code>contentType</code>, and <code>size</code> for each file. See <a href="/docs/attachments">Attachments</a>.</td></tr><tr><td><code>text</code>, <code>html</code></td><td>Bodies. <code>text</code> is included on reads; <code>html</code> is returned on <code>getMessage</code> when you ask for it.</td></tr><tr><td><code>protection</code></td><td>Scanner results for incoming mail: SPF, DKIM, DMARC, spam score, antivirus, and quarantine status. See <a href="/docs/quarantine">Quarantine</a>.</td></tr><tr><td><code>triage</code></td><td>Optional classification of incoming mail. See <a href="/docs/triage">Triage</a>.</td></tr><tr><td><code>delivery</code></td><td>For sent mail, per-recipient delivery outcomes. See below.</td></tr></tbody></table></div>
+<h2 id="listing-messages">Listing messages</h2>
+<pre><code class="language-sh">curl &quot;https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages?labels=received&amp;labels=unread&amp;limit=20&quot; \
+  -H &quot;Authorization: Bearer $BEZALEL_API_KEY&quot;</code></pre>
+<p>Lists are newest first. <code>labels</code> repeats for each label and matches messages that carry all of them. Pages hold up to 100 messages (default 20). When <a href="/docs/triage">triage</a> is enabled, <code>category</code>, <code>needsReply</code>, and <code>urgency</code> filter on the classification.</p>
+<p>Quarantined messages are left out of lists and searches unless <code>labels</code> includes <code>quarantined</code>. Trashed messages are listed only when <code>labels</code> includes <code>trash</code>.</p>
+<h2 id="searching-messages">Searching messages</h2>
+<p><code>GET /v1/inboxes/{inboxId}/messages/search?query=invoice</code> runs a full-text search over one inbox. <code>query</code> is 1 to 1000 characters and supports the usual web-search syntax: quoted phrases, <code>-</code> to exclude a word, <code>or</code> between alternatives. Results are ranked by relevance, then by time. The same page and triage filters apply.</p>
+<h2 id="reading-a-message">Reading a message</h2>
+<p><code>GET /v1/inboxes/{inboxId}/messages/{messageId}</code> returns the full message. Plain text is always present when the sender included it. Message IDs contain <code>&lt;</code>, <code>&gt;</code>, and <code>@</code>, so encode them: <code>%3C20260920.1@example.net%3E</code>.</p>
+<p>A mailbox key cannot read the body of a quarantined message. Account keys see the message with its <code>protection</code> block, and the dashboard is where a person decides whether to release it.</p>
+<h2 id="sent-mail-and-delivery-outcomes">Sent mail and delivery outcomes</h2>
+<p>Messages you send carry the <code>sent</code> label. Once the receiving server answers, the message gains a <code>delivery</code> block:</p>
+<pre><code class="language-json">{
+  &quot;delivery&quot;: {
+    &quot;sentAt&quot;: &quot;2026-09-20T18:05:12.000Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-20T18:05:14.000Z&quot;,
+    &quot;recipients&quot;: [
+      { &quot;recipient&quot;: &quot;vendor@example.net&quot;, &quot;status&quot;: &quot;delivered&quot;, &quot;delivered&quot;: true, &quot;smtpStatusCode&quot;: &quot;250&quot;, &quot;deliveryTimeMs&quot;: 1830 }
+    ]
+  }
+}</code></pre>
+<p><code>status</code> per recipient is one of <code>queued</code>, <code>accepted</code>, <code>delivered</code>, <code>deferred</code>, <code>bounced</code>, <code>failed</code>, <code>rejected</code>, or <code>complained</code>, and reflects what the remote server reported. A <code>250</code> from the recipient&#39;s server means it accepted the message; it does not prove inbox placement or that anyone read it. Bounces carry the server&#39;s <code>reason</code> and SMTP status codes.</p>
+<h2 id="marking-as-read">Marking as read</h2>
+<p>Reading a message through the API does not remove <code>unread</code>. Remove it explicitly when your agent has handled the message:</p>
+<pre><code class="language-sh">curl &quot;https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages/%3Cid%40example.net%3E/labels&quot; \
+  -H &quot;Authorization: Bearer $BEZALEL_API_KEY&quot; -X PATCH \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#39;{&quot;removeLabels&quot;:[&quot;unread&quot;],&quot;addLabels&quot;:[&quot;handled&quot;]}&#39;</code></pre>
+<h2 id="untrusted-content">Untrusted content</h2>
+<p>Everything inside a message was written by someone else: the subject, the sender&#39;s display name, the body, and every attachment. Passing a message body to a model without framing it as data is how prompt injection happens. See <a href="/docs/agents">Building agents on email</a>.</p>
+
+      <nav class="docs-pager" aria-label="Previous and next">
+        <a href="/docs/inboxes" rel="prev"><span>Previous</span>Inboxes</a>
+        <a href="/docs/threads" rel="next"><span>Next</span>Threads</a>
+      </nav>
+      <p class="docs-footer">Markdown for agents: <a href="/docs/messages.md">/docs/messages.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
+    </main>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#the-message-object">The message object</a></li><li><a href="#listing-messages">Listing messages</a></li><li><a href="#searching-messages">Searching messages</a></li><li><a href="#reading-a-message">Reading a message</a></li><li><a href="#sent-mail-and-delivery-outcomes">Sent mail and delivery outcomes</a></li><li><a href="#marking-as-read">Marking as read</a></li><li><a href="#untrusted-content">Untrusted content</a></li></ul></aside>
+  </div>
+</body>
+</html>

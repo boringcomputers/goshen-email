@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#FFFFFF">
-  <meta name="description" content="Email inboxes for AI agents. Create an inbox with one API call, send and receive with threads and attachments, and read the same mail in your browser.">
+  <meta name="description" content="The email inbox API for AI agents. Create an inbox with one API call, send and receive with threads and attachments, and connect any MCP client. Oversight from a dashboard when you want it.">
   <title>Goshen Email | Email inboxes for AI agents</title>
   <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -29,7 +29,7 @@
         <a href="/#product" class="site-header-product">Product</a>
         <a href="/#workflow" class="site-header-product">How it works</a>
         <a href="/#get-started" class="site-header-product">Get started</a>
-        <a href="https://github.com/boringcomputers/goshen-email/blob/main/docs/developers.md" class="site-header-product">Docs</a>
+        <a href="/docs" class="site-header-product">Docs</a>
       </nav>
       <div class="nav-actions">
         <a href="/app" class="site-header-log-in">Log in</a>
@@ -43,23 +43,23 @@
       <section id="main-content" class="hero">
         <div class="announcement">
           <div class="hero-solenne-2-0-is">Now with an MCP server and CLI</div>
-          <a href="https://github.com/boringcomputers/goshen-email/blob/main/docs/developers.md" class="changelog-link">
+          <a href="/docs/mcp" class="changelog-link">
             <span class="hero-read-the-changelog">Read the guide</span>
           </a>
         </div>
         <div class="hero-copy">
           <h1 class="hero-title"><span>Email inboxes<br>for AI agents.</span></h1>
-          <p class="hero-description">Goshen Email gives each agent its own inbox: a real address, threaded conversations, attachments, and an API key scoped to that mailbox. You read and reply to the same mail in your browser.</p>
+          <p class="hero-description">Goshen Email gives each agent its own inbox: a real address, threaded conversations, attachments, and an API key scoped to that mailbox. Connect it as MCP tools or through the API, and look over its shoulder from the dashboard when you want to.</p>
         </div>
         <div class="hero-actions">
           <a href="/app" class="hero-start-free">
             <span class="hero-start-free-2">Create an inbox</span>
           </a>
-          <a href="https://github.com/boringcomputers/goshen-email/blob/main/docs/developers.md" class="hero-book-a-demo">
+          <a href="/docs/quickstart" class="hero-book-a-demo">
             <span class="hero-book-a-demo-2">Read the docs</span>
           </a>
         </div>
-        <div class="trial-note">Sign in with a code sent to your email. No password to manage.</div>
+        <div class="trial-note">Sign in with a code sent to your email. Your first inbox takes one call.</div>
       </section>
       <div id="product" role="img" aria-label="Example conversation in a Goshen Email inbox owned by an agent" class="showcase">
         <div class="preview">
@@ -168,7 +168,7 @@
             <div class="eyebrow">What you get</div>
             <h2 id="features-title" class="features-title">A real inbox your agent owns, not a send-only API.</h2>
           </div>
-          <p class="features-description">Create an inbox with one API call. Your agent sends, receives, and replies through the API. You see the same conversations in the dashboard.</p>
+          <p class="features-description">Create an inbox with one API call. Your agent sends, receives, and replies through the API or as MCP tools. The dashboard shows you the same conversations whenever you want to check in.</p>
         </div>
         <div class="feature-grid">
           <article id="inboxes" class="feature-card">
@@ -257,7 +257,7 @@
         </div>
       </section>
       <section id="workflow" aria-label="How it works" class="testimonial">
-        <p class="quote">Your agent works through the API. You pick up the same conversation in the dashboard. Nothing to sync, because it is one inbox.</p>
+        <p class="quote">Your agent owns the inbox and works it through the API. When you want to see what it is doing, open the same inbox in the dashboard. Nothing to sync, because it is one inbox.</p>
         <div class="hero-actions quote-author">
           <div class="avatar">
             <div class="testimonial-al">GE</div>
@@ -271,13 +271,13 @@
       <section id="get-started" aria-labelledby="pricing-title" class="pricing">
         <div class="pricing-heading">
           <a href="#get-started" class="eyebrow">Get started</a>
-          <h2 id="pricing-title" class="pricing-title">Pick how your agent gets its mail.</h2>
+          <h2 id="pricing-title" class="pricing-title">Give your agent an inbox. Keep an eye on it.</h2>
         </div>
         <div class="feature-grid plans">
           <article class="plan">
             <div class="features-six-channels-one-setup">
-              <h3 class="pricing-starter">You</h3>
-              <div class="trial-note">See what your agents see.</div>
+              <h3 class="pricing-starter">Oversight</h3>
+              <div class="trial-note">See what your agents see, when you want to.</div>
             </div>
             <div class="pricing-0-month">
               <div class="features-title">Dashboard</div>
@@ -285,11 +285,11 @@
             <ul class="pricing-200-conversations-mo-2">
               <li class="pricing-200-conversations-mo">
                 <div class="pricing-shape">✓</div>
-                <div class="pricing-200-conversations-mo-3">Read, compose, and reply</div>
+                <div class="pricing-200-conversations-mo-3">Read what agents received and sent</div>
               </li>
               <li class="pricing-200-conversations-mo">
                 <div class="pricing-shape">✓</div>
-                <div class="pricing-200-conversations-mo-3">Search and label messages</div>
+                <div class="pricing-200-conversations-mo-3">Step into any thread and reply</div>
               </li>
               <li class="pricing-200-conversations-mo">
                 <div class="pricing-shape">✓</div>
@@ -357,8 +357,8 @@
                 <div class="pricing-200-conversations-mo-3">Delivery outcomes on every message</div>
               </li>
             </ul>
-            <a href="https://github.com/boringcomputers/goshen-email/blob/main/ops/email/README.md" class="pricing-start-free">
-              <span class="pricing-start-free-2">Read the runbook</span>
+            <a href="/docs/custom-domains" class="pricing-start-free">
+              <span class="pricing-start-free-2">Set up a domain</span>
             </a>
           </article>
         </div>
@@ -369,7 +369,7 @@
           <a href="/app" class="hero-start-free">
             <span class="hero-start-free-2">Create an inbox</span>
           </a>
-          <a href="https://github.com/boringcomputers/goshen-email/blob/main/docs/developers.md" class="closing-book-a-demo">
+          <a href="/docs/quickstart" class="closing-book-a-demo">
             <span class="hero-book-a-demo-2">Read the docs</span>
           </a>
         </div>
@@ -417,7 +417,7 @@
               </svg>
               <span class="brand-name">Goshen Email</span>
             </a>
-            <div class="site-footer-one-agent-for-every">Email inboxes for AI agents, and a dashboard for the people who run them.</div>
+            <div class="site-footer-one-agent-for-every">The email inbox API for AI agents.</div>
           </div>
           <div class="footer-columns">
             <div class="site-footer-product-channels-knowledge-handoff">
@@ -436,8 +436,8 @@
             </div>
             <div class="site-footer-product-channels-knowledge-handoff">
               <div class="hero-solenne-2-0-is">Resources</div>
-              <a href="https://github.com/boringcomputers/goshen-email/blob/main/docs/developers.md" class="trial-note">Developer guide</a>
-              <a href="https://github.com/boringcomputers/goshen-email/blob/main/docs/openapi.json" class="trial-note">API reference</a>
+              <a href="/docs" class="trial-note">Documentation</a>
+              <a href="/docs/api" class="trial-note">API reference</a>
               <a href="https://github.com/boringcomputers/goshen-email/commits/main/" class="trial-note">Changelog</a>
               <a href="#" class="trial-note">Status</a>
             </div>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description" content="How to learn that mail arrived. Polling works for every key today; signed webhooks exist for platform-provisioned inboxes.">
+  <title>Webhooks and polling | Goshen Email docs</title>
+  <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
+  <link rel="alternate" type="text/markdown" href="/docs/webhooks.md">
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/site-header.css">
+  <link rel="stylesheet" href="/docs.css">
+  <script src="/docs.js" defer></script>
+</head>
+<body>
+  <a href="#docs-content" class="skip-link">Skip to content</a>
+  <header class="site-header">
+  <a href="/" aria-label="Goshen Email home" class="brand">
+    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon"><path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path><circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle></svg>
+    <span class="brand-name">Goshen Email</span>
+  </a>
+  <nav aria-label="Main navigation" class="site-nav">
+    <a href="/#product" class="site-header-product">Product</a>
+    <a href="/docs" class="site-header-product" aria-current="page">Docs</a>
+    <a href="/docs/api" class="site-header-product">API reference</a>
+  </nav>
+  <div class="nav-actions">
+    <a href="/app" class="site-header-log-in">Log in</a>
+    <a href="/app" class="site-header-start-free"><span class="site-header-start-free-2">Get started</span></a>
+  </div>
+</header>
+  <div class="docs-layout">
+    <nav class="docs-nav" aria-label="Documentation"><button type="button" class="docs-nav-toggle" aria-expanded="false" aria-controls="docs-nav-list">Menu</button><div id="docs-nav-list" class="docs-nav-list"><section><h2>Getting started</h2><ul><li><a href="/docs/introduction">Introduction</a></li><li><a href="/docs/quickstart">Quickstart</a></li></ul></section><section><h2>Core concepts</h2><ul><li><a href="/docs/inboxes">Inboxes</a></li><li><a href="/docs/messages">Messages</a></li><li><a href="/docs/threads">Threads</a></li><li><a href="/docs/labels">Labels</a></li><li><a href="/docs/attachments">Attachments</a></li><li><a href="/docs/groups">Groups</a></li><li><a href="/docs/quarantine">Quarantine</a></li><li><a href="/docs/triage">Triage</a></li></ul></section><section><h2>Guides</h2><ul><li><a href="/docs/authentication">Authentication and API keys</a></li><li><a href="/docs/sending">Sending mail</a></li><li><a href="/docs/pagination">Pagination</a></li><li><a href="/docs/webhooks" aria-current="page">Webhooks and polling</a></li><li><a href="/docs/custom-domains">Custom domains</a></li><li><a href="/docs/dashboard">Dashboard</a></li><li><a href="/docs/agents">Building agents on email</a></li></ul></section><section><h2>Integrations</h2><ul><li><a href="/docs/typescript">TypeScript and JavaScript SDK</a></li><li><a href="/docs/python">Python SDK</a></li><li><a href="/docs/cli">CLI</a></li><li><a href="/docs/mcp">MCP server</a></li></ul></section><section><h2>Reference</h2><ul><li><a href="/docs/api">API overview</a></li><li><a href="/docs/errors">Errors</a></li><li><a href="/docs/limits">Limits</a></li></ul></section><section><h2>API: Inboxes</h2><ul><li><a href="/docs/api/list-inboxes">List inboxes</a></li><li><a href="/docs/api/create-inbox">Create an inbox</a></li><li><a href="/docs/api/get-inbox">Get an inbox</a></li><li><a href="/docs/api/update-inbox">Update an inbox</a></li><li><a href="/docs/api/delete-inbox">Delete an inbox</a></li><li><a href="/docs/api/finish-inbox-setup">Finish inbox setup</a></li></ul></section><section><h2>API: Messages</h2><ul><li><a href="/docs/api/list-messages">List messages</a></li><li><a href="/docs/api/search-messages">Search messages</a></li><li><a href="/docs/api/get-message">Get a message</a></li><li><a href="/docs/api/send">Send a message</a></li><li><a href="/docs/api/reply">Reply to a message</a></li><li><a href="/docs/api/update-message-labels">Update message labels</a></li><li><a href="/docs/api/get-attachment">Get an attachment</a></li></ul></section><section><h2>API: Threads</h2><ul><li><a href="/docs/api/list-threads">List threads</a></li><li><a href="/docs/api/get-thread">Get a thread</a></li><li><a href="/docs/api/update-thread-labels">Update thread labels</a></li></ul></section></div></nav>
+    <main id="docs-content" class="docs-content">
+      <p class="docs-crumbs">Guides</p>
+      <h1>Webhooks and polling</h1>
+      <p class="lede">How to learn that mail arrived. Polling works for every key today; signed webhooks exist for platform-provisioned inboxes.</p>
+      <h2 id="where-things-stand">Where things stand</h2>
+<p>Self-service webhook subscriptions for account API keys are not available yet. Today there are two ways to react to incoming mail:</p>
+<ol>
+<li><strong>Poll.</strong> Works with every key and every client, including MCP. This is the path most agents should start with.</li>
+<li><strong>Platform-provisioned webhooks.</strong> Inboxes created by a platform integration through <code>POST /clients/provision</code> get a webhook URL and signing secret at provisioning time. If you are integrating Goshen Email into your own product on that path, the event and signature details below apply.</li>
+</ol>
+<p>Webhook management through the account API is the next planned increment, along with WebSockets. This page will change when it lands.</p>
+<h2 id="polling-well">Polling well</h2>
+<p>List with the labels that describe &quot;new to me&quot; and clear them as you go:</p>
+<pre><code class="language-ts">const { messages } = await email.messages.list({ inboxId, labels: [&#39;received&#39;, &#39;unread&#39;], limit: 50 })
+for (const message of messages) {
+  await handle(message)
+  await email.messages.updateLabels({ inboxId, messageId: message.messageId, removeLabels: [&#39;unread&#39;], addLabels: [&#39;handled&#39;] })
+}</code></pre>
+<ul>
+<li>Poll <code>listThreads</code> with <code>labels=unread</code> when your agent thinks in conversations rather than messages.</li>
+<li>With <a href="/docs/triage">triage</a> enabled, <code>needsReply=yes</code> narrows the list to mail that wants an answer.</li>
+<li>A reasonable interval for an agent is 30 to 60 seconds. Quarantined mail never shows up in these lists, which is the point.</li>
+<li>Idempotent handling matters: mark a message handled in the same step you act on it, so a crash between the two does not repeat the action.</li>
+</ul>
+<h2 id="events">Events</h2>
+<p>For inboxes that have a webhook, Goshen Email posts JSON events:</p>
+<div class="table-scroll"><table><thead><tr><th>Type</th><th>When</th><th>Payload</th></tr></thead><tbody><tr><td><code>email.received</code></td><td>A message arrived and was not quarantined</td><td><code>inboxId</code>, <code>occurredAt</code>, and <code>message</code> with the message summary, <code>text</code> up to 64 KiB (<code>bodyTruncated</code> marks a cut), attachments, labels, and <code>triage</code> when enabled</td></tr><tr><td><code>email.delivery_updated</code></td><td>A recipient&#39;s server answered for a sent message</td><td><code>inboxId</code>, <code>occurredAt</code>, <code>message</code> (<code>messageId</code>, <code>threadId</code>, <code>inboxId</code>), and the <code>delivery</code> block</td></tr><tr><td><code>email.bounced</code></td><td>A sent message bounced</td><td>Bounce details for the affected recipient</td></tr></tbody></table></div>
+<p>Quarantined messages do not produce <code>email.received</code>. If a person releases one, the message appears in lists but no delayed event is sent. <code>email.received</code> can carry <code>triage.status: &quot;pending&quot;</code>; read the message again for the completed result.</p>
+<h2 id="verifying-signatures">Verifying signatures</h2>
+<p>Each delivery carries <code>svix-id</code>, <code>svix-timestamp</code>, and <code>svix-signature</code> headers, following the Standard Webhooks format. To verify:</p>
+<ol>
+<li>Take the signing secret you were given, strip the <code>whsec_</code> prefix, and base64-decode the rest.</li>
+<li>Compute HMAC-SHA256 over <code>&lt;svix-id&gt;.&lt;svix-timestamp&gt;.&lt;raw request body&gt;</code>.</li>
+<li>Base64-encode the result and compare it, in constant time, against the value after <code>v1,</code> in <code>svix-signature</code>. The header may list several signatures separated by spaces; any match is valid.</li>
+<li>Reject timestamps more than a few minutes old, and deduplicate on <code>svix-id</code>.</li>
+</ol>
+<pre><code class="language-ts">import { createHmac, timingSafeEqual } from &#39;node:crypto&#39;
+
+export function verify(headers: Headers, rawBody: string, secret: string) {
+  const id = headers.get(&#39;svix-id&#39;)!, timestamp = headers.get(&#39;svix-timestamp&#39;)!
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) &gt; 300) return false
+  const key = Buffer.from(secret.replace(/^whsec_/, &#39;&#39;), &#39;base64&#39;)
+  const expected = createHmac(&#39;sha256&#39;, key).update(`${id}.${timestamp}.${rawBody}`).digest()
+  return (headers.get(&#39;svix-signature&#39;) ?? &#39;&#39;).split(&#39; &#39;).some((part) =&gt; {
+    const [, value] = part.split(&#39;,&#39;)
+    const given = Buffer.from(value ?? &#39;&#39;, &#39;base64&#39;)
+    return given.length === expected.length &amp;&amp; timingSafeEqual(given, expected)
+  })
+}</code></pre>
+<p>Respond with a 2xx only after you have durably accepted the event. Goshen Email retries failures and does not follow redirects.</p>
+<h2 id="treat-payloads-as-untrusted">Treat payloads as untrusted</h2>
+<p>Everything under <code>message</code> came from an outside sender. Verify the signature to know the event came from Goshen Email; that says nothing about the honesty of the email inside it. See <a href="/docs/agents">Building agents on email</a>.</p>
+
+      <nav class="docs-pager" aria-label="Previous and next">
+        <a href="/docs/pagination" rel="prev"><span>Previous</span>Pagination</a>
+        <a href="/docs/custom-domains" rel="next"><span>Next</span>Custom domains</a>
+      </nav>
+      <p class="docs-footer">Markdown for agents: <a href="/docs/webhooks.md">/docs/webhooks.md</a> · <a href="/docs/llms.txt">/docs/llms.txt</a> · <a href="https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json" rel="noopener">OpenAPI</a></p>
+    </main>
+    <aside class="docs-toc" aria-label="On this page"><h2>On this page</h2><ul><li><a href="#where-things-stand">Where things stand</a></li><li><a href="#polling-well">Polling well</a></li><li><a href="#events">Events</a></li><li><a href="#verifying-signatures">Verifying signatures</a></li><li><a href="#treat-payloads-as-untrusted">Treat payloads as untrusted</a></li></ul></aside>
+  </div>
+</body>
+</html>

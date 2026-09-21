@@ -80,6 +80,9 @@ importers:
 
   apps/email-dashboard:
     devDependencies:
+      marked:
+        specifier: ^18.0.13
+        version: 18.0.13
       wrangler:
         specifier: 4.129.0
         version: 4.129.0(@cloudflare/workers-types@5.20260906.1)
@@ -1714,6 +1717,11 @@ packages:
   mailauth@5.0.3:
     resolution: {integrity: sha512-eAOpTwU2zKDCOusM6AIxl9ZZqkUWUoyoE+Ax3HzqdPs6R8xL/DqqbjpSFB14DUuBywKfrBLCa7qOE9++1V3h/Q==}
     engines: {node: '>=22.19.0'}
+    hasBin: true
+
+  marked@18.0.13:
+    resolution: {integrity: sha512-xTxVzZsBFwunP6HDmtBkabUQEYArnP7/rMDGmPj9SlrKlQ4i8MdYVow+nJL0eOqwpUqhzBoTBRADGN6uYwPyOw==}
+    engines: {node: '>= 20'}
     hasBin: true
 
   math-intrinsics@1.1.0:
@@ -3825,6 +3833,8 @@ snapshots:
       punycode.js: 2.3.1
       tldts: 7.4.10
       undici: 8.10.0
+
+  marked@18.0.13: {}
 
   math-intrinsics@1.1.0: {}
 
