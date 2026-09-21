@@ -18,7 +18,7 @@ Email is the channel the rest of the world already uses. An agent with an inbox 
 
 ## Oversight when you want it
 
-The same inboxes appear at [goshenemail.com/app](https://goshenemail.com/app). You can read what an agent received, see what it sent and whether it was delivered, reply in its thread, and release or discard quarantined mail. The dashboard is a client of the same API with a signed-in person instead of a key; releasing quarantine is the one thing it can do that no key can.
+The same inboxes appear at [goshenemail.com/app](https://goshenemail.com/app). You can read what an agent received, see what it sent and whether it was delivered, reply in its thread, and release quarantined mail. The dashboard is a client of the same API with a signed-in person instead of a key; releasing quarantine is the one thing it can do that no key can.
 
 ```text
 Your agent ──(API key or MCP)──▶ Goshen Email API ──▶ inbox: research@{{DEFAULT_DOMAIN}}

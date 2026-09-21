@@ -49,7 +49,7 @@
 <li><strong>Tools, not just endpoints.</strong> The <a href="/docs/mcp">MCP server</a> exposes the inbox to Claude Code, Cursor, Codex, or any MCP client as 16 tools. The REST API, TypeScript and Python SDKs, and CLI expose the same 16 operations.</li>
 </ul>
 <h2 id="oversight-when-you-want-it">Oversight when you want it</h2>
-<p>The same inboxes appear at <a href="https://goshenemail.com/app">goshenemail.com/app</a>. You can read what an agent received, see what it sent and whether it was delivered, reply in its thread, and release or discard quarantined mail. The dashboard is a client of the same API with a signed-in person instead of a key; releasing quarantine is the one thing it can do that no key can.</p>
+<p>The same inboxes appear at <a href="https://goshenemail.com/app">goshenemail.com/app</a>. You can read what an agent received, see what it sent and whether it was delivered, reply in its thread, and release quarantined mail. The dashboard is a client of the same API with a signed-in person instead of a key; releasing quarantine is the one thing it can do that no key can.</p>
 <pre><code class="language-text">Your agent ──(API key or MCP)──▶ Goshen Email API ──▶ inbox: research@agents.goshenemail.com
                                         │                    ▲
                                         ▼                    │ SMTP in and out
