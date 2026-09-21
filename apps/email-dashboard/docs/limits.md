@@ -21,11 +21,15 @@ description: Sizes, counts, and rates the API enforces.
 
 Each inbox may send 250 messages in any rolling 24-hour window by default. The 251st returns `rate_limited` (429) with `transient: true`. The send is not lost; retry later with the same `idempotencyKey`. Operators can set a different limit per inbox, between 1 and 10,000.
 
+## Plans
+
+On the hosted service, each account has a plan with a monthly send allowance, a triage allowance, and an inbox count. When an allowance is spent the operation returns `billing_limit` (402). The send is not lost: after upgrading or adding capacity in the dashboard, retry with the same `idempotencyKey`. Read remaining balances with [`getUsage`](/docs/api/get-usage). Plan limits and prices are listed in the repository's `docs/pricing.md`. Self-hosted deployments without billing configured skip these checks.
+
 ## Inboxes and accounts
 
 | Limit | Value |
 | --- | --- |
-| Inboxes per account | No default cap; an operator can set a quota |
+| Inboxes per account | Set by the plan on the hosted service; otherwise no default cap, and an operator can set a quota |
 | Username | 1 to 64 characters: letters, digits, `.`, `_`, `-`, starting with a letter or digit |
 | Display name | 200 characters |
 | Group name | 1 to 64 characters: lowercase letters, digits, `_`, `-`, starting with a letter or digit |

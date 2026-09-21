@@ -43,6 +43,7 @@ Keyword arguments use snake case. Responses are plain dictionaries with the API'
 | `email.threads.list(**kw)` | [List threads](/docs/api/list-threads) |
 | `email.threads.get(**kw)` | [Get a thread](/docs/api/get-thread) |
 | `email.threads.update_labels(**kw)` | [Update thread labels](/docs/api/update-thread-labels) |
+| `email.account.usage()` | [Get usage](/docs/api/get-usage) |
 
 ## Example
 

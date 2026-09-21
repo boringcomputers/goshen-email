@@ -40,6 +40,26 @@ export class MailboxStore {
     return { ...row, created_at: timestamp(row.created_at) }
   }
 
+  /** The account billed for an inbox. Platform-provisioned inboxes have no account and are not metered. */
+  async inboxCustomer(inboxId: string): Promise<{ id: string; email: string; name?: string } | null> {
+    const [row] = await this.db.query<{ id: string; email: string; display_name: string | null }>(
+      `select c.id, c.email, c.display_name from mail.customer_inboxes ci join mail.customers c on c.id = ci.customer_id
+       where ci.inbox_id = $1`, [inboxId])
+    return row ? { id: row.id, email: row.email, ...(row.display_name ? { name: row.display_name } : {}) } : null
+  }
+
+  /**
+   * True when reserve_send will answer this key from its existing reservation
+   * instead of sending again. Failures that reserve_send lets the caller retry
+   * (rate_limited, attachment_storage_error) do not count; a retry of those is a new send.
+   */
+  async sendSettled(inboxId: string, key: string): Promise<boolean> {
+    const [row] = await this.db.query(
+      `select 1 from mail.sends where inbox_id = $1 and key = $2
+         and (state <> 'failed' or error->>'code' not in ('rate_limited', 'attachment_storage_error'))`, [inboxId, key])
+    return Boolean(row)
+  }
+
   /** Reports belong to the original sent message, even after domain transfer. */
   async deliveryInbox(sender: string, trackingId: string): Promise<InboxRow> {
     const [row] = await this.db.query<InboxRow>(

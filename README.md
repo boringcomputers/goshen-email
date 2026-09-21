@@ -35,7 +35,10 @@ can organize their inboxes into named groups.
 See the [AgentMail comparison](docs/agentmail-comparison.md) for this release's
 scope and remaining gaps. These additions require the documented migration and
 deployment; packages are not yet published to registries.
-Bezalel's billing, approval policies, and analytics stay in Bezalel.
+Hosted accounts have plans with inbox, send, and triage allowances, billed
+through Autumn and Stripe. See the [pricing guide](docs/pricing.md). Without an
+Autumn key the Worker runs unmetered. Bezalel's approval policies and analytics
+stay in Bezalel.
 
 ## Documentation site
 
@@ -55,7 +58,7 @@ The root page uses Fancy's **Bezalel Email Landing** layout from
 presents Goshen Email as email inboxes for AI agents: one call creates an
 inbox, threads and attachments, scoped API keys, quarantine review, and a
 dashboard that shows the same mail. The numbers strip and the setup cards
-describe shipped capabilities only (16 operations, 5 key scopes, 2 SDKs).
+describe shipped capabilities only (17 operations, 5 key scopes, 2 SDKs).
 The email thread and file names are illustrative examples.
 
 The page shares the dashboard's Paper tokens and local Inter font. Smaller

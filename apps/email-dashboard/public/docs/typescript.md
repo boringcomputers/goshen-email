@@ -49,6 +49,7 @@ Each method takes one object with the path, query, and body fields of its operat
 | `email.threads.list(input)` | [List threads](/docs/api/list-threads) |
 | `email.threads.get(input)` | [Get a thread](/docs/api/get-thread) |
 | `email.threads.updateLabels(input)` | [Update thread labels](/docs/api/update-thread-labels) |
+| `email.account.usage()` | [Get usage](/docs/api/get-usage) |
 
 `email.request(operation, input, { signal })` calls any operation by its id and accepts an `AbortSignal`.
 

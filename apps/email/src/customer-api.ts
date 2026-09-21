@@ -9,6 +9,7 @@ import { CustomerStore, inviteInput, updateSettingsInput, type CustomerInbox, ty
 import { mailboxCredentials } from "./mail-clients.js"
 import type { MailService } from "./mail-service.js"
 import { readBytes } from "./security.js"
+import { accountUsage, openBillingPortalInput, startCheckoutInput, type BillableCustomer } from "./usage.js"
 
 const mailboxOperations = new Set<Operation>([
   "deleteInbox", "inboxQuota", "listMessages", "getMessage", "listThreads", "getThread", "reviewThread",
@@ -20,6 +21,8 @@ const inboxView = (row: InboxRow & Partial<CustomerInbox>) => ({ inboxId: row.ad
   deliveryStatus: row.route_ready === false ? "pending" : "ready",
   setupAvailable: typeof row.route_ready === "boolean",
   displayName: row.display_name ?? undefined, createdAt: new Date(row.created_at).toISOString() })
+
+const billable = (customer: Customer): BillableCustomer => ({ id: customer.id, email: customer.email, ...(customer.displayName ? { name: customer.displayName } : {}) })
 
 async function verifyCustomerDomain(service: MailService, domain: string) {
   await service.store.assertUnscopedDomain(domain)
@@ -64,6 +67,18 @@ export async function executeCustomerRequest(request: Request, service: MailServ
       return desktopNotifications(service.store.db, customer.id, input.data.since)
     }
     if (operation === "getSettings") return { customer }
+    if (operation === "getUsage") return accountUsage(service, store, customer)
+    if (operation === "startCheckout") {
+      if (!service.metering) throw new MailError("Billing is not configured on this deployment", "not_configured", 503)
+      const input = startCheckoutInput.safeParse(raw)
+      if (!input.success) throw new MailError("Choose a plan")
+      return service.metering.checkout(billable(customer), input.data.planId)
+    }
+    if (operation === "openBillingPortal") {
+      if (!service.metering) throw new MailError("Billing is not configured on this deployment", "not_configured", 503)
+      if (!openBillingPortalInput.safeParse(raw).success) throw new MailError("Invalid billing request")
+      return service.metering.portal(billable(customer))
+    }
     if (operation === "updateSettings") {
       const input = updateSettingsInput.safeParse(raw)
       if (!input.success) throw new MailError("Enter valid names and boolean notification preferences")
@@ -107,7 +122,20 @@ export async function executeCustomerRequest(request: Request, service: MailServ
       const inbox = `${name}@${domain}`
       if (!address.safeParse(inbox).success) throw new MailError("Choose a shorter username")
       await verifyCustomerDomain(service, domain)
-      await store.provision(customer, inbox, domain, input.data.displayName, input.data.group)
+      // Retrying an existing username is not a new inbox, so it is neither checked nor counted again.
+      // For a new address one inbox unit is held first, confirmed once provisioning succeeds, and released if it fails.
+      const existing = await store.inbox(customer, inbox).catch((error: unknown) => {
+        if (error instanceof MailError && error.status === 404) return null
+        throw error
+      })
+      const hold = !existing && service.metering ? await service.metering.holdInbox(billable(customer)) : null
+      try {
+        await store.provision(customer, inbox, domain, input.data.displayName, input.data.group)
+      } catch (error) {
+        await service.metering?.settle(hold, "release")
+        throw error
+      }
+      await service.metering?.settle(hold, "confirm")
       return finishRouting(service, store, await store.inbox(customer, inbox))
     }
     if (domainOperations.has(operation as Operation)) {
@@ -144,6 +172,13 @@ export async function executeCustomerRequest(request: Request, service: MailServ
       return { count: await store.inboxCount(customer), limit: customer.inboxLimit }
     if (operation === "getCredentials" || operation === "rotateCredentials")
       return mailboxCredentials(service, inbox.id, operation === "rotateCredentials")
+    if (operation === "deleteInbox") {
+      // Credit the owning account, not the administrator who may be deleting on their behalf.
+      const owner = service.metering ? await service.store.inboxCustomer(inbox.id) : null
+      const deleted = await service.execute("deleteInbox", { inboxId: inbox.address })
+      if (deleted === true && owner) await service.metering!.creditInbox(owner, inbox.id)
+      return deleted
+    }
     return service.execute(operation as Operation, { ...input, inboxId: inbox.address,
       ...(operation === "releaseQuarantine" ? { reviewedBy: customer.id } : {}) })
   }

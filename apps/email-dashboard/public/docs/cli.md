@@ -39,6 +39,7 @@ bezalel-email <resource> <command> [--json <JSON|->] [flags]
 | `threads list` | [List threads](/docs/api/list-threads) |
 | `threads get` | [Get a thread](/docs/api/get-thread) |
 | `threads labels` | [Update thread labels](/docs/api/update-thread-labels) |
+| `account usage` | [Get usage](/docs/api/get-usage) |
 
 ## Passing input
 

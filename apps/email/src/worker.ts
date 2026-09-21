@@ -1,5 +1,7 @@
 import { sendNotifications } from "./notifications.js"
 import { jevAnalyzer } from "./triage.js"
+import { autumnBilling } from "./billing.js"
+import { Metering } from "./metering.js"
 import { handleDeveloperMcp } from "./developer-mcp.js"
 import { handleDeveloperRequest } from "./developer-api.js"
 import { accountConfig, postgresAccountAuth, handleAccountRequest, collectAccountGarbage } from "./account-auth.js"
@@ -32,6 +34,7 @@ import {
 export interface Env {
   TYPESAFE_API_KEY?: string
   TYPESAFE_MODEL?: string
+  AUTUMN_SECRET_KEY?: string
   HYPERDRIVE: Hyperdrive
   MAIL_API_TOKEN: string
   MAIL_WEBHOOK_SECRET: string
@@ -133,10 +136,13 @@ export const serviceFor = (env: Env): MailService => {
     token: env.CLOUDFLARE_API_TOKEN ?? "", accountId: env.CLOUDFLARE_ACCOUNT_ID,
     domains: domains.data, workerName: env.WORKER_NAME, addressRoutingDomains: addressRoutingDomains.data
   })
+  // Administrators listed for the dashboard are exempt from plan limits.
+  const adminEmails = (env.DASHBOARD_ADMIN_EMAILS ?? "").split(",").map((v) => v.trim().toLowerCase()).filter(Boolean)
   return new MailService({
     config,
     store,
     ...(env.TYPESAFE_API_KEY?.trim() ? { triageAnalyzer: jevAnalyzer(env.TYPESAFE_API_KEY.trim(), env.TYPESAFE_MODEL?.trim() || "jev-latest") } : {}),
+    ...(env.AUTUMN_SECRET_KEY?.trim() ? { metering: new Metering(autumnBilling(env.AUTUMN_SECRET_KEY.trim()), adminEmails) } : {}),
     objects: env.MAIL_OBJECTS,
     transport: customDomains ? gatewayTransport(transport, customDomains) : transport,
     customDomains,

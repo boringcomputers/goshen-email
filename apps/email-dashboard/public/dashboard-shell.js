@@ -37,6 +37,7 @@
     archive: '<rect x="2" y="2" width="12" height="3" rx="1"/><path d="M3 5v9h10V5M6 8h4"/>',
     reply: '<path d="M6 3L1 7l5 4M1 7h7a6 6 0 016 6"/>',
     mail: '<rect x="2" y="3" width="12" height="10" rx="2"/><path d="M2 4l6 5 6-5"/>',
+    card: '<rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/><path d="M1.5 6.5h13M4 10h3"/>',
     alert: '<circle cx="8" cy="8" r="6"/><path d="M8 4.5v4M8 11.5h.01"/>',
   }
   function icon(name) {
@@ -99,7 +100,7 @@
   function paintNavigation(session) {
     const customer = customerMode(session.authMode)
     $('#native-mail').hidden = session.nativeMailEnabled !== true
-    for (const id of ['#developers', '#settings', '#account-settings', '#integrations']) $(id).hidden = !customer
+    for (const id of ['#developers', '#settings', '#account-settings', '#integrations', '#billing']) $(id).hidden = !customer
     $('#credentials').hidden = !customer
     $('#domains').hidden = customer && !session.customDomainsEnabled
   }

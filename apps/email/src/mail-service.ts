@@ -1,5 +1,7 @@
 import { processTriage } from "./triage-worker.js"
 import type { TriageAnalyzer } from "./triage.js"
+import type { Metering } from "./metering.js"
+import type { BillingHold } from "./billing.js"
 import { clientEventTarget } from "./mail-clients.js"
 import { initialDelivery, deliveryEvent } from "./delivery.js"
 import PostalMime, { type Address } from "postal-mime"
@@ -110,6 +112,7 @@ export class MailService {
   readonly customDomains?: CustomDomains
   readonly scanner?: InboundScanner
   readonly triageAnalyzer?: TriageAnalyzer
+  readonly metering?: Metering
   constructor(deps: {
     store: MailboxStore
     objects: ObjectStore
@@ -119,6 +122,7 @@ export class MailService {
     customDomains?: CustomDomains
     scanner?: InboundScanner
     triageAnalyzer?: TriageAnalyzer
+    metering?: Metering
   }) {
     this.store = deps.store
     this.objects = deps.objects
@@ -128,6 +132,7 @@ export class MailService {
     this.customDomains = deps.customDomains
     this.scanner = deps.scanner
     this.triageAnalyzer = deps.triageAnalyzer
+    this.metering = deps.metering
   }
 
   async execute(operation: Operation, raw: unknown, testing = false): Promise<unknown> {
@@ -360,12 +365,24 @@ export class MailService {
   ): Promise<SendResult> {
     let inbox = await this.store.inbox(input.inboxId)
     const signature = fingerprint(JSON.stringify({ input, reply }))
-    const existing = await this.store.reserveSend(
-      inbox.id,
-      input.idempotencyKey,
-      signature
-    )
+    // One send unit is held before the reservation exists, so a denied send leaves
+    // no record and the same idempotencyKey succeeds after the customer upgrades.
+    // A key whose reservation will be answered as-is skips the hold: retries of a
+    // completed send must return its result even when the allowance is spent.
+    // The hold is confirmed after commit and released on every other exit.
+    const customer = this.metering ? await this.store.inboxCustomer(inbox.id) : null
+    const hold = this.metering && customer && !(await this.store.sendSettled(inbox.id, input.idempotencyKey))
+      ? await this.metering.holdSend(customer) : null
+    const settle = (action: "confirm" | "release") => this.metering?.settle(hold, action) ?? Promise.resolve()
+    let existing
+    try {
+      existing = await this.store.reserveSend(inbox.id, input.idempotencyKey, signature)
+    } catch (error) {
+      await settle("release")
+      throw error
+    }
     if (existing) {
+      await settle("release")
       if (existing.fingerprint !== signature)
         throw new MailError(
           "Idempotency key was used for a different email",
@@ -419,6 +436,7 @@ export class MailService {
     } catch {
       const error = new MailError("Attachment storage failed before sending. Retry this request.", "attachment_storage_error", 503)
       await this.store.failSend(inbox.id, input.idempotencyKey, error)
+      await settle("release")
       throw error
     }
     let receipt
@@ -440,6 +458,8 @@ export class MailService {
     } catch (error) {
       if (error instanceof MailError && !error.transient)
         await this.store.failSend(inbox.id, input.idempotencyKey, error)
+      // An uncertain outcome is not charged either; the reservation already stops a resend.
+      await settle("release")
       throw error
     }
     const threadId = reply?.threadId ?? crypto.randomUUID()
@@ -477,11 +497,17 @@ export class MailService {
           occurredAt: row.timestamp
         }
       : null
-    await this.store.commitMessage(row, event, {
-      key: input.idempotencyKey,
-      result,
-      ...(!inbox.testing ? { deliveryEvent: deliveryEvent(row, inbox.address, row.delivery) } : {})
-    })
+    try {
+      await this.store.commitMessage(row, event, {
+        key: input.idempotencyKey,
+        result,
+        ...(!inbox.testing ? { deliveryEvent: deliveryEvent(row, inbox.address, row.delivery) } : {})
+      })
+    } catch (error) {
+      await settle("release")
+      throw error
+    }
+    await settle("confirm")
     return result
   }
 
@@ -594,6 +620,9 @@ export class MailService {
       })
     }
     await this.objects.put(`${inbox.id}/${id}/raw.eml`, raw)
+    // Quarantined mail is not analysed unless released, so its unit is held at release instead.
+    // The hold taken here is confirmed only once the message is stored.
+    const triage = protection?.status === "quarantined" ? { enabled: Boolean(this.triageAnalyzer), hold: null } : await this.triageHold(inbox.id)
     const row: MessageRow = {
       id,
       inbox_id: inbox.id,
@@ -601,15 +630,23 @@ export class MailService {
       thread_id: threadId,
       timestamp: new Date().toISOString(),
       direction: "received",
-      ...(this.triageAnalyzer ? { triage: { status: "pending" as const } } : {}),
+      ...(triage.enabled ? { triage: { status: "pending" as const } } : {}),
       labels: protection?.status === "quarantined" ? ["quarantined"] : ["received", "unread"],
       ...(protection ? { protection } : {}),
       data
     }
-    const saved = await this.store.commitMessage(row,
-      inbox.testing || protection?.status === "quarantined" ? null : this.receivedEvent(row, inbox.address), undefined,
-      !parsed.headers.some(header => header.key.toLowerCase() === "auto-submitted" && header.value.toLowerCase() !== "no") &&
-      !parsed.headers.some(header => header.key.toLowerCase() === "x-bezalel-notification"))
+    let saved
+    try {
+      saved = await this.store.commitMessage(row,
+        inbox.testing || protection?.status === "quarantined" ? null : this.receivedEvent(row, inbox.address), undefined,
+        !parsed.headers.some(header => header.key.toLowerCase() === "auto-submitted" && header.value.toLowerCase() !== "no") &&
+        !parsed.headers.some(header => header.key.toLowerCase() === "x-bezalel-notification"))
+    } catch (error) {
+      await this.metering?.settle(triage.hold, "release")
+      throw error
+    }
+    // A duplicate delivery that lost the insert gets the stored row back; only the insert that won pays.
+    await this.metering?.settle(triage.hold, saved.id === id ? "confirm" : "release")
     return { messageId: saved.wire_id, threadId: saved.thread_id }
   }
 
@@ -636,17 +673,58 @@ export class MailService {
     const released = { ...row, protection: { ...row.protection, status: "released" as const,
       releasedAt: new Date().toISOString(), releasedBy: input.reviewedBy },
       labels: [...new Set([...row.labels.filter((label) => !["quarantined", "trash"].includes(label)), "received", "unread"])] }
-    const [result] = await this.store.db.query<{ status: string }>(
-      "select mail.release_quarantine($1, $2, $3::jsonb, $4::jsonb) as status",
-      [inbox.id, row.id, JSON.stringify(released.protection),
-        inbox.testing ? null : JSON.stringify(this.receivedEvent(released, inbox.address))])
+    // Release makes the pending analysis eligible, so its unit is held here and
+    // confirmed only if this call is the one that releases the message.
+    const triage = row.triage?.status === "pending" ? await this.triageHold(inbox.id) : { enabled: false, hold: null }
+    let result: { status: string } | undefined
+    try {
+      // release_quarantine locks the message row, so dropping an unpaid analysis in the
+      // same transaction leaves no moment where the worker could lease it. Only the call
+      // that released the message drops it; a caller that lost must not clear work
+      // another caller's hold is paying for.
+      result = await this.store.db.transaction(async (db) => {
+        const [outcome] = await db.query<{ status: string }>(
+          "select mail.release_quarantine($1, $2, $3::jsonb, $4::jsonb) as status",
+          [inbox.id, row.id, JSON.stringify(released.protection),
+            inbox.testing ? null : JSON.stringify(this.receivedEvent(released, inbox.address))])
+        if (outcome?.status === "released" && row.triage?.status === "pending" && !triage.enabled)
+          await db.query("update mail.messages set triage = null where id = $1 and triage->>'status' = 'pending'", [row.id])
+        return outcome
+      })
+    } catch (error) {
+      await this.metering?.settle(triage.hold, "release")
+      throw error
+    }
+    await this.metering?.settle(triage.hold, result?.status === "released" ? "confirm" : "release")
     if (result?.status === "missing") throw new MailError("Message not found", "not_found", 404)
     if (result?.status === "infected") throw new MailError("Attachments did not pass scanning", "malware_blocked", 403)
     return result?.status === "released"
   }
 
+  /**
+   * Whether triage should run for a message, holding the unit that pays for it.
+   * Triage runs when the operator enabled it and, under metering, the inbox's
+   * account has allowance left. Holding at receipt means a burst of mail cannot
+   * overspend; the caller confirms the hold once the message is stored or
+   * released, and an analysis that ends in failure refunds the unit.
+   */
+  private async triageHold(inboxId: string): Promise<{ enabled: boolean; hold: BillingHold | null }> {
+    if (!this.triageAnalyzer) return { enabled: false, hold: null }
+    if (!this.metering) return { enabled: true, hold: null }
+    const customer = await this.store.inboxCustomer(inboxId)
+    if (!customer) return { enabled: true, hold: null }
+    const { allowed, hold } = await this.metering.holdTriage(customer)
+    return { enabled: allowed, hold }
+  }
+
   async processTriage(): Promise<void> {
-    if (this.triageAnalyzer) await processTriage(this.store.db, this.triageAnalyzer)
+    if (!this.triageAnalyzer) return
+    const metering = this.metering
+    await processTriage(this.store.db, this.triageAnalyzer, !metering ? undefined : async (message, status) => {
+      if (status !== "failed") return
+      const customer = await this.store.inboxCustomer(message.inbox_id)
+      if (customer) await metering.refundTriage(customer, message.id)
+    })
   }
 
   async acceptIncoming(recipient: string, raw: Uint8Array, sender?: string): Promise<void> {

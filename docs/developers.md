@@ -1,7 +1,7 @@
 # Developer tools
 
 Goshen Email has an account API, TypeScript and Python clients, a JSON CLI, and
-MCP over Streamable HTTP or stdio. All use the same 16-operation contract.
+MCP over Streamable HTTP or stdio. All use the same 17-operation contract.
 
 When the operator enables [email triage](triage.md), message and thread responses
 include category, needs-reply, and urgency judgments. Lists and searches accept
@@ -23,9 +23,13 @@ Keys default to 30 days and can expire after 1 to 365 days.
 
 Use `BEZALEL_API_KEY` for SDKs, CLI, and MCP. Account keys start with `bze_` and
 can access only inboxes owned by that account. Even a dashboard administrator's
-key cannot access other customers or legacy platform inboxes. Accounts have no
-inbox-count cap by default. An operator can set an explicit account quota;
-send limits still apply. Keys cannot create other keys or release quarantine.
+key cannot access other customers or legacy platform inboxes. On the hosted
+service the account's plan sets its inbox count and monthly send and triage
+allowances; a spent allowance returns `billing_limit` (402), and `getUsage`
+(`GET /v1/usage`) reports what remains. See the [pricing guide](pricing.md).
+Without billing configured, accounts have no inbox-count cap by default and an
+operator can set an explicit quota. Send limits always apply. Keys cannot
+create other keys, release quarantine, or change plans.
 
 | Scope | Access |
 | --- | --- |

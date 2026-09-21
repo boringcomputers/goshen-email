@@ -46,7 +46,8 @@ The SDKs raise `BezalelError` with `status`, `code`, and `transient`. The CLI pr
 | Code | Status | Meaning | What to do |
 | --- | --- | --- | --- |
 | `inbox_conflict` | 409 | The address exists under a different owner | Choose another username |
-| `inbox_limit` | 422 | The account's inbox quota is reached | Delete an inbox or ask for a higher quota |
+| `inbox_limit` | 422 | The account's operator-set inbox quota is reached | Delete an inbox or ask for a higher quota |
+| `billing_limit` | 402 | The plan's inbox, send, or triage allowance is spent | A person upgrades or adds capacity in the dashboard; then retry (sends with the same `idempotencyKey`) |
 | `key_limit` | 422 | The account already has 20 active API keys | Revoke one |
 | `routing_conflict` | 409 | The address already has a delivery rule that is not ours | Choose another username |
 | `domain_not_configured` | 422 | The domain is not set up on this deployment | Add it in the dashboard |
@@ -71,6 +72,7 @@ The SDKs raise `BezalelError` with `status`, `code`, and `transient`. The CLI pr
 | Code | Status | Meaning | What to do |
 | --- | --- | --- | --- |
 | `not_configured` | 503 | A feature is not enabled on this deployment | Operator action |
+| `billing_unavailable` | 503 | The billing provider did not answer, so a metered operation was refused | Retry; sends keep the same `idempotencyKey` |
 | `dns_unavailable` | 503 | DNS lookups failed during verification | Retry |
 | `scanner_unavailable`, `scan_required` | 503 | Inbound scanning is unavailable or incomplete | Retry |
 | `provider_error`, `provider_response`, `provider_unavailable`, `gateway_error` | 502 | An upstream provider failed or answered unexpectedly | Retry; report if it persists |
@@ -87,4 +89,4 @@ The SDKs raise `BezalelError` with `status`, `code`, and `transient`. The CLI pr
 
 - Retry on `transient: true` and on `network_error`, with backoff.
 - For `send` and `reply`, always retry with the **same** `idempotencyKey` and contents. The server returns the original result with `deduplicated: true` if the first attempt went through.
-- Do not retry 4xx errors other than `send_pending` and `rate_limited` without changing the request.
+- Do not retry 4xx errors other than `send_pending`, `rate_limited`, and `billing_limit` (after the plan changes) without changing the request.

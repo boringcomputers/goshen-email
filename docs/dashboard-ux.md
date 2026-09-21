@@ -14,6 +14,14 @@ Configured administrators also see [Bezalel inboxes](native-admin.md), a read-on
 view of the dedicated native deployment. It keeps native mail separate from the
 standalone account inventory and checks administrator access on every read.
 
+Plan and usage sits above Settings in the workspace section. It shows the
+account's plan with its renewal date, meters for inboxes, sends, and triage
+analyses against the plan's allowances, and cards for every plan with an
+upgrade button that hands the browser to the hosted checkout page. Manage
+billing opens the hosted billing portal. Administrators see that they are not
+billed and get no upgrade buttons; deployments without billing show the inbox
+count and operator quota. See [pricing](pricing.md).
+
 Settings sits above the account button. It edits notification preferences and the organization and profile
 names, shows the verified sign-in email, and links to API keys. The saved
 organization name appears in the breadcrumb. See

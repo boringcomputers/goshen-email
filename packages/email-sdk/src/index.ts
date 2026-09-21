@@ -92,6 +92,9 @@ export class BezalelEmail {
     list: (input: Input<"listThreads">) => this.request("listThreads", input), get: (input: Input<"getThread">) => this.request("getThread", input),
     updateLabels: (input: Input<"updateThreadLabels">) => this.request("updateThreadLabels", input),
   }
+  readonly account = {
+    usage: () => this.request("getUsage", {}),
+  }
   async *pages<K extends "listInboxes" | "listMessages" | "searchMessages" | "listThreads">(operation: K, input: Input<K>): AsyncGenerator<Result<K>> {
     const seen = new Set<string>()
     let pageToken = (input as { pageToken?: string }).pageToken

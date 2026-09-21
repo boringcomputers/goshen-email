@@ -55,7 +55,8 @@ flowchart LR
 
 7. Set each Worker secret with `pnpm --filter @bezalel/email exec wrangler secret put NAME`:
    `MAIL_API_TOKEN`, `MAIL_WEBHOOK_SECRET`,
-   `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN`.
+   `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN`. `AUTUMN_SECRET_KEY`
+   is optional and turns on plan limits; see the [pricing guide](../../docs/pricing.md).
 8. Follow the [PlanetScale and Hyperdrive guide](../../docs/planetscale.md).
    Create a dedicated PlanetScale Postgres database, connect its primary to
    Hyperdrive with query caching disabled, and replace the `HYPERDRIVE` ID in

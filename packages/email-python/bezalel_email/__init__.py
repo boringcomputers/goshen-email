@@ -57,6 +57,7 @@ class BezalelEmail:
         self.inboxes = _Resource(self, {"list": "listInboxes", "create": "createInbox", "get": "getInbox", "update": "updateInbox", "delete": "deleteInbox", "finish_setup": "finishInboxSetup"})
         self.messages = _Resource(self, {"list": "listMessages", "search": "searchMessages", "get": "getMessage", "send": "send", "reply": "reply", "update_labels": "updateMessageLabels", "get_attachment": "getAttachment"})
         self.threads = _Resource(self, {"list": "listThreads", "get": "getThread", "update_labels": "updateThreadLabels"})
+        self.account = _Resource(self, {"usage": "getUsage"})
 
     def request(self, operation: str, parameters: dict[str, Any] | None = None) -> Any:
         if operation not in _MANIFEST:

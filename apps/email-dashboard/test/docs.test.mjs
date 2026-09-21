@@ -86,7 +86,7 @@ test('generated Markdown tables keep one cell per column, including union types'
 test('the API reference covers every operation in the contract', () => {
   const openapi = JSON.parse(readFileSync(new URL('../../docs/openapi.json', root), 'utf8'))
   const ids = Object.values(openapi.paths).flatMap((methods) => Object.values(methods).map((operation) => operation.operationId))
-  assert.equal(ids.length, 16)
+  assert.equal(ids.length, 17)
   for (const id of ids) {
     const slug = id.replace(/[A-Z]/g, (char) => '-' + char.toLowerCase())
     assert.ok(assets.has(`/docs/api/${slug}`), `${id} has a reference page`)

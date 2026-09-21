@@ -1,5 +1,9 @@
 import { sendNotifications } from "../src/notifications.js"
 import { fixtureTriage } from "./triage-fixture.js"
+import { fakeAutumn } from "./autumn-fixture.js"
+import { autumnBilling } from "../src/billing.js"
+import { Metering } from "../src/metering.js"
+import { pricingPlans } from "../src/pricing.js"
 import { nativeDashboardFixture } from './native-dashboard-fixture.js'
 import { KyselyPGlite } from "kysely-pglite"
 import { createAccountAuth, handleAccountRequest } from "../src/account-auth.js"
@@ -30,8 +34,12 @@ const objects: ObjectStore = {
 }
 const sends: unknown[] = []
 let routingAvailable = true
+// FIXTURE_BILLING=true meters accounts against an in-memory Autumn double on the Free plan. Nothing reaches Autumn or Stripe.
+const free = pricingPlans[0]!.included
+const autumn = process.env.FIXTURE_BILLING === "true" ? fakeAutumn({ included: { inboxes: free.inboxes, sends: free.sends, triage: free.triage, storage_mb: free.storageMb, seats: free.seats } }) : undefined
 const service = new MailService({
   ...(process.env.FIXTURE_TRIAGE === "true" ? { triageAnalyzer: fixtureTriage } : {}),
+  ...(autumn ? { metering: new Metering(autumnBilling("am_sk_test_fixture", autumn.request), ['owner@example.net']) } : {}),
   store: new MailboxStore(db), objects,
   config: { defaultDomain: 'example.com', domains: { 'example.com': 'a'.repeat(32) }, publicUrl: 'https://fixture.example.com', apiToken: 'fixture-worker-token-'.repeat(3), webhookSecret: `whsec_${Buffer.from('fixture-webhook-secret-'.repeat(3)).toString('base64')}` },
   transport: {
@@ -86,6 +94,12 @@ const control = createServer(async (req, res) => {
     const input = JSON.parse(Buffer.concat(chunks).toString())
     if (req.url === '/notifications') { await sendNotifications(db, service.transport, accountConfig.from, accountConfig.publicUrl); res.end('{}'); return }
     if (req.url === '/triage') { await service.processTriage(); res.end('{}'); return }
+    if (autumn && req.url === '/billing') {
+      // Set a customer's usage or availability directly so browser checks can show a spent allowance or an outage.
+      if (typeof input.down === 'boolean') autumn.state.down = input.down
+      if (input.customerId && input.feature) autumn.grant(input.customerId, input.feature, input.granted)
+      res.end(JSON.stringify({ checkouts: autumn.state.checkouts })); return
+    }
     if (req.url === '/routing') { routingAvailable = input.available === true; res.end('{}'); return }
     if (req.url !== '/receive') { res.writeHead(404).end(); return }
     const raw = new TextEncoder().encode([
