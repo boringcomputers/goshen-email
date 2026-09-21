@@ -79,6 +79,22 @@ test('the plan page shows usage, blocks past the allowance, upgrades through che
   await page.goBack()
   await page.locator('#billing-plan-name').waitFor()
 
+  // Refreshing while a checkout request is still in flight must not leave the buttons disabled.
+  let releaseCheckout
+  const held = new Promise(resolve => { releaseCheckout = resolve })
+  await page.route('**/api/rpc/startCheckout', async route => { await held; await route.continue() })
+  await cards.nth(2).locator('button').click()
+  assert.equal(await cards.nth(2).locator('button').textContent(), 'Opening checkout…')
+  assert.equal(await cards.nth(1).locator('button').isDisabled(), true)
+  await page.locator('#billing-refresh').click()
+  await page.locator('#billing-plan-name').waitFor()
+  assert.equal(await page.locator('.billing-plan-card').nth(1).locator('button').isDisabled(), false, 'A reload re-enables the plan buttons')
+  assert.equal(await page.locator('.billing-plan-card').nth(2).locator('button').textContent(), 'Upgrade to Team')
+  releaseCheckout()
+  await page.unroute('**/api/rpc/startCheckout')
+  await page.waitForTimeout(200)
+  assert.equal(page.url(), base + '/app#/billing', 'A stale checkout answer does not navigate')
+
   // Manage billing opens the hosted portal.
   await page.route('https://billing.stripe.test/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Fixture portal</title>' }))
   await page.locator('#billing-portal').click()
@@ -100,6 +116,31 @@ test('the plan page shows usage, blocks past the allowance, upgrades through che
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `No overflow at ${width}`)
   }
   if (evidence) { await page.setViewportSize({ width: 390, height: 2400 }); await page.screenshot({ path: evidence + '/billing-mobile.png', fullPage: true }) }
+
+  // A pricing link followed while signed out comes back to the plans after sign-in.
+  const visitor = await browser.newContext({ viewport: { width: 1440, height: 1200 } }), visitorPage = await visitor.newPage()
+  visitorPage.on('pageerror', error => errors.push(error.message))
+  await visitorPage.goto(base + '/')
+  await visitorPage.getByRole('link', { name: 'Start on Developer' }).click()
+  await visitorPage.waitForURL(base + '/sign-in#/billing')
+  const visitorEmail = `visitor-${crypto.randomUUID().slice(0, 8)}@example.net`
+  await visitorPage.locator('#email').fill(visitorEmail)
+  await visitorPage.locator('input[name=method][value=code]').check()
+  await visitorPage.locator('#submit').click()
+  await visitorPage.locator('#code').waitFor()
+  const codes = await (await visitor.request.get(control + '/sends')).json()
+  await visitorPage.locator('#code').fill(codes.filter(message => message.to.includes(visitorEmail)).at(-1).text.match(/\b\d{6}\b/)[0])
+  await visitorPage.locator('#submit').click()
+  await visitorPage.waitForURL(base + '/app#/billing')
+  await visitorPage.locator('#billing-plan-name').waitFor()
+  assert.equal(await visitorPage.locator('#page-title').textContent(), 'Plan and usage')
+  // An already signed-in visitor opening the sign-in page with a route also lands on it.
+  await visitorPage.goto(base + '/sign-in#/billing')
+  await visitorPage.waitForURL(base + '/app#/billing')
+  // A fragment that is not a dashboard route is dropped.
+  await visitorPage.goto(base + '/sign-in#//evil.example/phish')
+  await visitorPage.waitForURL(base + '/app')
+  await visitor.close()
 
   // Administrators see that they are not billed and get no upgrade buttons.
   const owner = await browser.newContext({ viewport: { width: 1440, height: 1200 } }), ownerPage = await owner.newPage()

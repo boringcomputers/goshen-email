@@ -276,7 +276,7 @@ test('anonymous sessions redirect and loading errors leave a usable recovery pat
   t.after(() => browser.close())
   const anonymous = await browser.newContext(), page = await anonymous.newPage()
   await page.goto(base + '/app#/settings')
-  await page.waitForURL('**/sign-in')
+  await page.waitForURL('**/sign-in#/settings')
   assert.equal(await page.locator('#auth-form').isVisible(), true)
   await anonymous.close()
 

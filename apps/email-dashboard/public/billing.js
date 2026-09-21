@@ -100,7 +100,9 @@ export function createBillingPanel({ rpc, notify, getCustomer }) {
     $('#billing-plan-list').replaceChildren(...(status === 'metered' ? usage.plans.map(p => planCard(p, plan?.planId)) : []))
   }
   async function load() {
+    // A reload supersedes any checkout or portal request still in flight, so the buttons come back.
     const requestVersion = ++version
+    busy = ''
     $('#billing-error').textContent = ''; $('#billing-retry').hidden = true
     if (!usage) { $('#billing-loading').hidden = false; $('#billing-content').hidden = true }
     try {
