@@ -133,6 +133,15 @@ test('Cloudflare customer mode forwards Access assertions without password secre
   assert.equal(headerCss.status, 200)
   assert.match(headerCss.headers.get('content-type'), /text\/css/)
   assert.equal(await headerCss.text(), await readFile(resolve('public/site-header.css'), 'utf8'))
+  const headerScript = await worker.fetch(origin + '/site-header.js')
+  assert.equal(headerScript.status, 200)
+  assert.match(headerScript.headers.get('content-type'), /text\/javascript/)
+  assert.equal(await headerScript.text(), await readFile(resolve('public/site-header.js'), 'utf8'))
+  for (const path of ['/', '/docs']) {
+    const html = await (await worker.fetch(origin + path)).text()
+    assert.match(html, /<script src="\/site-header\.js"><\/script>/, `${path} loads the header script`)
+    assert.match(html, /class="site-header-log-in">Log in</, `${path} serves the Log in link for the script to replace`)
+  }
   const boot = await worker.fetch(origin + '/dashboard-boot.js')
   assert.equal(boot.status, 200)
   assert.match(boot.headers.get('content-type'), /text\/javascript/)

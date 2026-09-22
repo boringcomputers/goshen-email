@@ -345,6 +345,7 @@ function pageHtml(page, content, headings) {
     </main>
     ${toc}
   </div>
+  <script src="/site-header.js"></script>
 </body>
 </html>
 `

@@ -12,6 +12,24 @@
 .site-header a { text-decoration: none; -webkit-tap-highlight-color: transparent; }
 .site-header a:hover { opacity: .78; }
 .site-header a:focus-visible { outline: 2px solid var(--color-info); outline-offset: 4px; }
+/* Signed-in account menu, painted by site-header.js in place of the Log in and Get started links. */
+.nav-actions > [hidden] { display: none; }
+.site-account-menu { position: relative; }
+.site-account-menu > summary { align-items: center; border-radius: var(--radius-full); cursor: pointer; display: flex; gap: 8px; list-style: none; padding: 4px 8px 4px 4px; color: var(--color-text); font-size: var(--text-base); line-height: var(--leading-snug); -webkit-tap-highlight-color: transparent; }
+.site-account-menu > summary::-webkit-details-marker { display: none; }
+.site-account-menu > summary:hover, .site-account-menu[open] > summary { background: var(--color-sand-100); }
+.site-account-menu > summary:focus-visible, .site-account-popover a:focus-visible, .site-account-popover button:focus-visible { outline: 2px solid var(--color-info); outline-offset: 2px; }
+.site-avatar { align-items: center; background: var(--color-sand-100); border-radius: var(--radius-full); color: var(--color-ink); display: inline-flex; flex: 0 0 32px; font-size: var(--text-xs); font-weight: var(--font-weight-semibold); height: 32px; justify-content: center; line-height: 16px; width: 32px; }
+.site-account-menu[open] .site-avatar, .site-account-menu > summary:hover .site-avatar { background: var(--color-surface); }
+.site-account-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-account-chevron { color: var(--color-text-muted); flex-shrink: 0; }
+.site-account-popover { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: 0 6px 24px #00000014; padding: 6px; position: absolute; right: 0; text-align: left; top: calc(100% + 6px); width: 240px; z-index: 20; }
+.site-account-identity { border-bottom: 1px solid var(--color-border); font-size: var(--text-sm); line-height: 20px; margin-bottom: 6px; overflow-wrap: anywhere; padding: 8px 10px 10px; }
+.site-account-identity strong { color: var(--color-text); display: block; font-weight: var(--font-weight-medium); }
+.site-account-identity p { color: var(--color-text-muted); font-size: var(--text-xs); line-height: 16px; margin: 0; }
+.site-account-popover a, .site-account-popover button { background: none; border: 0; border-radius: var(--radius-sm); color: var(--color-text); cursor: pointer; display: flex; font: inherit; font-size: var(--text-sm); line-height: 20px; padding: 10px; text-align: left; width: 100%; }
+.site-account-popover a:hover, .site-account-popover button:hover { background: var(--color-sand-100); opacity: 1; }
+.site-account-popover button:disabled { color: var(--color-text-muted); cursor: default; }
 @media (max-width: 1023px) {
   .site-header { flex-wrap: wrap; height: auto; gap: 24px; }
   .site-nav { order: 3; width: 100%; justify-content: center; }
