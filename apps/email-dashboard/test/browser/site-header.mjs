@@ -87,6 +87,19 @@ test('the site header shows the signed-in account instead of Log in, and signs o
   assert.equal(await page.evaluate(() => localStorage.getItem('bezalel.dashboard.snapshot')), null, 'the saved workspace is dropped with the session')
   await page.unroute('**/api/session')
 
+  // A session request that fails or answers with something other than JSON clears the account too.
+  for (const [label, answer] of [['aborted', route => route.abort()], ['malformed', route => route.fulfill({ contentType: 'application/json', body: 'not json' })]]) {
+    await page.goto(base + '/app#/inboxes')
+    await ready(page)
+    assert.notEqual(await page.evaluate(() => localStorage.getItem('bezalel.dashboard.snapshot')), null)
+    await page.route('**/api/session', answer)
+    await page.goto(base + '/')
+    await page.waitForFunction(() => !document.querySelector('#site-account-menu'))
+    assert.equal(await headerActions(page), 'Log in\nGet started', `${label} session answer shows the links`)
+    assert.equal(await page.evaluate(() => localStorage.getItem('bezalel.dashboard.snapshot')), null, `${label} session answer drops the saved workspace`)
+    await page.unroute('**/api/session')
+  }
+
   // Signing out from the header ends the session, clears the marker, and restores the links.
   await page.goto(base + '/app#/inboxes')
   await ready(page)

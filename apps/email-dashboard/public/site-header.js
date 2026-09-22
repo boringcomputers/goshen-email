@@ -95,8 +95,11 @@
   if (!hasMarker()) return
   const saved = savedSession()
   if (saved) paint(saved)
+  // Only a confirmed session keeps the account on screen. A failed or malformed answer clears it
+  // and the saved workspace, the same as the dashboard does, so a shared browser never keeps
+  // showing the previous account after the server stops answering for it.
   fetch('/api/session', { credentials: 'same-origin' })
     .then(response => response.json())
-    .then(session => { if (session.authenticated) paint(session); else { forgetSaved(); clear() } })
-    .catch(() => {})
+    .then(session => { if (session?.authenticated === true) paint(session); else throw new Error('No session') })
+    .catch(() => { forgetSaved(); clear() })
 })()
