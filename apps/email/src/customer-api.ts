@@ -128,7 +128,7 @@ export async function executeCustomerRequest(request: Request, service: MailServ
         if (error instanceof MailError && error.status === 404) return null
         throw error
       })
-      const hold = !existing && service.metering ? await service.metering.holdInbox(billable(customer)) : null
+      const hold = !existing && service.metering ? await service.metering.holdInbox(billable(customer), await store.inboxCount(customer)) : null
       try {
         await store.provision(customer, inbox, domain, input.data.displayName, input.data.group)
       } catch (error) {

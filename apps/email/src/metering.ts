@@ -22,9 +22,19 @@ export class Metering {
     return access.hold
   }
 
-  /** The action is already decided. A failed settlement must not turn it into an error for the caller. */
+  /**
+   * The action is already decided. A failed settlement must not turn it into an
+   * error for the caller. A consumed unit has no expiry to fall back on, so its
+   * release is retried; if it still fails, the next createInbox or getUsage
+   * reconciles the account's inbox usage against the database.
+   */
   async settle(hold: BillingHold | null, action: "confirm" | "release"): Promise<void> {
-    if (hold) await this.billing.finalize(hold, action).catch(() => {})
+    if (!hold) return
+    const attempts = "lockId" in hold || action === "confirm" ? 1 : 3
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try { await this.billing.finalize(hold, action); return }
+      catch { if (attempt < attempts) await new Promise(resolve => setTimeout(resolve, 250 * attempt)) }
+    }
   }
 
   private async record(customer: BillingCustomer, feature: keyof typeof billingFeatures, value: number, key: string): Promise<void> {
@@ -32,8 +42,36 @@ export class Metering {
     await this.billing.track(customer, billingFeatures[feature], value, key).catch(() => {})
   }
 
-  holdInbox(customer: BillingCustomer): Promise<BillingHold | null> {
-    return this.hold(customer, "inboxes", "Your plan's inbox limit is reached. Upgrade or add inboxes to create more.")
+  /**
+   * Holds one inbox unit. `count` is the account's inbox count in the database,
+   * the source of truth. Autumn's usage should equal it before this new inbox;
+   * when it does not (a lost refund, or inboxes that predate billing), usage is
+   * corrected with an idempotent event and the decision is made on the true count.
+   */
+  async holdInbox(customer: BillingCustomer, count: number): Promise<BillingHold | null> {
+    if (this.exempt(customer)) return null
+    const denied = "Your plan's inbox limit is reached. Upgrade or add inboxes to create more."
+    const access = await this.billing.hold(customer, billingFeatures.inboxes)
+    // After a successful hold Autumn's usage includes this inbox; after a denial it does not.
+    const expected = access.hold ? count + 1 : count
+    if (access.balance && !access.balance.unlimited && access.balance.used !== expected) {
+      await this.reconcileInboxes(customer, expected, access.balance.used)
+      if (access.hold && access.balance.granted !== null && expected > access.balance.granted) {
+        await this.settle(access.hold, "release")
+        throw new MailError(denied, "billing_limit", 402)
+      }
+      if (!access.hold) {
+        const retry = await this.billing.hold(customer, billingFeatures.inboxes)
+        if (retry.allowed && retry.hold) return retry.hold
+      }
+    }
+    if (!access.allowed || !access.hold) throw new MailError(denied, "billing_limit", 402)
+    return access.hold
+  }
+  /** Moves Autumn's inbox usage to `count`. Idempotent per (from, to) pair, so a repeated correction is recorded once. */
+  async reconcileInboxes(customer: BillingCustomer, count: number, used: number): Promise<void> {
+    if (this.exempt(customer) || used === count) return
+    await this.billing.track(customer, billingFeatures.inboxes, count - used, `reconcile:inboxes:${customer.id}:${used}:${count}`)
   }
   creditInbox(customer: BillingCustomer, inboxId: string): Promise<void> {
     return this.record(customer, "inboxes", -1, `inbox:${inboxId}:delete`)
@@ -59,8 +97,15 @@ export class Metering {
     return this.record(customer, "triage", -1, `triage:${messageId}:refund`)
   }
 
-  usage(customer: BillingCustomer): Promise<BillingUsage> {
-    return this.billing.usage(customer)
+  /** Reads usage and, when `inboxCount` is given, corrects Autumn's inbox usage to it first. */
+  async usage(customer: BillingCustomer, inboxCount?: number): Promise<BillingUsage> {
+    let usage = await this.billing.usage(customer)
+    const inboxes = usage.balances.find(b => b.feature === billingFeatures.inboxes)
+    if (inboxCount !== undefined && inboxes && !inboxes.unlimited && inboxes.used !== inboxCount) {
+      await this.reconcileInboxes(customer, inboxCount, inboxes.used)
+      usage = await this.billing.usage(customer)
+    }
+    return usage
   }
 
   async checkout(customer: BillingCustomer, planId: string, successUrl?: string): Promise<{ paymentUrl: string | null }> {

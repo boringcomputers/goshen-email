@@ -6,7 +6,7 @@ import { run } from "@bezalel/email-cli"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 import { apiScopes, manageApiKeys } from "../src/api-keys.js"
-import { autumnBilling, billingFeatures, billingPlans } from "../src/billing.js"
+import { allocatedFeatures, autumnBilling, billingFeatures, billingPlans } from "../src/billing.js"
 import { MailError } from "../src/contracts.js"
 import { executeCustomerRequest } from "../src/customer-api.js"
 import { CustomerStore, type Customer } from "../src/customer-store.js"
@@ -67,6 +67,43 @@ describe("plan limits through Autumn", () => {
       }
     }
     expect(config).toContain(`amount: ${topUpPrice}, billingUnits`)
+    // Autumn only locks consumable balances, so the Worker's allocated set must mirror the config's consumable flags.
+    const consumable = Object.fromEntries([...config.matchAll(/featureId: "([a-z_]+)", name: "[^"]+", type: "metered", consumable: (true|false)/g)].map(m => [m[1], m[2] === "true"]))
+    expect(Object.keys(consumable).sort()).toEqual(Object.values(billingFeatures).sort())
+    for (const [feature, isConsumable] of Object.entries(consumable)) expect(allocatedFeatures.has(feature as never), feature).toBe(!isConsumable)
+  })
+
+  it("recovers a lost inbox refund and backfills inboxes that predate billing", async () => {
+    // A refund that never reached Autumn leaves usage one higher than the account's real inbox count.
+    const a = await account(), foreign = await account()
+    const taken = name()
+    await foreign.client.inboxes.create({ username: taken })
+    autumn.state.failTrack = true
+    try { await expect(a.client.inboxes.create({ username: taken })).rejects.toMatchObject({ status: 409, code: "inbox_conflict" }) }
+    finally { autumn.state.failTrack = false }
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(1)
+    expect((await a.client.inboxes.list()).inboxes).toHaveLength(0)
+    // The database says zero inboxes, so the next creation corrects Autumn before deciding, and the cap still holds at two.
+    await a.client.inboxes.create({ username: name() })
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(1)
+    await a.client.inboxes.create({ username: name() })
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    await expect(a.client.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 402, code: "billing_limit" })
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    // Inboxes created before billing was switched on are counted the first time the account is metered.
+    const legacy = await account()
+    const unmetered = new BezalelEmail({ apiKey: legacy.key, baseUrl: f.service.config.publicUrl, fetch: async (input, init) => handleRequest(new Request(input, init), f.service) })
+    await unmetered.inboxes.create({ username: name() }); await unmetered.inboxes.create({ username: name() })
+    expect(autumn.has(legacy.customer.id)).toBe(false)
+    await expect(legacy.client.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 402, code: "billing_limit" })
+    expect(autumn.usage(legacy.customer.id, "inboxes")).toBe(2)
+    expect((await legacy.client.inboxes.list()).inboxes).toHaveLength(2)
+    // getUsage reports the database count and repairs Autumn on the way.
+    autumn.setUsage(legacy.customer.id, "inboxes", 7)
+    const usage = await legacy.client.account.usage()
+    expect(usage.inboxes.count).toBe(2)
+    expect(usage.features.find(feature => feature.feature === "inboxes")).toMatchObject({ used: 2, remaining: 0 })
+    expect(autumn.usage(legacy.customer.id, "inboxes")).toBe(2)
   })
 
   it("caps inboxes by plan, ignores retries of an existing username, and credits deletions", async () => {

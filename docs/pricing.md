@@ -69,8 +69,14 @@ Design points:
   finalizes expires after ten minutes and releases itself. Autumn does not
   allow locks on allocated features, so inbox creation consumes its unit in
   the same `check` and refunds it with an idempotent negative usage event if
-  provisioning fails. Either way two requests cannot both pass on the last
-  unit.
+  provisioning fails; the refund is retried three times. Either way two
+  requests cannot both pass on the last unit.
+- The database is the source of truth for how many inboxes an account has.
+  `createInbox` and `getUsage` compare Autumn's inbox usage with that count
+  and correct it with an idempotent event when they differ, then decide on
+  the true count. That repairs a refund that never reached Autumn and counts
+  inboxes created before billing was switched on, so no backfill script is
+  needed.
 - The send hold happens before a reservation exists. A denied send leaves no
   row, so the same `idempotencyKey` succeeds after the customer upgrades. A key
   whose reservation will be answered as-is (sent, pending, or failed for good)
@@ -135,12 +141,11 @@ Schema: none. This release adds no tables or columns.
 3. Set `AUTUMN_SECRET_KEY` as a Worker secret. From the next request, new
    customers are created in Autumn on the Free plan when they first create an
    inbox or send, and every account's limits apply.
-4. Existing accounts start on Free with their current inbox count uncounted in
-   Autumn until they create or delete an inbox. To count existing inboxes,
-   record one `inboxes` event per account from an operator script before
-   turning the key on, or grant those accounts a matching balance in Autumn.
+4. Existing accounts start on Free. Their inbox usage in Autumn is corrected
+   to the database count the first time they create an inbox or read usage,
+   so an account already over the Free allowance keeps its inboxes and is
+   denied the next one.
 
-The operator backfill script is follow-up work.
 
 ## Local verification
 

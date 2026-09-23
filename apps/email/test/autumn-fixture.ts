@@ -10,7 +10,7 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
   const customers = new Map<string, { email: string; name?: string; granted: Record<string, number>; usage: Record<string, number>; held: Record<string, number> }>()
   const events = new Map<string, number>()
   const locks = new Map<string, { customerId: string; feature: string; expiresAt: number }>()
-  const state = { down: false, calls: [] as string[], checkouts: [] as { customerId: string; planId: string }[], finalized: [] as string[] }
+  const state = { down: false, failTrack: false, calls: [] as string[], checkouts: [] as { customerId: string; planId: string }[], finalized: [] as string[] }
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
   const customerView = (id: string) => {
     const c = customers.get(id)!
@@ -68,6 +68,7 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
       return json({ allowed, customer_id: id, feature_id: feature, required_balance: required, balance: balance(id, feature) })
     }
     if (path === "balances.track") {
+      if (state.failTrack) return json({ code: "internal_error", message: "boom" }, 500)
       const key = String(body.idempotency_key), value = typeof body.value === "number" ? body.value : 1
       if (events.has(key)) return json({ code: "duplicate_event", message: "Already recorded" }, 409)
       events.set(key, value)
@@ -88,6 +89,7 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
     held: (id: string, feature: BillingFeature) => customers.get(id)?.held[feature] ?? 0,
     openLocks: () => locks.size,
     grant: (id: string, feature: BillingFeature, granted: number) => { customers.get(id)!.granted[feature] = granted },
+    setUsage: (id: string, feature: BillingFeature, usage: number) => { customers.get(id)!.usage[feature] = usage },
     has: (id: string) => customers.has(id),
   }
 }

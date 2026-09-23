@@ -33,7 +33,7 @@ export async function accountUsage(service: MailService, store: CustomerStore, c
   if (!metering) return { billing: "disabled", plan: null, inboxes, features: [], plans: [] }
   const billable: BillingCustomer = { id: customer.id, email: customer.email, ...(customer.displayName ? { name: customer.displayName } : {}) }
   if (metering.exempt(billable)) return { billing: "exempt", plan: null, inboxes, features: [], plans: [...pricingPlans] }
-  const usage = await metering.usage(billable)
+  const usage = await metering.usage(billable, inboxes.count)
   const plan = usage.subscriptions.find(s => s.status === "active" && !s.canceledAt) ?? usage.subscriptions[0] ?? null
   return { billing: "metered", plan, inboxes, features: usage.balances, plans: [...pricingPlans] }
 }
