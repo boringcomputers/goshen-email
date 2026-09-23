@@ -124,18 +124,22 @@ export async function executeCustomerRequest(request: Request, service: MailServ
       await verifyCustomerDomain(service, domain)
       // Retrying an existing username is not a new inbox, so it is neither checked nor counted again.
       // For a new address one inbox unit is held first, confirmed once provisioning succeeds, and released if it fails.
+      // The hold and the provisioning run under the account's row lock, so a second request for the same
+      // account waits for this one to commit and then decides on the count that includes it.
       const existing = await store.inbox(customer, inbox).catch((error: unknown) => {
         if (error instanceof MailError && error.status === 404) return null
         throw error
       })
-      const hold = !existing && service.metering ? await service.metering.holdInbox(billable(customer), await store.inboxCount(customer)) : null
-      try {
-        await store.provision(customer, inbox, domain, input.data.displayName, input.data.group)
-      } catch (error) {
-        await service.metering?.settle(hold, "release")
-        throw error
-      }
-      await service.metering?.settle(hold, "confirm")
+      await store.withAccountLock(customer, async (db, count) => {
+        const hold = !existing && service.metering ? await service.metering.holdInbox(billable(customer), count) : null
+        try {
+          await store.provision(customer, inbox, domain, input.data.displayName, input.data.group, db)
+        } catch (error) {
+          await service.metering?.settle(hold, "release")
+          throw error
+        }
+        await service.metering?.settle(hold, "confirm")
+      })
       return finishRouting(service, store, await store.inbox(customer, inbox))
     }
     if (domainOperations.has(operation as Operation)) {

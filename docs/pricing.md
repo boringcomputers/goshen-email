@@ -76,7 +76,9 @@ Design points:
   and correct it with an idempotent event when they differ, then decide on
   the true count. That repairs a refund that never reached Autumn and counts
   inboxes created before billing was switched on, so no backfill script is
-  needed.
+  needed. Both run under the account's row lock (`withAccountLock`), together
+  with provisioning, so a second request for the same account waits for the
+  first to commit and cannot refund a unit that is still being provisioned.
 - The send hold happens before a reservation exists. A denied send leaves no
   row, so the same `idempotencyKey` succeeds after the customer upgrades. A key
   whose reservation will be answered as-is (sent, pending, or failed for good)

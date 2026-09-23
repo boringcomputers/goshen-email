@@ -73,6 +73,26 @@ describe("plan limits through Autumn", () => {
     for (const [feature, isConsumable] of Object.entries(consumable)) expect(allocatedFeatures.has(feature as never), feature).toBe(!isConsumable)
   })
 
+  it("lets exactly one of two simultaneous inbox creations through on the last unit", async () => {
+    const a = await account()
+    await a.client.account.usage()
+    autumn.grant(a.customer.id, "inboxes", 1)
+    // Both requests see zero inboxes before either commits. Without the account lock the second would
+    // read Autumn's usage as one too many, refund the first request's unit, and both would provision.
+    const results = await Promise.allSettled(["left", "right"].map(suffix => a.client.inboxes.create({ username: `${name()}-${suffix}` })))
+    expect(results.filter(r => r.status === "fulfilled")).toHaveLength(1)
+    expect(results.find(r => r.status === "rejected")).toMatchObject({ reason: { status: 402, code: "billing_limit" } })
+    expect((await a.client.inboxes.list()).inboxes).toHaveLength(1)
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(1)
+    // Reading usage at the same time as a creation cannot refund the unit either.
+    autumn.grant(a.customer.id, "inboxes", 2)
+    const [created, usage] = await Promise.all([a.client.inboxes.create({ username: name() }), a.client.account.usage()])
+    expect(created).toHaveProperty("inboxId")
+    expect(usage.inboxes.count).toBe(usage.features.find(feature => feature.feature === "inboxes")!.used)
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    expect((await a.client.inboxes.list()).inboxes).toHaveLength(2)
+  })
+
   it("recovers a lost inbox refund and backfills inboxes that predate billing", async () => {
     // A refund that never reached Autumn leaves usage one higher than the account's real inbox count.
     const a = await account(), foreign = await account()

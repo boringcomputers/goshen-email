@@ -33,7 +33,8 @@ export async function accountUsage(service: MailService, store: CustomerStore, c
   if (!metering) return { billing: "disabled", plan: null, inboxes, features: [], plans: [] }
   const billable: BillingCustomer = { id: customer.id, email: customer.email, ...(customer.displayName ? { name: customer.displayName } : {}) }
   if (metering.exempt(billable)) return { billing: "exempt", plan: null, inboxes, features: [], plans: [...pricingPlans] }
-  const usage = await metering.usage(billable, inboxes.count)
+  // The usage correction takes the account lock so it cannot refund a unit a concurrent createInbox is holding.
+  const usage = await store.withAccountLock(customer, (_db, count) => { inboxes.count = count; return metering.usage(billable, count) })
   const plan = usage.subscriptions.find(s => s.status === "active" && !s.canceledAt) ?? usage.subscriptions[0] ?? null
   return { billing: "metered", plan, inboxes, features: usage.balances, plans: [...pricingPlans] }
 }
