@@ -3,18 +3,19 @@
 // Prices and limits are explained in docs/pricing.md. Change them here, then there.
 import { atmn, feature, plan } from "atmn"
 
-export const inboxes = feature({ featureId: "inboxes", name: "Inboxes", type: "metered", consumable: false })
-export const sends = feature({ featureId: "sends", name: "Sends", type: "metered", consumable: true })
-export const triage = feature({ featureId: "triage", name: "Triage analyses", type: "metered", consumable: true })
-export const customDomains = feature({ featureId: "custom_domains", name: "Custom domains", type: "metered", consumable: false })
-export const storage = feature({ featureId: "storage_mb", name: "Storage (MB)", type: "metered", consumable: false })
-export const seats = feature({ featureId: "seats", name: "Seats", type: "metered", consumable: false })
+export const inboxes = feature({ internalId: "fe_3Jk5wFS7QShEB1g7osYdOo2TX6U", featureId: "inboxes", name: "Inboxes", type: "metered", consumable: false })
+export const sends = feature({ internalId: "fe_3Jk5wElEuHKW3B5vXXLmp7dT5UW", featureId: "sends", name: "Sends", type: "metered", consumable: true })
+export const triage = feature({ internalId: "fe_3Jk5wF9JA0fqLAhKhMZC140Aypr", featureId: "triage", name: "Triage analyses", type: "metered", consumable: true })
+export const customDomains = feature({ internalId: "fe_3Jk5wBD8fg0YHQvtEftE9HguBl5", featureId: "custom_domains", name: "Custom domains", type: "metered", consumable: false })
+export const storage = feature({ internalId: "fe_3Jk5wF1kB0hMAZj739DsdJgFNxm", featureId: "storage_mb", name: "Storage (MB)", type: "metered", consumable: false })
+export const seats = feature({ internalId: "fe_3Jk5wDX5Dxgl54JQAOXP8pcnqT8", featureId: "seats", name: "Seats", type: "metered", consumable: false })
 
 const monthly = { interval: "month" } as const
 // Every top-up is $2 per unit per month: one inbox, one domain, 1,000 sends, or 1,000 triage analyses.
 const topUp = (billingUnits: number) => ({ amount: 2, billingUnits, interval: "month", billingMethod: "prepaid" } as const)
 
 export const free = plan({
+  internalId: "prod_3Jk5wEB3SMjy7RtVrjAns3YeY1r",
   planId: "free",
   versionSlug: "v1",
   active: true,
@@ -33,6 +34,7 @@ export const free = plan({
 })
 
 export const developer = plan({
+  internalId: "prod_3Jk5wEHXZT8p3TdaBKL91zu1TGu",
   planId: "developer",
   versionSlug: "v1",
   active: true,
@@ -51,6 +53,7 @@ export const developer = plan({
 })
 
 export const team = plan({
+  internalId: "prod_3Jk5w9tJDYsgoo8HcpXJiRDLHWY",
   planId: "team",
   versionSlug: "v1",
   active: true,

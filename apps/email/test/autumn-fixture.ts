@@ -1,4 +1,4 @@
-import { billingFeatures, type BillingFeature } from "../src/billing.js"
+import { allocatedFeatures, billingFeatures, type BillingFeature } from "../src/billing.js"
 
 /**
  * In-memory stand-in for the Autumn REST API. It is not Autumn: it models the
@@ -58,7 +58,9 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
       if (allowed && body.send_event) {
         const c = customers.get(id)!
         if (lock?.enabled) {
-          if (!lock.lock_id || typeof lock.expires_at !== "number" || lock.expires_at <= Date.now()) return json({ code: "invalid_lock" }, 400)
+          // Autumn refuses locks on allocated features; only consumable balances can be held.
+          if (allocatedFeatures.has(feature as BillingFeature)) return json({ code: "invalid_request", message: "Lock is not supported for allocated features" }, 400)
+          if (!lock.lock_id || typeof lock.expires_at !== "number" || lock.expires_at <= Date.now() || lock.expires_at > Date.now() + 86_400_000) return json({ code: "invalid_request", message: "Lock expires_at cannot be more than 1 day from now" }, 400)
           locks.set(lock.lock_id, { customerId: id, feature, expiresAt: lock.expires_at })
           c.held[feature] = (c.held[feature] ?? 0) + required
         } else c.usage[feature] = (c.usage[feature] ?? 0) + required

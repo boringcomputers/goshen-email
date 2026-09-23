@@ -63,11 +63,14 @@ decision.
 
 Design points:
 
-- Checks and deductions are one atomic step. Sends and inbox creation use
-  Autumn balance locks: `check` with `send_event` and a `lock` holds the unit,
-  and `balances.finalize` confirms or releases it. Two requests cannot both
-  pass on the last unit. A hold the Worker never finalizes expires after ten
-  minutes and releases itself.
+- Checks and deductions are one atomic step. Sends and triage use Autumn
+  balance locks: `check` with `send_event` and a `lock` holds the unit, and
+  `balances.finalize` confirms or releases it. A hold the Worker never
+  finalizes expires after ten minutes and releases itself. Autumn does not
+  allow locks on allocated features, so inbox creation consumes its unit in
+  the same `check` and refunds it with an idempotent negative usage event if
+  provisioning fails. Either way two requests cannot both pass on the last
+  unit.
 - The send hold happens before a reservation exists. A denied send leaves no
   row, so the same `idempotencyKey` succeeds after the customer upgrades. A key
   whose reservation will be answered as-is (sent, pending, or failed for good)
@@ -121,10 +124,12 @@ against `pricing.ts` when either changes.
 
 Schema: none. This release adds no tables or columns.
 
-1. Create the Autumn organization and connect Stripe. Push the plans from
-   `ops/autumn` to the sandbox first, then to production
-   (see [ops/autumn/README.md](../ops/autumn/README.md)). Set the default
-   success URL in Autumn to the dashboard's billing page.
+1. Create the Autumn organization and connect Stripe at
+   `app.useautumn.com/dev?tab=stripe`. Without Stripe, metering and the Free
+   plan work but `startCheckout` and `openBillingPortal` fail. Push the plans
+   from `ops/autumn` (see [ops/autumn/README.md](../ops/autumn/README.md)).
+   Set the default success URL in Autumn to the dashboard's billing page.
+   Done for the `goshen_email` production org on 2026-09-23, except Stripe.
 2. Deploy the Worker and dashboard from the same revision. Without the secret
    the Worker behaves as before.
 3. Set `AUTUMN_SECRET_KEY` as a Worker secret. From the next request, new
