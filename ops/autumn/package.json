@@ -1,0 +1,14 @@
+{
+  "name": "goshen-email-autumn-config",
+  "private": true,
+  "description": "Autumn plan catalog for Goshen Email. Run npm install here, then npx atmn push.",
+  "scripts": {
+    "push": "atmn push",
+    "push:apply": "atmn push --yes",
+    "pull": "atmn pull",
+    "env": "atmn env"
+  },
+  "devDependencies": {
+    "atmn": "^2.0.8"
+  }
+}

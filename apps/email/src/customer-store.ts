@@ -1,6 +1,6 @@
 import { z } from "zod"
 import type { AccessIdentity } from "./access-auth.js"
-import type { Database } from "./database.js"
+import type { Database, DatabaseQueries } from "./database.js"
 import { MailError, type InboxRow } from "./contracts.js"
 import { inboxGroup, listAccountInboxes } from "./account-inbox-contract.js"
 
@@ -129,8 +129,8 @@ export class CustomerStore {
     return { inboxes, nextPageToken }
   }
 
-  async inbox(customer: Customer, address: string): Promise<CustomerInbox> {
-    const [row] = await this.db.query<CustomerInbox>(
+  async inbox(customer: Customer, address: string, db: DatabaseQueries = this.db): Promise<CustomerInbox> {
+    const [row] = await db.query<CustomerInbox>(
       `select i.*, c.route_ready, c.group_name from mail.inboxes i left join mail.customer_inboxes c on c.inbox_id = i.id
        where (c.customer_id = $1 or $2::boolean) and i.address = $3 and i.deleted_at is null and i.testing = false`,
       [customer.id, customer.role === "admin", address])
@@ -147,8 +147,21 @@ export class CustomerStore {
     return this.inbox(customer, address)
   }
 
-  async inboxCount(customer: Customer): Promise<number> {
-    const [row] = await this.db.query<{ count: number }>(
+  /**
+   * Runs `task` while holding the account's row lock, with the account's current
+   * inbox count. Anything that decides on that count (a plan check, a usage
+   * correction) runs here so two requests cannot both act on the same count.
+   */
+  withAccountLock<T>(customer: { id: string }, task: (db: DatabaseQueries, count: number) => Promise<T>): Promise<T> {
+    return this.db.transaction(async (db) => {
+      const [row] = await db.query("select id from mail.customers where id = $1 for update", [customer.id])
+      if (!row) throw new MailError("Your dashboard access has been disabled", "access_denied", 403)
+      return task(db, await this.inboxCount(customer, db))
+    })
+  }
+
+  async inboxCount(customer: { id: string }, db: DatabaseQueries = this.db): Promise<number> {
+    const [row] = await db.query<{ count: number }>(
       `select count(*)::int as count from mail.customer_inboxes c join mail.inboxes i on i.id = c.inbox_id
        where c.customer_id = $1 and i.deleted_at is null and i.testing = false`, [customer.id])
     return row!.count
@@ -169,9 +182,9 @@ export class CustomerStore {
     if (!row) throw new MailError("Inbox not found", "not_found", 404)
   }
 
-  async provision(customer: Customer, address: string, domain: string, displayName?: string, group?: string): Promise<void> {
+  async provision(customer: Customer, address: string, domain: string, displayName?: string, group?: string, db: DatabaseQueries = this.db): Promise<void> {
     try {
-      await this.db.query("select mail.provision_customer_inbox($1, $2, $3, $4, $5, $6)", [customer.id, address, domain, displayName ?? null, customer.role === "admin", group ?? null])
+      await db.query("select mail.provision_customer_inbox($1, $2, $3, $4, $5, $6)", [customer.id, address, domain, displayName ?? null, customer.role === "admin", group ?? null])
     } catch (error) {
       const message = error instanceof Error ? error.message : ""
       if (message.includes("CUSTOMER_INBOX_LIMIT")) throw new MailError("Your account has reached its inbox limit", "inbox_limit", 422)

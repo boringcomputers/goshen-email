@@ -31,12 +31,22 @@ export interface FeatureBalance {
 export interface BillingAccess { allowed: boolean; balance: FeatureBalance | null }
 export interface BillingSubscription { planId: string; status: string; currentPeriodEnd: string | null; canceledAt: string | null }
 export interface BillingUsage { subscriptions: BillingSubscription[]; balances: FeatureBalance[] }
-/** A unit of a feature held for one in-flight action. Confirm it when the action commits, release it otherwise. */
-export interface BillingHold { lockId: string; feature: BillingFeature }
+/**
+ * A unit of a feature taken for one in-flight action. Confirm it when the action
+ * commits, release it otherwise. Consumable features (sends, triage) use an Autumn
+ * balance lock. Allocated features (inboxes, domains) cannot be locked, so their
+ * unit is consumed at once and released by an idempotent negative usage event.
+ */
+export type BillingHold = { feature: BillingFeature; customer: BillingCustomer } & ({ lockId: string } | { refundKey: string })
+/** Features Autumn treats as allocated rather than consumable. Must match `consumable: false` in ops/autumn/autumn.config.ts. */
+export const allocatedFeatures: ReadonlySet<BillingFeature> = new Set([billingFeatures.inboxes, billingFeatures.customDomains, billingFeatures.storage, billingFeatures.seats])
 
 /** Reusable billing mechanics. Policy (who is exempt, which feature gates what) lives in metering.ts. */
 export interface BillingProvider {
-  /** Checks and, when allowed, holds one unit atomically until finalize() or the hold expires. Concurrent callers cannot both pass on the last unit. */
+  /**
+   * Checks and, when allowed, takes one unit atomically. Concurrent callers cannot both pass on the last unit.
+   * Consumable features are held under a lock until finalize() or expiry; allocated features are consumed and refunded on release.
+   */
   hold(customer: BillingCustomer, feature: BillingFeature): Promise<BillingAccess & { hold: BillingHold | null }>
   finalize(hold: BillingHold, action: "confirm" | "release"): Promise<void>
   track(customer: BillingCustomer, feature: BillingFeature, value: number, idempotencyKey: string): Promise<void>
@@ -126,12 +136,18 @@ export function autumnBilling(secretKey: string, request: typeof fetch = fetch, 
   }
   return {
     async hold(customer, feature) {
-      const lockId = crypto.randomUUID()
-      const access = await check(customer, feature, { send_event: true, lock: { enabled: true, lock_id: lockId, expires_at: Date.now() + holdLifetimeMs } })
-      return { ...access, hold: access.allowed ? { lockId, feature } : null }
+      const id = crypto.randomUUID()
+      if (allocatedFeatures.has(feature)) {
+        const access = await check(customer, feature, { send_event: true })
+        return { ...access, hold: access.allowed ? { feature, customer, refundKey: `refund:${id}` } : null }
+      }
+      const access = await check(customer, feature, { send_event: true, lock: { enabled: true, lock_id: id, expires_at: Date.now() + holdLifetimeMs } })
+      return { ...access, hold: access.allowed ? { feature, customer, lockId: id } : null }
     },
     async finalize(hold, action) {
-      await call("balances.finalize", { lock_id: hold.lockId, action }, z.unknown()).catch(failWith)
+      if ("lockId" in hold) { await call("balances.finalize", { lock_id: hold.lockId, action }, z.unknown()).catch(failWith); return }
+      // The unit was consumed when it was taken; confirming changes nothing and releasing gives it back.
+      if (action === "release") await this.track(hold.customer, hold.feature, -1, hold.refundKey)
     },
     async track(customer, feature, value, idempotencyKey) {
       try {

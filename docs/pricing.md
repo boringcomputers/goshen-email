@@ -63,11 +63,24 @@ decision.
 
 Design points:
 
-- Checks and deductions are one atomic step. Sends and inbox creation use
-  Autumn balance locks: `check` with `send_event` and a `lock` holds the unit,
-  and `balances.finalize` confirms or releases it. Two requests cannot both
-  pass on the last unit. A hold the Worker never finalizes expires after ten
-  minutes and releases itself.
+- Checks and deductions are one atomic step. Sends and triage use Autumn
+  balance locks: `check` with `send_event` and a `lock` holds the unit, and
+  `balances.finalize` confirms or releases it. A hold the Worker never
+  finalizes expires after ten minutes and releases itself. Autumn does not
+  allow locks on allocated features, so inbox creation consumes its unit in
+  the same `check` and refunds it with an idempotent negative usage event if
+  provisioning fails; the refund is retried three times. Either way two
+  requests cannot both pass on the last unit.
+- The database is the source of truth for how many inboxes an account has.
+  `createInbox` and `getUsage` compare Autumn's inbox usage with that count
+  and correct it with an idempotent event when they differ, then decide on
+  the true count. That repairs a refund that never reached Autumn and counts
+  inboxes created before billing was switched on, so no backfill script is
+  needed. Creation (existence check, hold, provisioning), deletion with its
+  credit, and the usage correction all run under the account's row lock
+  (`withAccountLock`), so a second request for the same account waits for the
+  first to commit and cannot refund a unit that is still being provisioned or
+  count an inbox twice.
 - The send hold happens before a reservation exists. A denied send leaves no
   row, so the same `idempotencyKey` succeeds after the customer upgrades. A key
   whose reservation will be answered as-is (sent, pending, or failed for good)
@@ -121,21 +134,22 @@ against `pricing.ts` when either changes.
 
 Schema: none. This release adds no tables or columns.
 
-1. Create the Autumn organization and connect Stripe. Push the plans from
-   `ops/autumn` to the sandbox first, then to production
-   (see [ops/autumn/README.md](../ops/autumn/README.md)). Set the default
-   success URL in Autumn to the dashboard's billing page.
+1. Create the Autumn organization and connect Stripe at
+   `app.useautumn.com/dev?tab=stripe`. Without Stripe, metering and the Free
+   plan work but `startCheckout` and `openBillingPortal` fail. Push the plans
+   from `ops/autumn` (see [ops/autumn/README.md](../ops/autumn/README.md)).
+   Set the default success URL in Autumn to the dashboard's billing page.
+   Done for the `goshen_email` production org on 2026-09-23, except Stripe.
 2. Deploy the Worker and dashboard from the same revision. Without the secret
    the Worker behaves as before.
 3. Set `AUTUMN_SECRET_KEY` as a Worker secret. From the next request, new
    customers are created in Autumn on the Free plan when they first create an
    inbox or send, and every account's limits apply.
-4. Existing accounts start on Free with their current inbox count uncounted in
-   Autumn until they create or delete an inbox. To count existing inboxes,
-   record one `inboxes` event per account from an operator script before
-   turning the key on, or grant those accounts a matching balance in Autumn.
+4. Existing accounts start on Free. Their inbox usage in Autumn is corrected
+   to the database count the first time they create an inbox or read usage,
+   so an account already over the Free allowance keeps its inboxes and is
+   denied the next one.
 
-The operator backfill script is follow-up work.
 
 ## Local verification
 

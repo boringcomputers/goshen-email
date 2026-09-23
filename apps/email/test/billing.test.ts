@@ -6,7 +6,7 @@ import { run } from "@bezalel/email-cli"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 import { apiScopes, manageApiKeys } from "../src/api-keys.js"
-import { autumnBilling, billingFeatures, billingPlans } from "../src/billing.js"
+import { allocatedFeatures, autumnBilling, billingFeatures, billingPlans } from "../src/billing.js"
 import { MailError } from "../src/contracts.js"
 import { executeCustomerRequest } from "../src/customer-api.js"
 import { CustomerStore, type Customer } from "../src/customer-store.js"
@@ -67,6 +67,82 @@ describe("plan limits through Autumn", () => {
       }
     }
     expect(config).toContain(`amount: ${topUpPrice}, billingUnits`)
+    // Autumn only locks consumable balances, so the Worker's allocated set must mirror the config's consumable flags.
+    const consumable = Object.fromEntries([...config.matchAll(/featureId: "([a-z_]+)", name: "[^"]+", type: "metered", consumable: (true|false)/g)].map(m => [m[1], m[2] === "true"]))
+    expect(Object.keys(consumable).sort()).toEqual(Object.values(billingFeatures).sort())
+    for (const [feature, isConsumable] of Object.entries(consumable)) expect(allocatedFeatures.has(feature as never), feature).toBe(!isConsumable)
+  })
+
+  it("lets exactly one of two simultaneous inbox creations through on the last unit", async () => {
+    const a = await account()
+    await a.client.account.usage()
+    autumn.grant(a.customer.id, "inboxes", 1)
+    // Both requests see zero inboxes before either commits. Without the account lock the second would
+    // read Autumn's usage as one too many, refund the first request's unit, and both would provision.
+    const results = await Promise.allSettled(["left", "right"].map(suffix => a.client.inboxes.create({ username: `${name()}-${suffix}` })))
+    expect(results.filter(r => r.status === "fulfilled")).toHaveLength(1)
+    expect(results.find(r => r.status === "rejected")).toMatchObject({ reason: { status: 402, code: "billing_limit" } })
+    expect((await a.client.inboxes.list()).inboxes).toHaveLength(1)
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(1)
+    // Reading usage at the same time as a creation cannot refund the unit either.
+    autumn.grant(a.customer.id, "inboxes", 2)
+    const [created, usage] = await Promise.all([a.client.inboxes.create({ username: name() }), a.client.account.usage()])
+    expect(created).toHaveProperty("inboxId")
+    expect(usage.inboxes.count).toBe(usage.features.find(feature => feature.feature === "inboxes")!.used)
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    expect((await a.client.inboxes.list()).inboxes).toHaveLength(2)
+  })
+
+  it("charges one unit when the same username is created twice at once, and keeps deletes in step with creates", async () => {
+    const a = await account()
+    await a.client.account.usage()
+    autumn.grant(a.customer.id, "inboxes", 5)
+    const username = name()
+    const same = await Promise.all([1, 2].map(() => a.client.inboxes.create({ username })))
+    expect(same[0]!.inboxId).toBe(same[1]!.inboxId)
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(1)
+    // A delete racing a create: whichever order the lock gives them, Autumn ends at the database count.
+    const second = await a.client.inboxes.create({ username: name() })
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    const [deleted] = await Promise.all([a.client.inboxes.delete({ inboxId: second.inboxId }), a.client.inboxes.create({ username: name() })])
+    expect(deleted).toEqual({ deleted: true })
+    const inboxes = (await a.client.inboxes.list()).inboxes
+    expect(inboxes).toHaveLength(2)
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    expect((await a.client.account.usage()).features.find(feature => feature.feature === "inboxes")).toMatchObject({ used: 2 })
+  })
+
+  it("recovers a lost inbox refund and backfills inboxes that predate billing", async () => {
+    // A refund that never reached Autumn leaves usage one higher than the account's real inbox count.
+    const a = await account(), foreign = await account()
+    const taken = name()
+    await foreign.client.inboxes.create({ username: taken })
+    autumn.state.failTrack = true
+    try { await expect(a.client.inboxes.create({ username: taken })).rejects.toMatchObject({ status: 409, code: "inbox_conflict" }) }
+    finally { autumn.state.failTrack = false }
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(1)
+    expect((await a.client.inboxes.list()).inboxes).toHaveLength(0)
+    // The database says zero inboxes, so the next creation corrects Autumn before deciding, and the cap still holds at two.
+    await a.client.inboxes.create({ username: name() })
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(1)
+    await a.client.inboxes.create({ username: name() })
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    await expect(a.client.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 402, code: "billing_limit" })
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    // Inboxes created before billing was switched on are counted the first time the account is metered.
+    const legacy = await account()
+    const unmetered = new BezalelEmail({ apiKey: legacy.key, baseUrl: f.service.config.publicUrl, fetch: async (input, init) => handleRequest(new Request(input, init), f.service) })
+    await unmetered.inboxes.create({ username: name() }); await unmetered.inboxes.create({ username: name() })
+    expect(autumn.has(legacy.customer.id)).toBe(false)
+    await expect(legacy.client.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 402, code: "billing_limit" })
+    expect(autumn.usage(legacy.customer.id, "inboxes")).toBe(2)
+    expect((await legacy.client.inboxes.list()).inboxes).toHaveLength(2)
+    // getUsage reports the database count and repairs Autumn on the way.
+    autumn.setUsage(legacy.customer.id, "inboxes", 7)
+    const usage = await legacy.client.account.usage()
+    expect(usage.inboxes.count).toBe(2)
+    expect(usage.features.find(feature => feature.feature === "inboxes")).toMatchObject({ used: 2, remaining: 0 })
+    expect(autumn.usage(legacy.customer.id, "inboxes")).toBe(2)
   })
 
   it("caps inboxes by plan, ignores retries of an existing username, and credits deletions", async () => {

@@ -1,4 +1,4 @@
-import { billingFeatures, type BillingFeature } from "../src/billing.js"
+import { allocatedFeatures, billingFeatures, type BillingFeature } from "../src/billing.js"
 
 /**
  * In-memory stand-in for the Autumn REST API. It is not Autumn: it models the
@@ -10,7 +10,7 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
   const customers = new Map<string, { email: string; name?: string; granted: Record<string, number>; usage: Record<string, number>; held: Record<string, number> }>()
   const events = new Map<string, number>()
   const locks = new Map<string, { customerId: string; feature: string; expiresAt: number }>()
-  const state = { down: false, calls: [] as string[], checkouts: [] as { customerId: string; planId: string }[], finalized: [] as string[] }
+  const state = { down: false, failTrack: false, calls: [] as string[], checkouts: [] as { customerId: string; planId: string }[], finalized: [] as string[] }
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
   const customerView = (id: string) => {
     const c = customers.get(id)!
@@ -58,7 +58,9 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
       if (allowed && body.send_event) {
         const c = customers.get(id)!
         if (lock?.enabled) {
-          if (!lock.lock_id || typeof lock.expires_at !== "number" || lock.expires_at <= Date.now()) return json({ code: "invalid_lock" }, 400)
+          // Autumn refuses locks on allocated features; only consumable balances can be held.
+          if (allocatedFeatures.has(feature as BillingFeature)) return json({ code: "invalid_request", message: "Lock is not supported for allocated features" }, 400)
+          if (!lock.lock_id || typeof lock.expires_at !== "number" || lock.expires_at <= Date.now() || lock.expires_at > Date.now() + 86_400_000) return json({ code: "invalid_request", message: "Lock expires_at cannot be more than 1 day from now" }, 400)
           locks.set(lock.lock_id, { customerId: id, feature, expiresAt: lock.expires_at })
           c.held[feature] = (c.held[feature] ?? 0) + required
         } else c.usage[feature] = (c.usage[feature] ?? 0) + required
@@ -66,6 +68,7 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
       return json({ allowed, customer_id: id, feature_id: feature, required_balance: required, balance: balance(id, feature) })
     }
     if (path === "balances.track") {
+      if (state.failTrack) return json({ code: "internal_error", message: "boom" }, 500)
       const key = String(body.idempotency_key), value = typeof body.value === "number" ? body.value : 1
       if (events.has(key)) return json({ code: "duplicate_event", message: "Already recorded" }, 409)
       events.set(key, value)
@@ -86,6 +89,7 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
     held: (id: string, feature: BillingFeature) => customers.get(id)?.held[feature] ?? 0,
     openLocks: () => locks.size,
     grant: (id: string, feature: BillingFeature, granted: number) => { customers.get(id)!.granted[feature] = granted },
+    setUsage: (id: string, feature: BillingFeature, usage: number) => { customers.get(id)!.usage[feature] = usage },
     has: (id: string) => customers.has(id),
   }
 }
