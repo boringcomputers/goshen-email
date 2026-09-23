@@ -288,7 +288,6 @@ const header = `<header class="site-header">
     <span class="brand-name">${site.name}</span>
   </a>
   <nav aria-label="Main navigation" class="site-nav">
-    <a href="/#product" class="site-header-product">Product</a>
     <a href="/docs" class="site-header-product" aria-current="page">Docs</a>
     <a href="/docs/api" class="site-header-product">API reference</a>
   </nav>
