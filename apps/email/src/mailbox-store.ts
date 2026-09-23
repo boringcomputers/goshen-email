@@ -8,7 +8,7 @@ import {
   type SendResult
 } from "./contracts.js"
 import { triageFilterSql, triageFilterParams, type TriageFilters } from "./triage-contract.js"
-import type { Database } from "./database.js"
+import type { Database, DatabaseQueries } from "./database.js"
 
 export interface SendReservation {
   fingerprint: string
@@ -106,8 +106,8 @@ export class MailboxStore {
     }))
   }
 
-  async deleteInbox(address: string): Promise<boolean> {
-    const [result] = await this.db.query<{ status: string }>(
+  async deleteInbox(address: string, db: DatabaseQueries = this.db): Promise<boolean> {
+    const [result] = await db.query<{ status: string }>(
       `select mail.delete_inbox($1) as status`,
       [address]
     )

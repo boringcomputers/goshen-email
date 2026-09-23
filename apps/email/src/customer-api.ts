@@ -126,11 +126,11 @@ export async function executeCustomerRequest(request: Request, service: MailServ
       // For a new address one inbox unit is held first, confirmed once provisioning succeeds, and released if it fails.
       // The hold and the provisioning run under the account's row lock, so a second request for the same
       // account waits for this one to commit and then decides on the count that includes it.
-      const existing = await store.inbox(customer, inbox).catch((error: unknown) => {
-        if (error instanceof MailError && error.status === 404) return null
-        throw error
-      })
       await store.withAccountLock(customer, async (db, count) => {
+        const existing = await store.inbox(customer, inbox, db).catch((error: unknown) => {
+          if (error instanceof MailError && error.status === 404) return null
+          throw error
+        })
         const hold = !existing && service.metering ? await service.metering.holdInbox(billable(customer), count) : null
         try {
           await store.provision(customer, inbox, domain, input.data.displayName, input.data.group, db)
@@ -177,11 +177,15 @@ export async function executeCustomerRequest(request: Request, service: MailServ
     if (operation === "getCredentials" || operation === "rotateCredentials")
       return mailboxCredentials(service, inbox.id, operation === "rotateCredentials")
     if (operation === "deleteInbox") {
-      // Credit the owning account, not the administrator who may be deleting on their behalf.
+      // Credit the owning account, not the administrator who may be deleting on their behalf. The delete and
+      // the credit run under the owner's account lock so a concurrent creation or usage correction sees both or neither.
       const owner = service.metering ? await service.store.inboxCustomer(inbox.id) : null
-      const deleted = await service.execute("deleteInbox", { inboxId: inbox.address })
-      if (deleted === true && owner) await service.metering!.creditInbox(owner, inbox.id)
-      return deleted
+      if (!owner) return service.execute("deleteInbox", { inboxId: inbox.address })
+      return store.withAccountLock(owner, async (db) => {
+        const deleted = await service.store.deleteInbox(inbox.address, db)
+        if (deleted) await service.metering!.creditInbox(owner, inbox.id)
+        return deleted
+      })
     }
     return service.execute(operation as Operation, { ...input, inboxId: inbox.address,
       ...(operation === "releaseQuarantine" ? { reviewedBy: customer.id } : {}) })

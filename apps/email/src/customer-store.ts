@@ -129,8 +129,8 @@ export class CustomerStore {
     return { inboxes, nextPageToken }
   }
 
-  async inbox(customer: Customer, address: string): Promise<CustomerInbox> {
-    const [row] = await this.db.query<CustomerInbox>(
+  async inbox(customer: Customer, address: string, db: DatabaseQueries = this.db): Promise<CustomerInbox> {
+    const [row] = await db.query<CustomerInbox>(
       `select i.*, c.route_ready, c.group_name from mail.inboxes i left join mail.customer_inboxes c on c.inbox_id = i.id
        where (c.customer_id = $1 or $2::boolean) and i.address = $3 and i.deleted_at is null and i.testing = false`,
       [customer.id, customer.role === "admin", address])
@@ -152,7 +152,7 @@ export class CustomerStore {
    * inbox count. Anything that decides on that count (a plan check, a usage
    * correction) runs here so two requests cannot both act on the same count.
    */
-  withAccountLock<T>(customer: Customer, task: (db: DatabaseQueries, count: number) => Promise<T>): Promise<T> {
+  withAccountLock<T>(customer: { id: string }, task: (db: DatabaseQueries, count: number) => Promise<T>): Promise<T> {
     return this.db.transaction(async (db) => {
       const [row] = await db.query("select id from mail.customers where id = $1 for update", [customer.id])
       if (!row) throw new MailError("Your dashboard access has been disabled", "access_denied", 403)
@@ -160,7 +160,7 @@ export class CustomerStore {
     })
   }
 
-  async inboxCount(customer: Customer, db: DatabaseQueries = this.db): Promise<number> {
+  async inboxCount(customer: { id: string }, db: DatabaseQueries = this.db): Promise<number> {
     const [row] = await db.query<{ count: number }>(
       `select count(*)::int as count from mail.customer_inboxes c join mail.inboxes i on i.id = c.inbox_id
        where c.customer_id = $1 and i.deleted_at is null and i.testing = false`, [customer.id])

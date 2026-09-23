@@ -93,6 +93,25 @@ describe("plan limits through Autumn", () => {
     expect((await a.client.inboxes.list()).inboxes).toHaveLength(2)
   })
 
+  it("charges one unit when the same username is created twice at once, and keeps deletes in step with creates", async () => {
+    const a = await account()
+    await a.client.account.usage()
+    autumn.grant(a.customer.id, "inboxes", 5)
+    const username = name()
+    const same = await Promise.all([1, 2].map(() => a.client.inboxes.create({ username })))
+    expect(same[0]!.inboxId).toBe(same[1]!.inboxId)
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(1)
+    // A delete racing a create: whichever order the lock gives them, Autumn ends at the database count.
+    const second = await a.client.inboxes.create({ username: name() })
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    const [deleted] = await Promise.all([a.client.inboxes.delete({ inboxId: second.inboxId }), a.client.inboxes.create({ username: name() })])
+    expect(deleted).toEqual({ deleted: true })
+    const inboxes = (await a.client.inboxes.list()).inboxes
+    expect(inboxes).toHaveLength(2)
+    expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
+    expect((await a.client.account.usage()).features.find(feature => feature.feature === "inboxes")).toMatchObject({ used: 2 })
+  })
+
   it("recovers a lost inbox refund and backfills inboxes that predate billing", async () => {
     // A refund that never reached Autumn leaves usage one higher than the account's real inbox count.
     const a = await account(), foreign = await account()
