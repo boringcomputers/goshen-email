@@ -1,7 +1,8 @@
 # Native schema fixture
 
-These two TypeScript files are unchanged copies from
-[`boringcomputers/bezalel` at `8c39cb800b951b6708bf197927957cad09e8f0e3`](https://github.com/boringcomputers/bezalel/tree/8c39cb800b951b6708bf197927957cad09e8f0e3/apps/email/src).
+These two TypeScript files are unchanged copies of `apps/email/src` from
+`boringcomputers/bezalel`, a private repository, at commit
+`8c39cb800b951b6708bf197927957cad09e8f0e3`.
 The native Worker deployed on September 11, 2026 uses this revision.
 They retain the source repository's AGPL-3.0-only license.
 

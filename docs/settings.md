@@ -106,7 +106,6 @@ and `FIXTURE_PORT=3194`, then run
 `node --test apps/email-dashboard/test/browser/settings.mjs`.
 Set `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` for externally installed Playwright
 and Chromium. `DASHBOARD_EVIDENCE_DIR` optionally saves screenshots.
-Use `homelab-job` for browser checks on the homelab.
 
 The fixture uses local PGlite. Email sending, routing, domain verification,
 object storage, Jev, and the browser Notification API use test doubles. The

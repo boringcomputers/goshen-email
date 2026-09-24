@@ -15,7 +15,7 @@ export async function nativeDashboardFixture(objects: ObjectStore, transport: Tr
   await migrate(db)
   const service = new MailService({ store: new MailboxStore(db), objects, transport,
     config: { defaultDomain: 'example.com', domains: { 'example.com': 'a'.repeat(32) },
-      publicUrl: 'https://bezalel-email.michaelwasihun96.workers.dev', apiToken: 'fixture-native-platform-token-'.repeat(3),
+      publicUrl: 'https://native-mail.example.com', apiToken: 'fixture-native-platform-token-'.repeat(3),
       webhookSecret: 'fixture-native-webhook-secret-'.repeat(3) },
   })
   for (const [username, displayName] of [['research', 'Research agent'], ['support', 'Support agent']])

@@ -153,8 +153,10 @@ test('download links must be plain HTTPS and may be pinned to an origin and path
 	assert.equal(safeDownloadUrl('https://files.example.com/a'), 'https://files.example.com/a');
 	assert.throws(() => safeDownloadUrl('http://files.example.com/a'), /Invalid attachment URL/);
 	assert.throws(() => safeDownloadUrl('https://user:pass@files.example.com/a'), /Invalid attachment URL/);
-	const pin = { origin: 'https://bezalel-email.michaelwasihun96.workers.dev', pathPrefix: '/attachments/' };
-	assert.ok(safeDownloadUrl('https://bezalel-email.michaelwasihun96.workers.dev/attachments/x', pin));
+	const pin = { origin: 'https://native-mail.example.com', pathPrefix: '/attachments/' };
+	assert.ok(safeDownloadUrl('https://native-mail.example.com/attachments/x', pin));
 	assert.throws(() => safeDownloadUrl('https://evil.example.com/attachments/x', pin), /Invalid attachment URL/);
-	assert.throws(() => safeDownloadUrl('https://bezalel-email.michaelwasihun96.workers.dev/other', pin), /Invalid attachment URL/);
+	assert.throws(() => safeDownloadUrl('https://native-mail.example.com/other', pin), /Invalid attachment URL/);
+	assert.ok(safeDownloadUrl('https://any-deployment.example/attachments/x', { pathPrefix: '/attachments/' }));
+	assert.throws(() => safeDownloadUrl('https://any-deployment.example/other/x', { pathPrefix: '/attachments/' }), /Invalid attachment URL/);
 });

@@ -53,7 +53,7 @@ The landing tokens are separate from the dashboard background and general contai
 
 Use the loopback-only fixtures in `apps/email/test/dashboard-fixture.ts` and `customer-dashboard-fixture.ts`. They use isolated PGlite databases and test doubles for delivery, DNS, and object storage. Sending in these fixtures is simulated.
 
-Run the repository's build, check, test, and source checks with `homelab-job`. The dashboard tests verify that both the Node server and Cloudflare Access runtime serve the token CSS and WOFF2 font with the correct content types and security policy.
+Run the repository's build, check, test, and source checks. The dashboard tests verify that both the Node server and Cloudflare Access runtime serve the token CSS and WOFF2 font with the correct content types and security policy.
 
 All four repository checks passed: 137 email tests, 21 gateway tests, and 15 dashboard tests. Fourteen browser assertions passed, including comparison of all 70 exported tokens, rendered geometry, sign-in, reading, sending with attachments, replies, search, trash/restore, quarantine release, inbox switching, owner/customer controls, masked keys, and responsive navigation at 1024, 768, and 390px. No browser exceptions, console errors, or blocked assets remained.
 

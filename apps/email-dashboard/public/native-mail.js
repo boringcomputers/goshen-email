@@ -103,8 +103,9 @@ export function createNativeMailPanel({ rpc, remember }) {
       article.append(button(`Download ${attachment.filename}`, async () => {
         const result = await rpc('getAttachment', { inboxId: target, messageId: message.messageId, attachmentId: attachment.attachmentId })
         if (version !== readVersion || target !== inbox) return
+        // The dashboard has already checked that the link points at the configured native Worker.
         const url = new URL(result.downloadUrl)
-        if (url.origin !== 'https://bezalel-email.michaelwasihun96.workers.dev' || !url.pathname.startsWith('/attachments/') || url.username || url.password)
+        if (url.protocol !== 'https:' || !url.pathname.startsWith('/attachments/') || url.username || url.password)
           throw new Error('Invalid attachment URL')
         const link = node('a'); link.href = url.href; link.rel = 'noreferrer noopener'; link.target = '_blank'; link.click()
       }))

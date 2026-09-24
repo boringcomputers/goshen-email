@@ -1,5 +1,6 @@
 import worker, { type Env } from "./worker.js"
 import { MailError } from "./contracts.js"
+import { validateUrl } from "./security.js"
 
 const standaloneSettings = [
   "TYPESAFE_API_KEY", "TYPESAFE_MODEL", "AUTH_PUBLIC_URL", "AUTH_SECRET",
@@ -7,17 +8,27 @@ const standaloneSettings = [
   "DASHBOARD_ADMIN_EMAILS",
 ] as const
 
+// validateUrl admits HTTP on loopback for local development. The native Worker publishes
+// attachment links and posts events from Cloudflare's network, so both URLs must be HTTPS.
+const secureUrl = (value: string | undefined): boolean => {
+  if (!value) return false
+  try { return validateUrl(value).protocol === "https:" } catch { return false }
+}
+
+// The native entry point serves platform mail for one Bezalel deployment. It needs a default
+// domain, a public URL, and an events webhook, and it refuses the account, Access, and triage
+// settings that belong to the standalone deployment. Which domain and URLs those are is
+// deployment configuration in wrangler.native.jsonc, not a property of this code.
 export function nativeEnvironment(env: Env): Env {
   const eventsUrl = env.MAIL_EVENTS_URL ?? env.BEZALEL_EVENTS_URL
   if (
-    env.WORKER_NAME !== "bezalel-email" ||
-    env.DEFAULT_EMAIL_DOMAIN !== "goshenemail.com" ||
-    env.PUBLIC_EMAIL_URL !== "https://bezalel-email.michaelwasihun96.workers.dev" ||
-    eventsUrl !== "https://mcp.bezalel.sh/events/cloudflare" ||
+    !env.DEFAULT_EMAIL_DOMAIN ||
+    !secureUrl(env.PUBLIC_EMAIL_URL) ||
+    !secureUrl(eventsUrl) ||
     (env.MAIL_EVENTS_URL && env.BEZALEL_EVENTS_URL && env.MAIL_EVENTS_URL !== env.BEZALEL_EVENTS_URL) ||
     standaloneSettings.some((name) => Boolean(env[name]))
   ) {
-    throw new MailError("Native email configuration does not match the migration profile", "not_configured", 503)
+    throw new MailError("Native email configuration is incomplete", "not_configured", 503)
   }
   return env
 }

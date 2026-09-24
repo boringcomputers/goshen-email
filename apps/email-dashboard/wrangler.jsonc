@@ -17,12 +17,13 @@
     { "binding": "MAIL_API", "service": "bezalel-email-standalone" },
     { "binding": "NATIVE_MAIL_API", "service": "bezalel-email" }
   ],
+  // NATIVE_MAIL_ADMIN_EMAILS (the read-only Bezalel inboxes allowlist) and NATIVE_MAIL_API_TOKEN
+  // are Worker secrets: `wrangler secret put <NAME>`. Wrangler keeps secrets across deploys.
   "vars": {
     "DASHBOARD_AUTH_MODE": "account",
     "DASHBOARD_PUBLIC_URL": "https://goshenemail.com",
     "MAIL_WORKER_URL": "https://bezalel-email-standalone.michaelwasihun96.workers.dev",
-    "NATIVE_MAIL_WORKER_URL": "https://bezalel-email.michaelwasihun96.workers.dev",
-    "NATIVE_MAIL_ADMIN_EMAILS": "michaelwasihun96@gmail.com"
+    "NATIVE_MAIL_WORKER_URL": "https://bezalel-email.michaelwasihun96.workers.dev"
   },
   "observability": { "enabled": false }
 }

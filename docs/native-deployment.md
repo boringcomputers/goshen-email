@@ -10,8 +10,8 @@ or complete the migration. AgentMail and the standalone service keep their
 existing configuration.
 
 The approved direction is a dedicated deployment retaining the existing native
-resources. See the [migration plan in Bezalel](https://github.com/boringcomputers/bezalel/blob/e1b97358e101626d51937546888c77d2ead58867/docs/plans/native-email-service-migration.md)
-for the remaining release gates.
+resources. The remaining release gates come from Bezalel's native email
+migration plan, which lives in that private repository.
 
 ## Deployment profile
 
@@ -22,17 +22,21 @@ mail handling to the shared implementation. It exposes the existing health,
 admin RPC, test RPC, direct-client, attachment, and gateway routes. Account,
 dashboard, developer API, and MCP routes return 404.
 
-Before dispatching requests or background handlers, it requires the native
-Worker identity, original public URL, `goshenemail.com`, and Bezalel's shared
-event destination. It accepts the old `BEZALEL_EVENTS_URL` alias, but rejects
-conflicting aliases and nonempty account, Access, or Typesafe settings. Missing
-webhook configuration must fail before the service can claim an outbox event.
-The underlying service still validates credentials and the database binding.
+Before dispatching requests or background handlers, it requires a default
+domain, an HTTPS public URL, and an HTTPS event destination. Loopback HTTP,
+which the standalone Worker allows for local development, is refused here
+because the native Worker publishes attachment links and posts events from
+Cloudflare's network. It accepts the old
+`BEZALEL_EVENTS_URL` alias, but rejects conflicting aliases and nonempty
+account, Access, or Typesafe settings. Missing webhook configuration must fail
+before the service can claim an outbox event. Which domain and URLs those are
+is configuration in `wrangler.native.jsonc`, not the code. The underlying
+service still validates credentials and the database binding.
 
 | Resource | Native profile |
 | --- | --- |
 | Worker | `bezalel-email` |
-| Public URL | `https://bezalel-email.michaelwasihun96.workers.dev` |
+| Public URL | The Worker's `workers.dev` origin, as `PUBLIC_EMAIL_URL` in `wrangler.native.jsonc` |
 | Default domain | `goshenemail.com` |
 | R2 bucket | `bezalel-email` |
 | Delivery queue | `bezalel-email-delivery` |
@@ -76,8 +80,7 @@ an all-zero local Hyperdrive ID, then removes that configuration on exit. It
 never provisions a connection or deploys a Worker. A successful local bundle
 does not verify Cloudflare resource existence or production readiness.
 
-Use `homelab-job` for the full checks on a shared homelab host. With a dedicated
-local PostgreSQL test database, also run:
+With a dedicated local PostgreSQL test database, also run:
 
 ```sh
 TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5434/bezalel_email_test pnpm test:postgres

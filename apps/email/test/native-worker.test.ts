@@ -30,17 +30,21 @@ describe("native deployment boundary", () => {
 
   it.each([
     { MAIL_EVENTS_URL: undefined }, { MAIL_EVENTS_URL: "" },
-    { MAIL_EVENTS_URL: "https://another.example/events" },
+    { MAIL_EVENTS_URL: "http://another.example/events" },
+    { MAIL_EVENTS_URL: "http://127.0.0.1:8788/events" },
+    { MAIL_EVENTS_URL: "https://user:secret@another.example/events" },
     { BEZALEL_EVENTS_URL: "https://another.example/events" },
-    { WORKER_NAME: "bezalel-email-standalone" }, { DEFAULT_EMAIL_DOMAIN: "agents.goshenemail.com" },
-    { PUBLIC_EMAIL_URL: "https://another.example" },
+    { DEFAULT_EMAIL_DOMAIN: "" }, { DEFAULT_EMAIL_DOMAIN: undefined },
+    { PUBLIC_EMAIL_URL: "" }, { PUBLIC_EMAIL_URL: "http://another.example" },
+    { PUBLIC_EMAIL_URL: "http://localhost:8788" },
+    { PUBLIC_EMAIL_URL: "https://another.example/?token=1" },
     { TYPESAFE_API_KEY: "private-triage-key" }, { AUTH_PUBLIC_URL: "https://accounts.example.com" },
     { AUTH_PUBLIC_URL: " " },
     { ACCESS_TEAM_DOMAIN: "example.cloudflareaccess.com" },
-  ])("rejects incompatible settings before dispatch: %j", async (overrides) => {
+  ])("rejects incomplete or standalone settings before dispatch: %j", async (overrides) => {
     const dispatch = vi.spyOn(original, "fetch")
     const env = { ...nativeTestEnvironment(), ...overrides }
-    const response = await native.fetch(new Request(env.PUBLIC_EMAIL_URL + "/healthz"), env)
+    const response = await native.fetch(new Request("https://native-mail.example.com/healthz"), env)
     expect(response.status).toBe(503)
     expect(await response.json()).toEqual({ error: {
       message: "Native email is not configured", code: "not_configured", transient: false,
@@ -48,9 +52,19 @@ describe("native deployment boundary", () => {
     expect(dispatch).not.toHaveBeenCalled()
   })
 
+  it("accepts any deployment's own domain, public URL, and events destination", async () => {
+    const env = { ...nativeTestEnvironment(),
+      EMAIL_DOMAINS: JSON.stringify({ "mail.selfhosted.example": "c".repeat(32) }),
+      DEFAULT_EMAIL_DOMAIN: "mail.selfhosted.example", WORKER_NAME: "selfhosted-native-mail",
+      PUBLIC_EMAIL_URL: "https://mail.selfhosted.example",
+      MAIL_EVENTS_URL: "https://events.selfhosted.example/hook" }
+    expect(nativeEnvironment(env)).toBe(env)
+    expect((await native.fetch(new Request(env.PUBLIC_EMAIL_URL + "/healthz"), env)).status).toBe(200)
+  })
+
   it("accepts the existing webhook alias without changing secrets or client configuration", () => {
-    const env = { ...nativeTestEnvironment(), MAIL_EVENTS_URL: undefined,
-      BEZALEL_EVENTS_URL: "https://mcp.bezalel.sh/events/cloudflare" }
+    const base = nativeTestEnvironment()
+    const env = { ...base, MAIL_EVENTS_URL: undefined, BEZALEL_EVENTS_URL: base.MAIL_EVENTS_URL }
     expect(nativeEnvironment(env)).toBe(env)
   })
 

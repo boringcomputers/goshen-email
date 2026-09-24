@@ -41,7 +41,7 @@ test('the native admin view reads separate inboxes without changing mail or expo
   assert.equal(await page.getByRole('button', { name: 'Download summary.txt' }).count(), 2)
   if (process.env.NATIVE_EVIDENCE_DIR) await page.screenshot({ path: process.env.NATIVE_EVIDENCE_DIR + '/after-conversation.png' })
   let attachmentRequests = 0
-  await context.route('https://bezalel-email.michaelwasihun96.workers.dev/attachments/**', async route => {
+  await context.route('https://native-mail.example.com/attachments/**', async route => {
     attachmentRequests++
     const url = new URL(route.request().url())
     const response = await context.request.get(control + '/native-attachment' + url.pathname + url.search)

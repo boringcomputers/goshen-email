@@ -13,8 +13,8 @@ The database and Hyperdrive connection were created on September 15, 2026.
 
 | Setting | Value |
 | --- | --- |
-| PlanetScale organization | `michaelwasihun96` |
-| Database and branch | [`bezalel-email/main`](https://app.planetscale.com/michaelwasihun96/bezalel-email) |
+| PlanetScale organization | The maintainer's personal organization |
+| Database and branch | `bezalel-email/main` |
 | Engine | PostgreSQL 18 |
 | Region | Northern Virginia, AWS `us-east-1`, PlanetScale `us-east` |
 | Compute | `PS_5_AWS_ARM`, one node, zero replicas |
@@ -163,13 +163,6 @@ docker run --rm --name bezalel-email-postgres-test -d \
 docker exec bezalel-email-postgres-test pg_isready -U postgres -d bezalel_email_test
 TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5435/bezalel_email_test pnpm test:postgres
 docker stop bezalel-email-postgres-test
-```
-
-On the homelab, use `homelab-job` for the suite and pass the test URL to its child:
-
-```sh
-homelab-job run --title "Email PostgreSQL tests" --memory-mib 4096 --cpus 2 --timeout 3600 -- \
-  env TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5435/bezalel_email_test pnpm test:postgres
 ```
 
 The test URL must point to a local database ending in `_test`, without URL

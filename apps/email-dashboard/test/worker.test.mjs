@@ -14,7 +14,7 @@ test('Cloudflare account mode separates native reads from standalone mail and bl
   await writeFile(config, JSON.stringify({ name: 'email-dashboard-native-test', main: resolve('test/fixtures/worker.mjs'),
     compatibility_date: '2026-09-06', compatibility_flags: ['nodejs_compat'],
     vars: { DASHBOARD_AUTH_MODE: 'account', DASHBOARD_PUBLIC_URL: origin, MAIL_WORKER_URL: 'https://standalone.example.com',
-      AUTH_PROXY_SECRET: 'fixture-proxy-'.repeat(4), NATIVE_MAIL_WORKER_URL: 'https://bezalel-email.michaelwasihun96.workers.dev',
+      AUTH_PROXY_SECRET: 'fixture-proxy-'.repeat(4), NATIVE_MAIL_WORKER_URL: 'https://native-mail.example.com',
       NATIVE_MAIL_API_TOKEN: 'fixture-native-'.repeat(4), NATIVE_MAIL_ADMIN_EMAILS: 'owner@example.net' },
   }))
   const worker = await unstable_dev(resolve('test/fixtures/worker.mjs'), { config, local: true, ip: '127.0.0.1', port: 0, inspectorPort: 0,

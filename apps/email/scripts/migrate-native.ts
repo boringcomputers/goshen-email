@@ -1,13 +1,17 @@
 import { Client } from "pg"
 import { migrate } from "../src/database.js"
 
-// This release retains the native database and its existing schema owner.
+// This release retains the native database and its existing schema owner. The operator names
+// the database host separately in NATIVE_DATABASE_HOST, so a URL for any other server is
+// refused before a connection attempt, and the production hostname stays out of this file.
+const expectedHost = (process.env.NATIVE_DATABASE_HOST ?? "").trim().toLowerCase()
+if (!expectedHost) throw new Error("NATIVE_DATABASE_HOST must name the native database host")
 const connection = (() => {
   try { return new URL(process.env.NATIVE_DATABASE_URL ?? "") }
   catch { throw new Error("NATIVE_DATABASE_URL must be a PostgreSQL URL") }
 })()
 if (!["postgres:", "postgresql:"].includes(connection.protocol) ||
-    connection.hostname !== "ep-bold-cherry-ax6egul8.c-4.us-east-2.aws.neon.tech" ||
+    connection.hostname.toLowerCase() !== expectedHost ||
     connection.pathname !== "/bezalel_email" || connection.username !== "bezalel_email") {
   throw new Error("NATIVE_DATABASE_URL must identify the existing native mail database and schema owner")
 }
