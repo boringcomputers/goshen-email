@@ -10,5 +10,11 @@ requires-python = ">=3.10"
 license = "AGPL-3.0-only"
 readme = "README.md"
 
+[project.urls]
+Homepage = "https://goshenemail.com"
+Documentation = "https://goshenemail.com/docs/python"
+Repository = "https://github.com/boringcomputers/goshen-email"
+Issues = "https://github.com/boringcomputers/goshen-email/issues"
+
 [tool.setuptools.package-data]
 bezalel_email = ["manifest.json", "py.typed"]

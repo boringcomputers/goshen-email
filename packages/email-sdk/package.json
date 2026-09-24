@@ -1,8 +1,16 @@
 {
   "name": "@bezalel/email-sdk",
   "version": "0.1.0",
+  "description": "TypeScript and JavaScript client for the Goshen Email API",
   "type": "module",
   "license": "AGPL-3.0-only",
+  "homepage": "https://goshenemail.com/docs/typescript",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boringcomputers/goshen-email.git",
+    "directory": "packages/email-sdk"
+  },
+  "bugs": "https://github.com/boringcomputers/goshen-email/issues",
   "files": [
     "dist",
     "README.md",

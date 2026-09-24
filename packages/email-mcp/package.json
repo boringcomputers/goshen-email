@@ -1,8 +1,16 @@
 {
   "name": "@bezalel/email-mcp",
   "version": "0.1.0",
+  "description": "MCP server that gives agents Goshen Email inboxes as tools",
   "type": "module",
   "license": "AGPL-3.0-only",
+  "homepage": "https://goshenemail.com/docs/mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boringcomputers/goshen-email.git",
+    "directory": "packages/email-mcp"
+  },
+  "bugs": "https://github.com/boringcomputers/goshen-email/issues",
   "files": [
     "dist",
     "README.md",

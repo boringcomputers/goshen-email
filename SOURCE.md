@@ -1,7 +1,7 @@
 # Source and maintenance
 
-Extracted from `boringcomputers/bezalel` at
-[`27740c1c62a2531d865e04f1f98cb71aa83b6024`](https://github.com/boringcomputers/bezalel/tree/27740c1c62a2531d865e04f1f98cb71aa83b6024).
+Extracted from `boringcomputers/bezalel`, a private repository, at commit
+`27740c1c62a2531d865e04f1f98cb71aa83b6024`.
 The source code remains in Bezalel. No production resources or mailbox data
 move as part of this extraction.
 
