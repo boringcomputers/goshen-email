@@ -10,15 +10,15 @@ importers:
 
   apps/email:
     dependencies:
-      '@bezalel/email-mcp':
+      '@goshenemail/client':
         specifier: workspace:*
-        version: link:../../packages/email-mcp
-      '@bezalel/email-sdk':
-        specifier: workspace:*
-        version: link:../../packages/email-sdk
+        version: link:../../packages/email-client
       better-auth:
         specifier: 1.7.5
         version: 1.7.5(@opentelemetry/api@1.9.1)(@sveltejs/kit@2.57.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.1)(vite@8.2.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.8)(yaml@2.9.0)))(svelte@5.55.1)(typescript@6.0.3)(vite@8.2.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.8)(yaml@2.9.0)))(pg@8.23.0)(svelte@5.55.1)(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(happy-dom@20.14.0)(vite@8.2.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.8)(yaml@2.9.0)))
+      goshenemail-mcp:
+        specifier: workspace:*
+        version: link:../../packages/email-mcp
       html-to-text:
         specifier: 10.0.1
         version: 10.0.1
@@ -38,9 +38,6 @@ importers:
         specifier: 4.4.3
         version: 4.4.3
     devDependencies:
-      '@bezalel/email-cli':
-        specifier: workspace:*
-        version: link:../../packages/email-cli
       '@cloudflare/workers-types':
         specifier: 5.20260906.1
         version: 5.20260906.1
@@ -59,6 +56,9 @@ importers:
       '@types/pg':
         specifier: 8.23.1
         version: 8.23.1
+      goshenemail-cli:
+        specifier: workspace:*
+        version: link:../../packages/email-cli
       kysely-pglite:
         specifier: 0.6.1
         version: 0.6.1(@electric-sql/pglite@0.4.6)(kysely@0.28.17)(pg@8.23.0)
@@ -153,12 +153,21 @@ importers:
 
   packages/email-cli:
     dependencies:
-      '@bezalel/email-sdk':
+      '@goshenemail/client':
         specifier: workspace:*
-        version: link:../email-sdk
+        version: link:../email-client
       zod:
         specifier: 4.4.3
         version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.9
+        version: 24.13.3
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
+  packages/email-client:
     devDependencies:
       '@types/node':
         specifier: ^24.10.9
@@ -169,26 +178,15 @@ importers:
 
   packages/email-mcp:
     dependencies:
-      '@bezalel/email-sdk':
+      '@goshenemail/client':
         specifier: workspace:*
-        version: link:../email-sdk
+        version: link:../email-client
       '@modelcontextprotocol/sdk':
         specifier: 1.30.0
         version: 1.30.0(zod@4.4.3)
       zod:
         specifier: 4.4.3
         version: 4.4.3
-    devDependencies:
-      '@types/node':
-        specifier: ^24.10.9
-        version: 24.13.3
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-
-  packages/email-python: {}
-
-  packages/email-sdk:
     devDependencies:
       '@types/node':
         specifier: ^24.10.9

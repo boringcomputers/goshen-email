@@ -180,7 +180,7 @@
 		</Dialog.Header>
 		{#if createdKey}
 			<p class="text-[13px] text-[var(--muted-fg)]">
-				Copy this key now. It is shown only once. Store it as <code class="font-mono text-[12px] text-foreground">BEZALEL_API_KEY</code>.
+				Copy this key now. It is shown only once. Store it as <code class="font-mono text-[12px] text-foreground">GOSHENEMAIL_API_KEY</code>.
 			</p>
 			<FormField label="New account API key" for="new-api-key">
 				<Input id="new-api-key" type="password" value={createdKey} readonly autocomplete="off" />

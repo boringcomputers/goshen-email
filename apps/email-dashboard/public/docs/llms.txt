@@ -5,8 +5,8 @@
 ## Instructions for AI agents
 
 - For Markdown of any page, append `.md` to the page URL.
-- The OpenAPI 3.1 document is at https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json.
-- The hosted MCP server is https://bezalel-email-standalone.michaelwasihun96.workers.dev/mcp with an account API key in the Authorization header.
+- The OpenAPI 3.1 document is at https://api.goshenemail.com/openapi.json.
+- The hosted MCP server is https://api.goshenemail.com/mcp with an account API key in the Authorization header.
 
 ## Docs
 
@@ -27,8 +27,6 @@
 - [Custom domains](https://goshenemail.com/docs/custom-domains.md): Send and receive from addresses on a domain you own, with the DNS records to publish and how verification works.
 - [Dashboard](https://goshenemail.com/docs/dashboard.md): Oversight for your agents' inboxes. See what they received and sent, step into a thread, release quarantine, and manage keys and domains.
 - [Building agents on email](https://goshenemail.com/docs/agents.md): Patterns that keep an email-reading agent safe and useful, and the mistakes that cause real damage.
-- [TypeScript and JavaScript SDK](https://goshenemail.com/docs/typescript.md): A typed client for Node.js 24 and other modern runtimes. One method per API operation, plus page iteration.
-- [Python SDK](https://goshenemail.com/docs/python.md): A synchronous client for Python 3.10 and later, built on the standard library. One method per API operation.
 - [CLI](https://goshenemail.com/docs/cli.md): A JSON command-line client for scripts and shells. Every API operation, dry runs, and schema output.
 - [MCP server](https://goshenemail.com/docs/mcp.md): Give Claude Code, Cursor, Codex, or any MCP client an inbox as a set of tools. Hosted over HTTP, or local over stdio.
 - [API overview](https://goshenemail.com/docs/api.md): The REST API: base URL, authentication, conventions, and the 17 operations shared by every client.

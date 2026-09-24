@@ -81,7 +81,9 @@ async function request(path, value) {
   if (epoch !== state.epoch) throw new Error('Session changed. Sign in again.')
   if (body.authMode) state.authMode = body.authMode
   if (!response.ok) {
-    if ([401, 403].includes(response.status) && path !== '/api/login') {
+    // Other 403s refuse one operation; the session is still valid.
+    const ended = response.status === 401 || (response.status === 403 && body.code === 'access_denied')
+    if (ended && path !== '/api/login') {
       showLogin(state.authMode, response.status === 403 ? 'access_denied' : '')
       $('#login-error').textContent = body.error ?? 'Sign in to continue'
     }

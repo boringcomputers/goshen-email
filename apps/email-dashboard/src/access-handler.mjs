@@ -39,7 +39,8 @@ export function accessDashboardHandler({ client, publicUrl, asset }) {
       if (!customerOperations.has(operation) || operation === 'session') throw new DashboardError('Not found', 404)
       return json({ result: await client.execute(operation, await readJson(request), token) })
     } catch (error) {
-      return json({ error: error instanceof DashboardError ? error.message : 'Dashboard request failed', authMode: 'access' },
+      return json({ error: error instanceof DashboardError ? error.message : 'Dashboard request failed',
+        ...(error instanceof DashboardError && error.code ? { code: error.code } : {}), authMode: 'access' },
         error instanceof DashboardError ? error.status : 500)
     }
   }

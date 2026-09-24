@@ -9,7 +9,7 @@ description: The REST API: base URL, authentication, conventions, and the 17 ope
 {{API_BASE}}
 ```
 
-All paths below are relative to it and versioned under `/v1`. The OpenAPI 3.1 document is served at [`/openapi.json`]({{API_BASE}}/openapi.json) and is the source the SDK types, CLI schemas, and MCP tool schemas are generated from.
+All paths below are relative to it and versioned under `/v1`. The OpenAPI 3.1 document is served at [`/openapi.json`]({{API_BASE}}/openapi.json) and is the source the CLI schemas and MCP tool schemas are generated from.
 
 ## Authentication
 

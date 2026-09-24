@@ -6,9 +6,9 @@ Give Claude Code, Cursor, Codex, or any MCP client an inbox as a set of tools. H
 
 | | Hosted | Stdio |
 | --- | --- | --- |
-| Endpoint | `https://bezalel-email-standalone.michaelwasihun96.workers.dev/mcp` | `node packages/email-mcp/dist/main.js` from a checkout |
+| Endpoint | `https://api.goshenemail.com/mcp` | `node packages/email-mcp/dist/main.js` from a checkout |
 | Transport | Streamable HTTP | Standard input and output |
-| Key | Account key (`bze_`) in the `Authorization` header | Account or mailbox key in `BEZALEL_API_KEY` |
+| Key | Account key (`bze_`) in the `Authorization` header | Account or mailbox key in `GOSHENEMAIL_API_KEY` |
 | Tools listed | Only those the key's scopes allow | All 16; the API rejects out-of-scope calls |
 
 The hosted server rechecks the key, its expiration, and the account's status on every request. This release authenticates with keys, not OAuth.
@@ -20,9 +20,9 @@ Most MCP hosts accept a JSON block like this. Keep the key in an environment var
 ```json
 {
   "mcpServers": {
-    "goshen-email": {
-      "url": "https://bezalel-email-standalone.michaelwasihun96.workers.dev/mcp",
-      "headers": { "Authorization": "Bearer ${BEZALEL_API_KEY}" }
+    "goshenemail": {
+      "url": "https://api.goshenemail.com/mcp",
+      "headers": { "Authorization": "Bearer ${GOSHENEMAIL_API_KEY}" }
     }
   }
 }
@@ -31,13 +31,13 @@ Most MCP hosts accept a JSON block like this. Keep the key in an environment var
 **Claude Code**
 
 ```sh
-claude mcp add --transport http goshen-email https://bezalel-email-standalone.michaelwasihun96.workers.dev/mcp \
-  --header "Authorization: Bearer ${BEZALEL_API_KEY}"
+claude mcp add --transport http goshenemail https://api.goshenemail.com/mcp \
+  --header "Authorization: Bearer ${GOSHENEMAIL_API_KEY}"
 ```
 
 **Cursor**: add the JSON block above to `.cursor/mcp.json` in your project or `~/.cursor/mcp.json`.
 
-**Codex**: add the server under `[mcp_servers.goshen-email]` in `~/.codex/config.toml` with `url` and a `headers` table, per the Codex MCP documentation. Interpolation syntax varies by host; check yours.
+**Codex**: add the server under `[mcp_servers.goshenemail]` in `~/.codex/config.toml` with `url` and a `headers` table, per the Codex MCP documentation. Interpolation syntax varies by host; check yours.
 
 ## Stdio configuration
 
@@ -46,10 +46,10 @@ From a built checkout of the repository:
 ```json
 {
   "mcpServers": {
-    "goshen-email": {
+    "goshenemail": {
       "command": "node",
       "args": ["/absolute/path/to/packages/email-mcp/dist/main.js"],
-      "env": { "BEZALEL_API_KEY": "${BEZALEL_API_KEY}", "BEZALEL_BASE_URL": "https://bezalel-email-standalone.michaelwasihun96.workers.dev" }
+      "env": { "GOSHENEMAIL_API_KEY": "${GOSHENEMAIL_API_KEY}", "GOSHENEMAIL_BASE_URL": "https://api.goshenemail.com" }
     }
   }
 }

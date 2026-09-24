@@ -1,5 +1,5 @@
 {
-  "name": "@bezalel/email-mcp",
+  "name": "goshenemail-mcp",
   "version": "0.1.0",
   "description": "MCP server that gives agents Goshen Email inboxes as tools",
   "type": "module",
@@ -41,10 +41,10 @@
     "@types/node": "^24.10.9"
   },
   "bin": {
-    "bezalel-email-mcp": "dist/main.js"
+    "goshenemail-mcp": "dist/main.js"
   },
   "dependencies": {
-    "@bezalel/email-sdk": "workspace:*",
+    "@goshenemail/client": "workspace:*",
     "@modelcontextprotocol/sdk": "1.30.0",
     "zod": "4.4.3"
   }

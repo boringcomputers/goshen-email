@@ -18,8 +18,9 @@ quarantined messages.
 - One API call creates an inbox. Inboxes send, receive, and reply, and replies
   stay threaded with the original conversation.
 - The REST API has 17 operations, described in an
-  [OpenAPI document](docs/openapi.json). TypeScript and Python SDKs, a JSON CLI,
-  and an MCP server (hosted or stdio) expose the same 17 operations.
+  [OpenAPI document](docs/openapi.json). A JSON CLI and an MCP server (hosted
+  or stdio) expose the same 17 operations. There is no SDK; call the REST API
+  from any language.
 - An account key reaches every inbox in its account, limited to the scopes you
   pick. A mailbox key reaches one inbox. No key can release quarantine or
   create other keys.
@@ -52,8 +53,7 @@ flowchart LR
 | [`apps/email-dashboard`](apps/email-dashboard) | The dashboard, homepage, and docs site. It runs as a Cloudflare Worker, or as a Node server for local or VPS hosting. |
 | [`apps/email-web`](apps/email-web) | A redesigned dashboard on Pluto's design system. It calls the dashboard's `/api` routes, holds no credentials, and is not deployed yet. |
 | [`apps/email-gateway`](apps/email-gateway) | The SMTP gateway for domains at any DNS provider, packaged with Docker. |
-| [`packages/email-sdk`](packages/email-sdk) | TypeScript and JavaScript client. |
-| [`packages/email-python`](packages/email-python) | Python client. It uses only the standard library. |
+| [`packages/email-client`](packages/email-client) | Private API client shared by the CLI and MCP server. Not published. |
 | [`packages/email-cli`](packages/email-cli) | Command-line client that prints JSON. |
 | [`packages/email-mcp`](packages/email-mcp) | MCP server over stdio. |
 | [`ops/email`](ops/email) | The gateway's Docker Compose, Caddy, and Rspamd configuration, plus reviewed SQL for the hosted database. |
@@ -168,23 +168,23 @@ client. Requests from a trusted proxy without a valid `X-Real-IP` can't sign in.
 Create a key under **API keys** in the dashboard, then:
 
 ```sh
-export BEZALEL_BASE_URL="https://your-api-worker.example.com"
-export BEZALEL_API_KEY="bze_..."
+export GOSHENEMAIL_BASE_URL="https://api.goshenemail.com"   # or your own API Worker
+export GOSHENEMAIL_API_KEY="bze_..."
 
-curl "$BEZALEL_BASE_URL/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "$GOSHENEMAIL_BASE_URL/v1/inboxes" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"username":"research","displayName":"Research agent"}'
 ```
 
 The [quickstart](https://goshenemail.com/docs/quickstart) continues with
-sending and reading replies, and lists the hosted API's base URL. The
-[developer guide](docs/developers.md) covers the SDKs, the CLI, and MCP. The
-packages aren't on npm or PyPI yet, so build them from this checkout.
+sending and reading replies. The [developer guide](docs/developers.md) covers
+the CLI and MCP. The CLI and the stdio MCP server aren't on npm yet, so build
+them from this checkout.
 
-The project started inside Bezalel, so package names, environment variables,
-and key prefixes still say `bezalel`: `@bezalel/email-sdk`, `bezalel_email`,
-`BEZALEL_API_KEY`, and `bze_`.
+The project started inside Bezalel. The internal workspace packages
+(`@bezalel/email`, `@bezalel/email-dashboard`, `@bezalel/email-gateway`) and the
+account key prefix `bze_` keep names from that time.
 
 ## Development
 
@@ -195,7 +195,7 @@ and key prefixes still say `bezalel`: `@bezalel/email-sdk`, `bezalel_email`,
 | `pnpm test` | Runs every package's tests on PGlite with test doubles for Cloudflare, R2, and SMTP. |
 | `pnpm test:postgres` | Runs the API tests through the production PostgreSQL driver. Needs `TEST_DATABASE_URL`; see the [database guide](docs/planetscale.md#verification). |
 | `pnpm source:check` | Checks files extracted from Bezalel against the hashes in `SOURCE.json`. |
-| `pnpm api:generate` | Regenerates the OpenAPI document, SDK types, and CLI and MCP schemas after a contract change. |
+| `pnpm api:generate` | Regenerates the OpenAPI document, client types, and CLI and MCP schemas after a contract change. |
 | `pnpm docs:generate` | Rebuilds the docs site from `apps/email-dashboard/docs/` and the OpenAPI document. |
 | `pnpm dev` | Starts the Node dashboard with file watching on port 3031. |
 | `pnpm dev:worker` | Starts the API Worker locally on port 8788. It needs a local PostgreSQL database. |
@@ -216,7 +216,7 @@ the API from an agent developer's side. The guides here cover running it.
 | [SMTP gateway](ops/email/README.md) | Customer domains, Postfix, Rspamd, ClamAV, TLS, and deployment canaries |
 | [Accounts](docs/accounts.md) | Passwordless sign-up and sign-in |
 | [Cloudflare Access](docs/customer-auth.md) | Optional invitation-only sign-in |
-| [Developer tools](docs/developers.md) | API keys, REST, SDKs, CLI, and MCP |
+| [Developer tools](docs/developers.md) | API keys, REST, CLI, and MCP |
 | [RPC API](docs/api.md) | The older RPC interface, mailbox provisioning, and webhooks |
 | [Inbox setup](docs/inbox-setup.md) | The first-inbox flow for new accounts |
 | [Settings](docs/settings.md) | Organization, profile, and notification settings |

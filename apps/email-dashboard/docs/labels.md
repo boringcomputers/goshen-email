@@ -31,7 +31,7 @@ On a message:
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages/%3Cid%40example.net%3E/labels" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" -X PATCH \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" -X PATCH \
   -H "Content-Type: application/json" \
   -d '{"addLabels":["invoice","needs-human"],"removeLabels":["unread"]}'
 ```
@@ -50,7 +50,7 @@ Both operations need the `messages:write` scope. They return an empty 200 on suc
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages?labels=received&labels=invoice" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ## In the dashboard

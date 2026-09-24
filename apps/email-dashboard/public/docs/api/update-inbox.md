@@ -4,7 +4,7 @@ Move an inbox to a named group, or set group to null to remove it. Groups organi
 
 `PATCH /v1/inboxes/{inboxId}`
 
-Requires scope `inboxes:write`. MCP tool `update_inbox`. SDK `email.inboxes.update()`. CLI `bezalel-email inboxes update`.
+Requires scope `inboxes:write`. MCP tool `update_inbox`. CLI `goshenemail inboxes update`.
 
 ## Request
 
@@ -37,8 +37,8 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -X PATCH \
   -H "Content-Type: application/json" \
   -d '{
@@ -46,24 +46,9 @@ curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/r
   }'
 ```
 
-### TypeScript
-
-```ts
-const result = await email.inboxes.update({
-  inboxId: 'research@agents.goshenemail.com',
-  group: 'agents'
-})
-```
-
-### Python
-
-```python
-result = email.inboxes.update(inbox_id="research@agents.goshenemail.com", group="agents")
-```
-
 ### CLI
 
 ```sh
-bezalel-email inboxes update --inbox-id "research@agents.goshenemail.com" --group "agents"
+goshenemail inboxes update --inbox-id "research@agents.goshenemail.com" --group "agents"
 ```
 

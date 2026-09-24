@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { BezalelEmail } from "@bezalel/email-sdk"
-import { run } from "@bezalel/email-cli"
+import { GoshenEmailClient } from "@goshenemail/client"
+import { run } from "goshenemail-cli"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 import { apiScopes, manageApiKeys } from "../src/api-keys.js"
@@ -19,10 +19,10 @@ describe("triage through developer clients", () => {
   async function account(scopes: readonly string[] = apiScopes) {
     const { customer } = await new CustomerStore(f.db, []).invite({ email: `${crypto.randomUUID()}@example.net`, inboxLimit: null })
     const key = await manageApiKeys(f.db, customer, "createApiKey", { name: "Triage", scopes }) as { apiKey: string }
-    return { key: key.apiKey, client: new BezalelEmail({ apiKey: key.apiKey, baseUrl: service.config.publicUrl, fetch: request }) }
+    return { key: key.apiKey, client: new GoshenEmailClient({ apiKey: key.apiKey, baseUrl: service.config.publicUrl, fetch: request }) }
   }
 
-  it("shares filtered results and complete probability metadata across REST, SDK, CLI, and hosted MCP", async () => {
+  it("shares filtered results and complete probability metadata across REST, the client, CLI, and hosted MCP", async () => {
     const a = await account(), inbox = await a.client.inboxes.create({ username: "triage-api" })
     const received = await service.receive(inbox.inboxId, rawMail({ subject: "Duplicate charge" }))
     await service.receive(inbox.inboxId, rawMail({ id: "<news@example.net>", subject: "A newsletter" }))
@@ -36,7 +36,7 @@ describe("triage through developer clients", () => {
     expect(await a.client.messages.search({ ...filter, query: "invoice" })).toMatchObject({ messages: [expect.objectContaining({ messageId: received.messageId })] })
     const output: string[] = [], errors: string[] = []
     expect(await run(["messages", "list", "--inbox-id", inbox.inboxId, "--category", "billing", "--needs-reply", "yes", "--urgency", "normal"], {
-      env: { BEZALEL_API_KEY: a.key, BEZALEL_BASE_URL: service.config.publicUrl }, readStdin: async () => "", out: text => output.push(text), error: text => errors.push(text), fetch: request,
+      env: { GOSHENEMAIL_API_KEY: a.key, GOSHENEMAIL_BASE_URL: service.config.publicUrl }, readStdin: async () => "", out: text => output.push(text), error: text => errors.push(text), fetch: request,
     }), errors.join()).toBe(0)
     expect(JSON.parse(output[0]!)).toEqual(result)
     const mcp = new Client({ name: "triage-test", version: "1.0.0" })

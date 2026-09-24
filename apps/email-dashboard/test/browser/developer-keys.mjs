@@ -4,14 +4,14 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { resolve } from 'node:path'
-import { BezalelEmail } from '../../../../packages/email-sdk/dist/index.js'
+import { GoshenEmailClient } from '../../../../packages/email-client/dist/index.js'
 const base = process.env.DASHBOARD_TEST_URL ?? 'http://127.0.0.1:3178'
 const control = process.env.DASHBOARD_TEST_CONTROL_URL ?? 'http://127.0.0.1:3179'
 for (const value of [base, control]) { const url = new URL(value); assert.equal(url.protocol, 'http:'); assert.equal(url.hostname, '127.0.0.1') }
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const artifacts = process.env.EVIDENCE_DIRECTORY
 
-test('one account key manages grouped inboxes across SDK, CLI and Python and stops after revocation', { timeout: 120_000 }, async t => {
+test('one account key manages grouped inboxes across the client, CLI and REST API and stops after revocation', { timeout: 120_000 }, async t => {
   const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'] })
   t.after(() => browser.close())
   const context = await browser.newContext({ viewport: { width: 1440, height: 1200 } }), page = await context.newPage(), errors = []
@@ -32,23 +32,31 @@ test('one account key manages grouped inboxes across SDK, CLI and Python and sto
   await page.waitForFunction(() => document.querySelector('#developer-token').value.startsWith('bze_'))
   const apiKey = await page.locator('#developer-token').inputValue()
   assert.equal(await page.locator('#developer-token').getAttribute('type'), 'password')
-  const client = new BezalelEmail({ apiKey, baseUrl: control })
+  const client = new GoshenEmailClient({ apiKey, baseUrl: control })
   const inbox = await client.inboxes.create({ username: `sdk-${suffix}`, group: 'research' })
   const payload = { inboxId: inbox.inboxId, to: ['receiver@example.net'], text: `Fixture developer message ${suffix}`, idempotencyKey: `browser-${suffix}` }
   const first = await client.messages.send(payload)
-  const env = { ...process.env, BEZALEL_API_KEY: apiKey, BEZALEL_BASE_URL: control }
+  const env = { ...process.env, GOSHENEMAIL_API_KEY: apiKey, GOSHENEMAIL_BASE_URL: control }
   const cli = await promisify(execFile)(process.execPath, [resolve('packages/email-cli/dist/main.js'), 'messages', 'send', '--json', JSON.stringify(payload)], { env })
   const replay = JSON.parse(cli.stdout)
   assert.equal(replay.messageId, first.messageId); assert.equal(replay.deduplicated, true)
   for (let i = 0; i < 50; i++) await client.inboxes.create({ username: `sdk-${suffix}-${i}`, group: 'research' })
-  const python = await promisify(execFile)('python3', ['-c', [
-    'import json, os', 'from bezalel_email import BezalelEmail',
-    'client=BezalelEmail(os.environ["BEZALEL_API_KEY"], os.environ["BEZALEL_BASE_URL"])',
-    `inbox=client.inboxes.create(username="python-${suffix}", group="research")`,
-    'client.inboxes.update(inbox_id=inbox["inboxId"], group="support")',
-    'print(json.dumps({"inboxes": sum(len(page["inboxes"]) for page in client.pages("listInboxes")), "research": sum(len(page["inboxes"]) for page in client.pages("listInboxes", group="research", limit=7))}))',
-  ].join('\n')], { env: { ...env, PYTHONPATH: resolve('packages/email-python') } })
-  assert.deepEqual(JSON.parse(python.stdout), { inboxes: 52, research: 51 })
+  const rest = async (method, path, body) => {
+    const response = await fetch(new URL(path, control), { method, headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) })
+    assert.equal(response.status, 200, `${method} ${path}`)
+    return response.json()
+  }
+  const count = async query => {
+    let total = 0, pageToken
+    do {
+      const page = await rest('GET', `/v1/inboxes?${new URLSearchParams({ ...query, ...(pageToken ? { pageToken } : {}) })}`)
+      total += page.inboxes.length; pageToken = page.nextPageToken
+    } while (pageToken)
+    return total
+  }
+  const restInbox = await rest('POST', '/v1/inboxes', { username: `rest-${suffix}`, group: 'research' })
+  await rest('PATCH', `/v1/inboxes/${encodeURIComponent(restInbox.inboxId)}`, { group: 'support' })
+  assert.deepEqual({ inboxes: await count({}), research: await count({ group: 'research', limit: '7' }) }, { inboxes: 52, research: 51 })
   const sends = await (await context.request.get(control + '/sends')).json()
   assert.equal(sends.filter(message => message.to.includes('receiver@example.net') && message.text === payload.text).length, 1)
   await page.getByRole('button', { name: 'Close API key creation', exact: true }).click()
@@ -56,7 +64,7 @@ test('one account key manages grouped inboxes across SDK, CLI and Python and sto
   await page.reload()
   await page.waitForFunction(() => document.querySelectorAll('#inboxes option').length === 52)
   assert.match(await page.locator('#account').textContent(), /No inbox limit/)
-  assert.match(await page.locator('#inboxes option').last().textContent(), /\[support\] python-/)
+  assert.match(await page.locator('#inboxes option').last().textContent(), /\[support\] rest-/)
   await page.locator('#developers').click()
   await page.getByRole('button', { name: 'Revoke Research agent' }).waitFor()
   assert.equal(await page.locator('#developer-created').isVisible(), false)
@@ -78,6 +86,6 @@ test('one account key manages grouped inboxes across SDK, CLI and Python and sto
   assert.deepEqual(errors, [])
   if (artifacts) await writeFile(resolve(artifacts, 'browser-report.json'), JSON.stringify({ environment: 'Local PGlite fixture',
     providerOperations: 'Domain verification, routing, sending, and object storage are test doubles; no live delivery.',
-    checks: ['passwordless fixture sign-in', 'key creation and single reveal', '52 inboxes with one key via TypeScript and Python', 'Python groups, moves, and paginates inboxes', 'dashboard loads both pages and shows groups', 'SDK send retried by CLI delivers once', 'masked key', 'close clears secret', 'listing excludes token', 'revocation denies subsequent use', 'no horizontal overflow at 320/390/768/1440'],
+    checks: ['passwordless fixture sign-in', 'key creation and single reveal', '52 inboxes with one key via the client and the REST API', 'REST API groups, moves, and paginates inboxes', 'dashboard loads both pages and shows groups', 'client send retried by CLI delivers once', 'masked key', 'close clears secret', 'listing excludes token', 'revocation denies subsequent use', 'no horizontal overflow at 320/390/768/1440'],
     passed: true, errors, deliveryAttempts: 1, inboxes: 52 }, null, 2))
 })

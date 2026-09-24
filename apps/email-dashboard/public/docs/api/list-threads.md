@@ -4,7 +4,7 @@ List threads filtered by labels or triage of the latest message. A sent reply cl
 
 `GET /v1/inboxes/{inboxId}/threads`
 
-Requires scope `messages:read`. MCP tool `list_threads`. SDK `email.threads.list()`. CLI `bezalel-email threads list`.
+Requires scope `messages:read`. MCP tool `list_threads`. CLI `goshenemail threads list`.
 
 ## Request
 
@@ -64,27 +64,13 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/threads" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
-```
-
-### TypeScript
-
-```ts
-const result = await email.threads.list({
-  inboxId: 'research@agents.goshenemail.com'
-})
-```
-
-### Python
-
-```python
-result = email.threads.list(inbox_id="research@agents.goshenemail.com")
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/threads" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ### CLI
 
 ```sh
-bezalel-email threads list --inbox-id "research@agents.goshenemail.com"
+goshenemail threads list --inbox-id "research@agents.goshenemail.com"
 ```
 

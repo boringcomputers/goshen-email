@@ -17,8 +17,8 @@ An inbox is a real email address with its own message store. Create one per agen
 ## Creating an inbox
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "https://api.goshenemail.com/v1/inboxes" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"username":"support","displayName":"Support agent"}'
 ```
@@ -38,8 +38,8 @@ Incoming mail reaches an inbox through a delivery route that Goshen Email config
 ## Listing inboxes
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes?group=agents&limit=50" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+curl "https://api.goshenemail.com/v1/inboxes?group=agents&limit=50" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 Lists return up to 100 inboxes per page (default 50), sorted by creation time. Pass `nextPageToken` back as `pageToken` to continue; see [Pagination](/docs/pagination). Filter by `group` to see one group.

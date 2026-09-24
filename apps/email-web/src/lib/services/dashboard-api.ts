@@ -28,6 +28,15 @@ export class ApiError extends Error {
 	}
 }
 
+// Only a missing session (401) or an account that lost dashboard access (403 access_denied) ends the
+// session. Any other 403 refuses one operation for a user who is still signed in.
+export function sessionEndReason(error: unknown): '' | 'access_denied' | null {
+	if (!(error instanceof ApiError)) return null;
+	if (error.status === 401) return '';
+	if (error.status === 403 && error.code === 'access_denied') return 'access_denied';
+	return null;
+}
+
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
 export function createDashboardApi({ fetch }: { fetch: Fetch }) {

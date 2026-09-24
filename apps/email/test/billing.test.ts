@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises"
 import { URL } from "node:url"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { BezalelEmail } from "@bezalel/email-sdk"
-import { run } from "@bezalel/email-cli"
+import { GoshenEmailClient } from "@goshenemail/client"
+import { run } from "goshenemail-cli"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 import { apiScopes, manageApiKeys } from "../src/api-keys.js"
@@ -35,7 +35,7 @@ describe("plan limits through Autumn", () => {
   async function account(email = `${crypto.randomUUID()}@example.net`) {
     const { customer } = await store.invite({ email, inboxLimit: null })
     const key = await manageApiKeys(f.db, customer, "createApiKey", { name: "Agent", scopes: apiScopes }) as { apiKey: string }
-    return { customer, key: key.apiKey, client: new BezalelEmail({ apiKey: key.apiKey, baseUrl: service.config.publicUrl, fetch: request }) }
+    return { customer, key: key.apiKey, client: new GoshenEmailClient({ apiKey: key.apiKey, baseUrl: service.config.publicUrl, fetch: request }) }
   }
   const dashboard = async (customer: Customer, operation: string, body: unknown = {}) => {
     const response = await executeCustomerRequest(new Request("https://dashboard.test/rpc", { method: "POST", body: JSON.stringify(body) }), service, store, customer, operation)
@@ -131,7 +131,7 @@ describe("plan limits through Autumn", () => {
     expect(autumn.usage(a.customer.id, "inboxes")).toBe(2)
     // Inboxes created before billing was switched on are counted the first time the account is metered.
     const legacy = await account()
-    const unmetered = new BezalelEmail({ apiKey: legacy.key, baseUrl: f.service.config.publicUrl, fetch: async (input, init) => handleRequest(new Request(input, init), f.service) })
+    const unmetered = new GoshenEmailClient({ apiKey: legacy.key, baseUrl: f.service.config.publicUrl, fetch: async (input, init) => handleRequest(new Request(input, init), f.service) })
     await unmetered.inboxes.create({ username: name() }); await unmetered.inboxes.create({ username: name() })
     expect(autumn.has(legacy.customer.id)).toBe(false)
     await expect(legacy.client.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 402, code: "billing_limit" })
@@ -234,7 +234,7 @@ describe("plan limits through Autumn", () => {
     const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
     const row = await service.store.inbox(inbox.inboxId)
     const credentials = await mailboxCredentials(service, row.id) as { apiKey: string }
-    const mailbox = new BezalelEmail({ apiKey: credentials.apiKey, baseUrl: service.config.publicUrl, fetch: request })
+    const mailbox = new GoshenEmailClient({ apiKey: credentials.apiKey, baseUrl: service.config.publicUrl, fetch: request })
     await mailbox.messages.send({ inboxId: inbox.inboxId, to: ["receiver@example.net"], subject: "Hi", text: "hello", idempotencyKey: "mailbox-1" })
     expect(autumn.usage(a.customer.id, "sends")).toBe(1)
     await expect(mailbox.account.usage()).rejects.toMatchObject({ status: 403 })
@@ -360,7 +360,7 @@ describe("plan limits through Autumn", () => {
     expect(autumn.usage(a.customer.id, "triage")).toBe(spent)
   })
 
-  it("reports usage through REST, SDK, CLI, and hosted MCP with the same shape", async () => {
+  it("reports usage through REST, the client, CLI, and hosted MCP with the same shape", async () => {
     const a = await account()
     await a.client.inboxes.create({ username: name() })
     const usage = await a.client.account.usage()
@@ -373,7 +373,7 @@ describe("plan limits through Autumn", () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual(usage)
     const output: string[] = [], errors: string[] = []
-    expect(await run(["account", "usage"], { env: { BEZALEL_API_KEY: a.key, BEZALEL_BASE_URL: service.config.publicUrl }, readStdin: async () => "",
+    expect(await run(["account", "usage"], { env: { GOSHENEMAIL_API_KEY: a.key, GOSHENEMAIL_BASE_URL: service.config.publicUrl }, readStdin: async () => "",
       out: text => output.push(text), error: text => errors.push(text), fetch: request }), errors.join()).toBe(0)
     expect(JSON.parse(output[0]!)).toEqual(usage)
     const mcp = new Client({ name: "billing-test", version: "1.0.0" })
@@ -409,7 +409,7 @@ describe("plan limits through Autumn", () => {
     const unmetered: typeof fetch = async (input, init) => handleRequest(new Request(input, init), plain)
     const { customer } = await store.invite({ email: `${crypto.randomUUID()}@example.net`, inboxLimit: 3 })
     const key = await manageApiKeys(f.db, customer, "createApiKey", { name: "Agent", scopes: apiScopes }) as { apiKey: string }
-    const client = new BezalelEmail({ apiKey: key.apiKey, baseUrl: plain.config.publicUrl, fetch: unmetered })
+    const client = new GoshenEmailClient({ apiKey: key.apiKey, baseUrl: plain.config.publicUrl, fetch: unmetered })
     for (let i = 0; i < 3; i++) await client.inboxes.create({ username: name() })
     await expect(client.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 422, code: "inbox_limit" })
     expect(await client.account.usage()).toEqual({ billing: "disabled", plan: null, inboxes: { count: 3, limit: 3 }, features: [], plans: [] })

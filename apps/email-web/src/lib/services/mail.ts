@@ -160,7 +160,7 @@ export function setupAvailable({ authMode, hasCustomer, inbox }: { authMode?: st
 
 export function connectionCommand(apiUrl: string) {
 	const url = new URL('/inbox-rpc/getInbox', apiUrl);
-	return `curl --fail-with-body '${url.href}' \\\n  -H "Authorization: Bearer $BEZALEL_MAILBOX_KEY" \\\n  -H 'Content-Type: application/json' \\\n  -d '{}'`;
+	return `curl --fail-with-body '${url.href}' \\\n  -H "Authorization: Bearer $GOSHENEMAIL_MAILBOX_KEY" \\\n  -H 'Content-Type: application/json' \\\n  -d '{}'`;
 }
 
 export const maxAttachmentFiles = 10;

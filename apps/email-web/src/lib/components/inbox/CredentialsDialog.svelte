@@ -90,7 +90,7 @@
 			<section class="space-y-2 rounded-[var(--radius-card)] border border-[var(--ds-border)] bg-[var(--surface)] p-3.5">
 				<h3 class="text-[13px] font-medium text-foreground">Connect your agent</h3>
 				<p class="text-[12px] leading-[1.5] text-[var(--muted-fg)]">
-					Save this key as <code class="font-mono text-[11px] text-foreground">BEZALEL_MAILBOX_KEY</code> in your agent's environment.
+					Save this key as <code class="font-mono text-[11px] text-foreground">GOSHENEMAIL_MAILBOX_KEY</code> in your agent's environment.
 					Run this command there to check access. It returns the inbox address and does not send email.
 				</p>
 				<pre

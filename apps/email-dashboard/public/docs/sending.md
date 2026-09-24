@@ -20,7 +20,7 @@ await email.messages.send({ inboxId, to, subject, text, idempotencyKey })
 
 REST callers may pass the key in an `Idempotency-Key` header instead of the body. If both are present they must match.
 
-The clients never retry on their own. A `network_error` from the SDK means the outcome is unknown; it is your signal to retry with the saved key, not proof that the send failed.
+The CLI and MCP server never retry on their own. If a send gets no response, for example a timeout or a `network_error` from the CLI, the outcome is unknown. Retry with the saved key; the failure does not prove that nothing was sent.
 
 ## Send
 

@@ -98,7 +98,7 @@ Use Node.js 24 and pnpm 10.15.1.
 | `pnpm test` | Every package's tests against isolated local databases and PGlite |
 | `pnpm test:postgres` | The Worker's PostgreSQL suite; needs `TEST_DATABASE_URL` for a disposable local database |
 | `pnpm source:check` | Verifies `SOURCE.json` against the extracted Bezalel files |
-| `pnpm api:generate` | Regenerates the OpenAPI document, SDK types, and CLI and MCP schemas after a contract change |
+| `pnpm api:generate` | Regenerates the OpenAPI document, client types, and CLI and MCP schemas after a contract change |
 | `pnpm docs:generate` | Regenerates the public docs site under `apps/email-dashboard/public/docs/` from the Markdown pages and the OpenAPI document; `pnpm check` fails on drift |
 | `pnpm dev` and `pnpm dev:worker` | Local dashboard, and the local Worker on port 8788 |
 
@@ -121,7 +121,7 @@ has a rollout section that states the order.
   Hyperdrive and uses its own R2 bucket and delivery queues.
   `apps/email-dashboard` is the dashboard Worker, with a Node server for local
   or VPS hosting. `apps/email-gateway` is the SMTP gateway packaged with
-  Docker. `packages/` holds the SDK, CLI, MCP server, and Python client.
+  Docker. `packages/` holds the CLI, the MCP server, and the private API client they share.
 - Production Workers are `bezalel-email-standalone` (API) and
   `bezalel-email-dashboard`. The native Bezalel Worker `bezalel-email` on Neon
   is a separate deployment with its own profile, `wrangler.native.jsonc`.

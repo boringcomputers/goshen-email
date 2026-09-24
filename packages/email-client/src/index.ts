@@ -8,10 +8,10 @@ type Body<K extends Operation> = [NonNullable<operations[K]["requestBody"]>] ext
 export type Input<K extends Operation> = ObjectOrEmpty<operations[K]["parameters"]["path"]> & ObjectOrEmpty<operations[K]["parameters"]["query"]> & ObjectOrEmpty<Body<K>>
 export type Result<K extends Operation> = operations[K]["responses"][200]["content"]["application/json"]
 export type { operations } from "./operations.js"
-export class BezalelError extends Error {
-  constructor(message: string, readonly status: number, readonly code: string, readonly transient = false) { super(message); this.name = "BezalelError" }
+export class GoshenEmailError extends Error {
+  constructor(message: string, readonly status: number, readonly code: string, readonly transient = false) { super(message); this.name = "GoshenEmailError" }
 }
-export const defaultBaseUrl = "https://bezalel-email-standalone.michaelwasihun96.workers.dev"
+export const defaultBaseUrl = "https://api.goshenemail.com"
 export function apiBase(value = defaultBaseUrl) {
   const url = new URL(value)
   if (url.username || url.password || url.pathname !== "/" || url.search || url.hash ||
@@ -38,7 +38,7 @@ export function prepareRequest<K extends Operation>(operation: K, input: Input<K
   return { url: url.href, method: definition.method, ...(!["GET", "DELETE"].includes(definition.method) ? { body: JSON.stringify(body) } : {}) }
 }
 export interface ClientOptions { apiKey: string; baseUrl?: string; timeoutMs?: number; fetch?: typeof fetch }
-export class BezalelEmail {
+export class GoshenEmailClient {
   readonly #key: string
   readonly #base: string
   readonly #timeout: number
@@ -54,7 +54,7 @@ export class BezalelEmail {
     const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout
     const cancellation = () => {
       if (options.signal?.aborted && signal.reason === options.signal.reason)
-        throw new BezalelError("The request was canceled. An in-flight send may already have been accepted.", 0, "request_cancelled")
+        throw new GoshenEmailError("The request was canceled. An in-flight send may already have been accepted.", 0, "request_cancelled")
     }
     let response: Response
     try {
@@ -64,14 +64,14 @@ export class BezalelEmail {
         redirect: "manual", signal })
     } catch {
       cancellation()
-      throw new BezalelError("The request did not complete. Retry a send with the same idempotencyKey and contents.", 0, "network_error", true)
+      throw new GoshenEmailError("The request did not complete. Retry a send with the same idempotencyKey and contents.", 0, "network_error", true)
     }
     let body: unknown
     try { body = await response.json() }
-    catch { cancellation(); throw new BezalelError("The API returned an unreadable response", response.status, "invalid_response") }
+    catch { cancellation(); throw new GoshenEmailError("The API returned an unreadable response", response.status, "invalid_response") }
     if (!response.ok) {
       const error = (body as { error?: { message?: unknown; code?: unknown; transient?: unknown } } | null)?.error
-      throw new BezalelError(typeof error?.message === "string" ? error.message.replaceAll(this.#key, "[redacted]") : "Email request failed",
+      throw new GoshenEmailError(typeof error?.message === "string" ? error.message.replaceAll(this.#key, "[redacted]") : "Email request failed",
         response.status, typeof error?.code === "string" ? error.code : "api_error", error?.transient === true)
     }
     return body as Result<K>
@@ -99,7 +99,7 @@ export class BezalelEmail {
     const seen = new Set<string>()
     let pageToken = (input as { pageToken?: string }).pageToken
     do {
-      if (pageToken && seen.has(pageToken)) throw new BezalelError("API repeated a pagination cursor", 0, "invalid_response")
+      if (pageToken && seen.has(pageToken)) throw new GoshenEmailError("API repeated a pagination cursor", 0, "invalid_response")
       if (pageToken) seen.add(pageToken)
       const page = await this.request(operation, { ...input, pageToken })
       yield page

@@ -4,7 +4,7 @@ Search messages in one inbox, optionally filtered by category, needsReply, and u
 
 `GET /v1/inboxes/{inboxId}/messages/search`
 
-Requires scope `messages:read`. MCP tool `search_messages`. SDK `email.messages.search()`. CLI `bezalel-email messages search`.
+Requires scope `messages:read`. MCP tool `search_messages`. CLI `goshenemail messages search`.
 
 ## Request
 
@@ -83,28 +83,13 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages/search?query=invoice" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
-```
-
-### TypeScript
-
-```ts
-const result = await email.messages.search({
-  inboxId: 'research@agents.goshenemail.com',
-  query: 'invoice'
-})
-```
-
-### Python
-
-```python
-result = email.messages.search(inbox_id="research@agents.goshenemail.com", query="invoice")
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/messages/search?query=invoice" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ### CLI
 
 ```sh
-bezalel-email messages search --inbox-id "research@agents.goshenemail.com" --query "invoice"
+goshenemail messages search --inbox-id "research@agents.goshenemail.com" --query "invoice"
 ```
 

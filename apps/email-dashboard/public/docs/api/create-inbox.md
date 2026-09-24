@@ -4,7 +4,7 @@ Create an inbox, optionally in a named group. Reuse the same username to retry s
 
 `POST /v1/inboxes`
 
-Requires scope `inboxes:write`. MCP tool `create_inbox`. SDK `email.inboxes.create()`. CLI `bezalel-email inboxes create`.
+Requires scope `inboxes:write`. MCP tool `create_inbox`. CLI `goshenemail inboxes create`.
 
 ## Request
 
@@ -34,8 +34,8 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "https://api.goshenemail.com/v1/inboxes" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{
@@ -45,25 +45,9 @@ curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes" 
   }'
 ```
 
-### TypeScript
-
-```ts
-const result = await email.inboxes.create({
-  username: 'research',
-  displayName: 'Research agent',
-  group: 'agents'
-})
-```
-
-### Python
-
-```python
-result = email.inboxes.create(username="research", display_name="Research agent", group="agents")
-```
-
 ### CLI
 
 ```sh
-bezalel-email inboxes create --username "research" --display-name "Research agent" --group "agents"
+goshenemail inboxes create --username "research" --display-name "Research agent" --group "agents"
 ```
 

@@ -19,7 +19,7 @@ At creation:
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"username":"acme-support","group":"acme"}'
 ```
@@ -28,7 +28,7 @@ Later, with [Update an inbox](/docs/api/update-inbox):
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes/acme-support%40{{DEFAULT_DOMAIN}}" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" -X PATCH \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" -X PATCH \
   -H "Content-Type: application/json" \
   -d '{"group":"acme-eu"}'
 ```
@@ -39,7 +39,7 @@ Send `{"group":null}` to remove the inbox from its group. Retrying an inbox crea
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes?group=acme" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 Keep the same `group` filter while paging through results. Mailbox keys cannot filter by group.

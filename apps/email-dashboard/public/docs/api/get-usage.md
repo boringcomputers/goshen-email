@@ -4,7 +4,7 @@ Read the account's plan, inbox count, and remaining monthly balances. A 402 bill
 
 `GET /v1/usage`
 
-Requires scope `inboxes:read`. MCP tool `get_usage`. SDK `email.account.usage()`. CLI `bezalel-email account usage`.
+Requires scope `inboxes:read`. MCP tool `get_usage`. CLI `goshenemail account usage`.
 
 ## Request
 
@@ -47,25 +47,13 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/usage" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
-```
-
-### TypeScript
-
-```ts
-const result = await email.account.usage()
-```
-
-### Python
-
-```python
-result = email.account.usage()
+curl "https://api.goshenemail.com/v1/usage" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ### CLI
 
 ```sh
-bezalel-email account usage
+goshenemail account usage
 ```
 

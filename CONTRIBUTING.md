@@ -6,8 +6,7 @@ you write code.
 
 ## Set up
 
-You need Node.js 24 and pnpm 10.15.1. The Python client needs Python 3.10 or
-later.
+You need Node.js 24 and pnpm 10.15.1.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -40,7 +39,7 @@ Some files are generated. `pnpm check` fails when they drift from their
 sources.
 
 - After changing the API contract, run `pnpm api:generate`. It rewrites the
-  OpenAPI document, the SDK types, the CLI and MCP schemas, and the related SQL
+  OpenAPI document, the client types, the CLI and MCP schemas, and the related SQL
   in `ops/email/`.
 - After editing a page in `apps/email-dashboard/docs/` or the OpenAPI document,
   run `pnpm docs:generate` and commit its output.

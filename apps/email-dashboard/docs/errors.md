@@ -17,7 +17,7 @@ description: Every error code the API returns, its HTTP status, what it means, a
 
 `code` is stable and meant for programs. `message` is for people and may change. `transient: true` means the same request may succeed if you retry later; `false` means retrying without a change will fail the same way.
 
-The SDKs raise `BezalelError` with `status`, `code`, and `transient`. The CLI prints the same object on stderr and exits 1. The MCP server returns it as the tool result with `isError: true`.
+The CLI prints the same object on stderr and exits 1. The MCP server returns it as the tool result with `isError: true`.
 
 ## Codes
 
@@ -79,12 +79,11 @@ The SDKs raise `BezalelError` with `status`, `code`, and `transient`. The CLI pr
 | `provider_error`, `provider_response`, `provider_unavailable`, `gateway_error` | 502 | An upstream provider failed or answered unexpectedly | Retry; report if it persists |
 | `internal_error` | 500 | Unexpected failure | Retry; report if it persists |
 
-### Client-side (SDKs only)
+### Client-side (CLI and stdio MCP server)
 
 | Code | Meaning |
 | --- | --- |
 | `network_error` | The request did not complete. The outcome is unknown; retry a send with the same `idempotencyKey`. `transient: true`. |
-| `request_cancelled` | Your `AbortSignal` fired. A send the server already accepted is not undone. |
 
 ## Retrying
 

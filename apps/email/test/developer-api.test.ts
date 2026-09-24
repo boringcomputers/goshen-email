@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { BezalelEmail, BezalelError } from "@bezalel/email-sdk"
-import { run } from "@bezalel/email-cli"
+import { GoshenEmailClient, GoshenEmailError } from "@goshenemail/client"
+import { run } from "goshenemail-cli"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 import { apiScopes, manageApiKeys } from "../src/api-keys.js"
@@ -10,7 +10,7 @@ import { handleRequest } from "../src/worker.js"
 import { mailboxCredentials } from "../src/mail-clients.js"
 import { fixture, rawMail, cleanProtection } from "./support.js"
 
-describe("developer API, SDK, CLI, and hosted MCP", () => {
+describe("developer API, client, CLI, and hosted MCP", () => {
   let f: Awaited<ReturnType<typeof fixture>>, store: CustomerStore
   beforeAll(async () => { f = await fixture(); store = new CustomerStore(f.db, []) })
   afterAll(async () => { await f?.pg.close() })
@@ -18,7 +18,7 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
   async function account(scopes: readonly string[] = apiScopes) {
     const { customer } = await store.invite({ email: `${crypto.randomUUID()}@example.net`, inboxLimit: null })
     const key = await manageApiKeys(f.db, customer, "createApiKey", { name: "Agent", scopes }) as { apiKey: string; keyId: string }
-    const client = new BezalelEmail({ apiKey: key.apiKey, baseUrl: f.service.config.publicUrl, fetch: request })
+    const client = new GoshenEmailClient({ apiKey: key.apiKey, baseUrl: f.service.config.publicUrl, fetch: request })
     return { customer, key, client }
   }
   async function api(key: string, path: string, method = "GET", body?: unknown, extra: Record<string, string> = {}) {
@@ -80,7 +80,7 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
     await expect(b.client.inboxes.list()).rejects.toMatchObject({ status: 401 })
   })
 
-  it("uses one account key beyond five inboxes and groups them across SDK, CLI, REST, and MCP", async () => {
+  it("uses one account key beyond five inboxes and groups them across the client, CLI, REST, and MCP", async () => {
     const a = await account(), b = await account(), created = []
     expect(a.customer.inboxLimit).toBeNull()
     for (let i = 0; i < 7; i++) created.push(await a.client.inboxes.create({ username: name(), group: i < 4 ? "research" : "support" }))
@@ -94,7 +94,7 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
     await expect(a.client.inboxes.list({ group: "support", pageToken: token })).rejects.toMatchObject({ status: 400 })
     await expect(a.client.inboxes.update({ inboxId: foreign.inboxId, group: "research" })).rejects.toMatchObject({ status: 404 })
     const output: string[] = [], errors: string[] = []
-    const io = { env: { BEZALEL_API_KEY: a.key.apiKey, BEZALEL_BASE_URL: f.service.config.publicUrl }, readStdin: async () => "", out: (text: string) => output.push(text), error: (text: string) => errors.push(text), fetch: request }
+    const io = { env: { GOSHENEMAIL_API_KEY: a.key.apiKey, GOSHENEMAIL_BASE_URL: f.service.config.publicUrl }, readStdin: async () => "", out: (text: string) => output.push(text), error: (text: string) => errors.push(text), fetch: request }
     expect(await run(["inboxes", "update", "--inbox-id", first.inboxId, "--group", "support"], io), errors.join()).toBe(0)
     expect(JSON.parse(output.pop()!)).toMatchObject({ group: "support" })
     expect(await run(["inboxes", "list", "--group", "support", "--limit", "2"], io)).toBe(0)
@@ -150,13 +150,13 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
     await expect(a.client.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 422, code: "inbox_limit" })
   })
 
-  it("preserves send and reply idempotency across SDK, CLI, and REST, with real storage and simulated transport", async () => {
+  it("preserves send and reply idempotency across the client, CLI, and REST, with real storage and simulated transport", async () => {
     const a = await account(), inbox = await a.client.inboxes.create({ username: name() })
     const body = { inboxId: inbox.inboxId, to: ["receiver@example.net"], subject: "Developer probe", text: "One intended message", idempotencyKey: crypto.randomUUID() }
     const before = f.send.mock.calls.length, first = await a.client.messages.send(body), second = await a.client.messages.send(body)
     expect(second).toMatchObject({ ...first, deduplicated: true }); expect(f.send.mock.calls.length - before).toBe(1)
     const output: string[] = [], errors: string[] = []
-    expect(await run(["messages", "send", "--json", JSON.stringify(body)], { env: { BEZALEL_API_KEY: a.key.apiKey, BEZALEL_BASE_URL: f.service.config.publicUrl }, readStdin: async () => "", out: text => output.push(text), error: text => errors.push(text), fetch: request })).toBe(0)
+    expect(await run(["messages", "send", "--json", JSON.stringify(body)], { env: { GOSHENEMAIL_API_KEY: a.key.apiKey, GOSHENEMAIL_BASE_URL: f.service.config.publicUrl }, readStdin: async () => "", out: text => output.push(text), error: text => errors.push(text), fetch: request })).toBe(0)
     expect(errors).toEqual([]); expect(JSON.parse(output[0]!)).toMatchObject({ messageId: first.messageId, deduplicated: true }); expect(f.send.mock.calls.length - before).toBe(1)
     expect(await a.client.messages.get({ inboxId: inbox.inboxId, messageId: first.messageId })).toMatchObject({ text: body.text })
     expect((await api(a.key.apiKey, `/v1/inboxes/${inbox.inboxId}/messages/send`, "POST", { ...body, inboxId: undefined }, { "idempotency-key": "different" })).status).toBe(400)
@@ -196,7 +196,7 @@ describe("developer API, SDK, CLI, and hosted MCP", () => {
   it("accepts existing mailbox keys without expanding their scope", async () => {
     const a = await account(), first = await a.client.inboxes.create({ username: name() }), second = await a.client.inboxes.create({ username: name() })
     const row = await f.service.store.inbox(first.inboxId), key = await mailboxCredentials(f.service, row.id)
-    const scoped = new BezalelEmail({ apiKey: key.apiKey, baseUrl: f.service.config.publicUrl, fetch: request })
+    const scoped = new GoshenEmailClient({ apiKey: key.apiKey, baseUrl: f.service.config.publicUrl, fetch: request })
     expect((await scoped.inboxes.list()).inboxes.map(i => i.inboxId)).toEqual([first.inboxId])
     await expect(scoped.messages.list({ inboxId: second.inboxId })).rejects.toMatchObject({ status: 403 })
     await expect(scoped.inboxes.create({ username: name() })).rejects.toMatchObject({ status: 403 })

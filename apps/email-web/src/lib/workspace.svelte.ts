@@ -1,6 +1,6 @@
 import { goto } from '$app/navigation';
 import { getContext, setContext } from 'svelte';
-import { ApiError, createDashboardApi, type Session } from './services/dashboard-api.ts';
+import { ApiError, createDashboardApi, sessionEndReason, type Session } from './services/dashboard-api.ts';
 import { customerMode, setupAvailable } from './services/mail.ts';
 import type { Customer, Inbox } from './services/types.ts';
 
@@ -81,8 +81,8 @@ export class Workspace {
 			if (epoch !== this.#epoch) throw new Error('Session changed. Sign in again.');
 			return result;
 		} catch (error) {
-			if (error instanceof ApiError && (error.status === 401 || error.status === 403))
-				this.signedOut(error.status === 403 ? 'access_denied' : '');
+			const reason = sessionEndReason(error);
+			if (reason !== null) this.signedOut(reason);
 			throw error;
 		}
 	}

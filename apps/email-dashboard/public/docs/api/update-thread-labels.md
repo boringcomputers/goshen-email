@@ -4,7 +4,7 @@ Add or remove thread labels. Quarantine cannot be changed by agents.
 
 `PATCH /v1/inboxes/{inboxId}/threads/{threadId}/labels`
 
-Requires scope `messages:write`. MCP tool `update_thread_labels`. SDK `email.threads.updateLabels()`. CLI `bezalel-email threads labels`.
+Requires scope `messages:write`. MCP tool `update_thread_labels`. CLI `goshenemail threads labels`.
 
 ## Request
 
@@ -31,8 +31,8 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/threads/0b8d0e7f-3444-4bb7-a250-c2793dd5944d/labels" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/threads/0b8d0e7f-3444-4bb7-a250-c2793dd5944d/labels" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -X PATCH \
   -H "Content-Type: application/json" \
   -d '{
@@ -45,30 +45,9 @@ curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/r
   }'
 ```
 
-### TypeScript
-
-```ts
-const result = await email.threads.updateLabels({
-  inboxId: 'research@agents.goshenemail.com',
-  threadId: '0b8d0e7f-3444-4bb7-a250-c2793dd5944d',
-  addLabels: [
-    'reviewed'
-  ],
-  removeLabels: [
-    'unread'
-  ]
-})
-```
-
-### Python
-
-```python
-result = email.threads.update_labels(inbox_id="research@agents.goshenemail.com", thread_id="0b8d0e7f-3444-4bb7-a250-c2793dd5944d", add_labels=["reviewed"], remove_labels=["unread"])
-```
-
 ### CLI
 
 ```sh
-bezalel-email threads labels --json '{"inboxId":"research@agents.goshenemail.com","threadId":"0b8d0e7f-3444-4bb7-a250-c2793dd5944d","addLabels":["reviewed"],"removeLabels":["unread"]}'
+goshenemail threads labels --json '{"inboxId":"research@agents.goshenemail.com","threadId":"0b8d0e7f-3444-4bb7-a250-c2793dd5944d","addLabels":["reviewed"],"removeLabels":["unread"]}'
 ```
 

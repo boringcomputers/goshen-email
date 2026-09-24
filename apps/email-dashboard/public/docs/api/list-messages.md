@@ -4,7 +4,7 @@ List messages, optionally filtered by category, needsReply (yes/no/uncertain), a
 
 `GET /v1/inboxes/{inboxId}/messages`
 
-Requires scope `messages:read`. MCP tool `list_messages`. SDK `email.messages.list()`. CLI `bezalel-email messages list`.
+Requires scope `messages:read`. MCP tool `list_messages`. CLI `goshenemail messages list`.
 
 ## Request
 
@@ -83,27 +83,13 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
-```
-
-### TypeScript
-
-```ts
-const result = await email.messages.list({
-  inboxId: 'research@agents.goshenemail.com'
-})
-```
-
-### Python
-
-```python
-result = email.messages.list(inbox_id="research@agents.goshenemail.com")
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/messages" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ### CLI
 
 ```sh
-bezalel-email messages list --inbox-id "research@agents.goshenemail.com"
+goshenemail messages list --inbox-id "research@agents.goshenemail.com"
 ```
 

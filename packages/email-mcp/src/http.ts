@@ -1,7 +1,7 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js"
-import type { BezalelEmail } from "@bezalel/email-sdk"
+import type { GoshenEmailClient } from "@goshenemail/client"
 import { createMailMcp } from "./index.js"
-export async function handleMailMcp(request: Request, client: BezalelEmail, scopes: readonly string[]) {
+export async function handleMailMcp(request: Request, client: GoshenEmailClient, scopes: readonly string[]) {
   const server = createMailMcp(client, scopes)
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true })
   await server.connect(transport)

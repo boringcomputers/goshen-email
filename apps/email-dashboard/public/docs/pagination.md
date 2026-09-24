@@ -22,23 +22,21 @@ Send it back as `pageToken` to get the next page. Keep every other parameter the
 
 Lists reflect current data. Mail that arrives while you are paging can shift items between pages, so a full traversal is a snapshot, not a transaction.
 
-## In the SDKs
+## Reading every page
 
-Both SDKs have a `pages` helper that follows tokens for you:
+Loop until a page comes back without `nextPageToken`:
 
 ```ts
-for await (const page of email.pages('listMessages', { inboxId, labels: ['received'] })) {
+let pageToken
+do {
+  const url = new URL(`/v1/inboxes/${encodeURIComponent(inboxId)}/messages`, process.env.GOSHENEMAIL_BASE_URL)
+  url.searchParams.append('labels', 'received')
+  if (pageToken) url.searchParams.set('pageToken', pageToken)
+  const page = await (await fetch(url, { headers: { authorization: `Bearer ${process.env.GOSHENEMAIL_API_KEY}` } })).json()
   for (const message of page.messages) console.log(message.subject)
-}
+  pageToken = page.nextPageToken
+} while (pageToken)
 ```
-
-```python
-for page in email.pages('listMessages', inbox_id=inbox_id, labels=['received']):
-    for message in page['messages']:
-        print(message['subject'])
-```
-
-The helper stops when a page has no `nextPageToken` and refuses to loop if the API ever returned the same token twice.
 
 ## Array parameters
 

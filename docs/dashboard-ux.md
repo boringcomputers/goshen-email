@@ -36,7 +36,7 @@ full sign-in name and email, a Settings link, and Sign out. Clicking outside,
 pressing Escape, or navigating closes the menu.
 
 API keys and domains have dedicated list pages with separate creation dialogs.
-Integrations provides the configured API and MCP URLs plus SDK and CLI setup
+Integrations provides the configured API and MCP URLs plus CLI setup
 documentation. Account keys still appear once, remain masked, and clear when
 their creation dialog closes. The Worker retains all permissions and ownership
 checks.
@@ -134,7 +134,7 @@ homelab.
 The console regression checks navigation, grouped search, pagination, reloads,
 API key creation and secret clearing, mobile navigation, and deletion including
 failure, cancellation, duplicate submission, and deleting the last inbox.
-Existing browser tests also cover setup, SDK/CLI use, revocation, and triage.
+Existing browser tests also cover setup, client and CLI use, revocation, and triage.
 The fixture uses PGlite and test doubles for routing, domain verification,
 sending, object storage, and Jev. It does not send live mail.
 

@@ -45,7 +45,7 @@ export const developerOperations = {
 export type DeveloperOperation = keyof typeof developerOperations
 export const inputJsonSchema = (schema: z.ZodType) => z.toJSONSchema(schema, { io: "input", unrepresentable: "any" })
 
-export function openApiDocument(publicUrl = "https://bezalel-email-standalone.michaelwasihun96.workers.dev") {
+export function openApiDocument(publicUrl = "https://api.goshenemail.com") {
   const paths: Record<string, Record<string, unknown>> = {}
   for (const [id, operation] of Object.entries(developerOperations)) {
     const schema = inputJsonSchema(operation.input.strict())

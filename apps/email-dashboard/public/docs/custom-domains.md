@@ -36,8 +36,8 @@ If the domain already has an SPF record, merge the `ip4:` term into it instead o
 ## Create an inbox on the domain
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "https://api.goshenemail.com/v1/inboxes" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"username":"research","domain":"mail.example.com"}'
 ```

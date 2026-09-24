@@ -5,10 +5,10 @@ The REST API: base URL, authentication, conventions, and the 17 operations share
 ## Base URL
 
 ```text
-https://bezalel-email-standalone.michaelwasihun96.workers.dev
+https://api.goshenemail.com
 ```
 
-All paths below are relative to it and versioned under `/v1`. The OpenAPI 3.1 document is served at [`/openapi.json`](https://bezalel-email-standalone.michaelwasihun96.workers.dev/openapi.json) and is the source the SDK types, CLI schemas, and MCP tool schemas are generated from.
+All paths below are relative to it and versioned under `/v1`. The OpenAPI 3.1 document is served at [`/openapi.json`](https://api.goshenemail.com/openapi.json) and is the source the CLI schemas and MCP tool schemas are generated from.
 
 ## Authentication
 

@@ -52,7 +52,7 @@ A `failed` result carries a fixed `code` (`provider_unavailable`, `provider_reje
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes/support%40{{DEFAULT_DOMAIN}}/threads?needsReply=yes&urgency=high" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 On a thread, the filters apply to the latest incoming message. Once the agent replies, the thread's triage is cleared until the next message arrives, so `needsReply=yes` naturally lists conversations waiting on you.

@@ -29,8 +29,8 @@ Labels are free text, so decide on a vocabulary before your agents start inventi
 On a message:
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages/%3Cid%40example.net%3E/labels" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" -X PATCH \
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/messages/%3Cid%40example.net%3E/labels" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" -X PATCH \
   -H "Content-Type: application/json" \
   -d '{"addLabels":["invoice","needs-human"],"removeLabels":["unread"]}'
 ```
@@ -48,8 +48,8 @@ Both operations need the `messages:write` scope. They return an empty 200 on suc
 `listMessages` and `listThreads` take `labels` as a repeated query parameter and return items that carry every label given:
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages?labels=received&labels=invoice" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/messages?labels=received&labels=invoice" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ## In the dashboard

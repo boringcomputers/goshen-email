@@ -7,7 +7,7 @@ security model, and license.
 | Surface | AgentMail documents | This developer release |
 | --- | --- | --- |
 | API | Account keys and resource endpoints | 17 versioned operations; account and mailbox keys; OpenAPI |
-| SDKs | TypeScript/Node and Python | Typed TypeScript/JavaScript client and synchronous Python client |
+| SDKs | TypeScript/Node and Python | None; the REST API, CLI, and MCP |
 | CLI | Resource commands, schemas, dry runs, several output formats | Resource commands, schemas, dry runs, JSON/stdin; Node 24 required |
 | MCP | Hosted server with OAuth or API keys; stdio bridge | Hosted account-key authentication and stdio; OAuth remains future work |
 | Inboxes and mail | Inbox lifecycle, sends/replies, threads, attachments, labels | Multiple inboxes per account with no default count cap; named groups, pagination, lifecycle and mail operations |

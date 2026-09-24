@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { mkdir, writeFile } from 'node:fs/promises'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
 import { resolve } from 'node:path'
-import { BezalelEmail } from '../../../../packages/email-sdk/dist/index.js'
+import { GoshenEmailClient } from '../../../../packages/email-client/dist/index.js'
 
 const base = process.env.DASHBOARD_TEST_URL ?? 'http://127.0.0.1:3188'
 const control = process.env.DASHBOARD_TEST_CONTROL_URL ?? 'http://127.0.0.1:3189'
@@ -12,7 +10,7 @@ for (const value of [base, control]) { const url = new URL(value); assert.equal(
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const artifacts = process.env.EVIDENCE_DIRECTORY
 
-test('triage filters, uncertainty, reply freshness and Python reads use the same stored results', { timeout: 120_000 }, async t => {
+test('triage filters, uncertainty, reply freshness and REST API reads use the same stored results', { timeout: 120_000 }, async t => {
   const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'] })
   t.after(() => browser.close())
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } }), page = await context.newPage(), errors = []
@@ -30,7 +28,7 @@ test('triage filters, uncertainty, reply freshness and Python reads use the same
   await page.locator('#developer-create').click()
   await page.waitForFunction(() => document.querySelector('#developer-token').value.startsWith('bze_'))
   const apiKey = await page.locator('#developer-token').inputValue()
-  const client = new BezalelEmail({ apiKey, baseUrl: control })
+  const client = new GoshenEmailClient({ apiKey, baseUrl: control })
   const inbox = await client.inboxes.create({ username: `triage-${suffix}`, group: 'support' })
   const messages = [
     { subject: 'Duplicate charge on our September invoice', text: 'Hi Michael, I noticed two charges for our September subscription. Could you check the invoice and refund the duplicate? Thanks, Jamie.' },
@@ -86,12 +84,9 @@ test('triage filters, uncertainty, reply freshness and Python reads use the same
   await page.locator('#triage-category').selectOption('billing')
   await page.locator('#triage-needs-reply').selectOption('yes')
   await page.waitForFunction(() => document.querySelectorAll('#threads .thread').length === 1)
-  const python = await promisify(execFile)('python3', ['-c', [
-    'import json, os', 'from bezalel_email import BezalelEmail',
-    'client=BezalelEmail(os.environ["BEZALEL_API_KEY"], os.environ["BEZALEL_BASE_URL"])',
-    `print(json.dumps(client.messages.list(inbox_id="${inbox.inboxId}", category="billing", needs_reply="yes", urgency="normal")))`,
-  ].join('\n')], { env: { ...process.env, PYTHONPATH: resolve('packages/email-python'), BEZALEL_API_KEY: apiKey, BEZALEL_BASE_URL: control } })
-  const results = JSON.parse(python.stdout)
+  const filtered = await fetch(new URL(`/v1/inboxes/${encodeURIComponent(inbox.inboxId)}/messages?category=billing&needsReply=yes&urgency=normal`, control), { headers: { authorization: `Bearer ${apiKey}` } })
+  assert.equal(filtered.status, 200)
+  const results = await filtered.json()
   assert.equal(results.messages.length, 1)
   assert.equal(results.messages[0].messageId, received[0].messageId)
   assert.equal(results.messages[0].triage.needsReply.probability, 0.98)
@@ -103,6 +98,6 @@ test('triage filters, uncertainty, reply freshness and Python reads use the same
   if (artifacts) await writeFile(resolve(artifacts, 'browser-report.json'), JSON.stringify({ passed: true, errors,
     environment: 'Isolated local PGlite dashboard fixture',
     providerOperations: 'Jev analysis, verification, routing, sending, and object storage are test doubles. No live inference or mail delivery.',
-    checks: ['passwordless fixture sign-in', 'account API key', 'stored triage badges', 'combined filters', 'clear filters', 'uncertainty', 'pending and failed analysis', 'probability details', 'search filters', 'Python filters and metadata', 'reply clears thread triage', 'no horizontal overflow at 320/390/768/1440'],
+    checks: ['passwordless fixture sign-in', 'account API key', 'stored triage badges', 'combined filters', 'clear filters', 'uncertainty', 'pending and failed analysis', 'probability details', 'search filters', 'REST API filters and metadata', 'reply clears thread triage', 'no horizontal overflow at 320/390/768/1440'],
   }, null, 2))
 })
