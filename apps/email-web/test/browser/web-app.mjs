@@ -25,8 +25,13 @@ test('the Pluto-design web app runs the dashboard flows against the fixture', { 
   const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'] })
   t.after(() => browser.close())
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } }), page = await context.newPage(), errors = []
+  let failingSends = false
   page.on('pageerror', error => errors.push(error.message))
-  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('console', message => {
+    if (message.type() !== 'error') return
+    if (failingSends && message.location().url.endsWith('/api/rpc/send')) return
+    errors.push(message.text())
+  })
   if (evidence) await mkdir(evidence, { recursive: true })
   const shot = async name => { if (evidence) await page.screenshot({ path: `${evidence}/${name}.png` }) }
 
@@ -34,6 +39,7 @@ test('the Pluto-design web app runs the dashboard flows against the fixture', { 
   await page.waitForURL(/\/sign-in/)
   await page.getByLabel('Email address').fill('owner@example.net')
   await page.getByRole('button', { name: 'Email me a code' }).click()
+  await page.getByLabel('Six-digit code').waitFor()
   await page.getByLabel('Six-digit code').fill(await latestCode(context.request, 'owner@example.net'))
   await page.getByRole('button', { name: 'Verify code and sign in' }).click()
   await page.waitForURL(/\/setup$/)
@@ -67,6 +73,7 @@ test('the Pluto-design web app runs the dashboard flows against the fixture', { 
   const reply = (await sends(context.request)).slice(before).find(message => message.text?.includes('ready Thursday'))
   assert.deepEqual(reply?.to, ['jamie@example.net'])
 
+  // A closed draft that was never sent follows the inbox compose is reopened from.
   await page.getByRole('button', { name: 'Compose' }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('To', { exact: true }).fill('sam@example.net')
@@ -74,11 +81,44 @@ test('the Pluto-design web app runs the dashboard flows against the fixture', { 
   await dialog.getByLabel('Message', { exact: true }).fill('Noon on Tuesday works for me.')
   await dialog.locator('input[type=file]').setInputFiles({ name: 'agenda.txt', mimeType: 'text/plain', buffer: Buffer.from('1. Lunch\n') })
   await dialog.getByText('agenda.txt').waitFor()
+  await page.keyboard.press('Escape')
+  await dialog.waitFor({ state: 'hidden' })
+  await page.getByRole('link', { name: 'Support desk' }).click()
+  await page.waitForURL(/\/inboxes\/support%40example\.com$/)
+  await page.getByRole('button', { name: 'Compose' }).click()
+  await dialog.getByText('From: support@example.com').waitFor()
+  assert.equal(await dialog.getByLabel('Subject', { exact: true }).inputValue(), 'Tuesday works')
+  const sendRequest = page.waitForRequest('**/api/rpc/send')
   await page.getByRole('button', { name: 'Send message' }).click()
+  assert.equal(JSON.parse((await sendRequest).postData()).inboxId, 'support@example.com')
   await page.getByText('Message accepted for sending').waitFor()
   const composed = (await sends(context.request)).find(message => message.subject === 'Tuesday works')
   assert.deepEqual(composed?.to, ['sam@example.net'])
   assert.ok(JSON.stringify(composed).includes('agenda.txt'), 'The attachment reaches the transport')
+
+  // A draft whose send was attempted stays with its inbox, so a retry repeats the same request.
+  failingSends = true
+  await page.route('**/api/rpc/send', route => route.fulfill({ status: 503, json: { error: 'Email service unavailable' } }))
+  await page.getByRole('button', { name: 'Compose' }).click()
+  await dialog.getByLabel('To', { exact: true }).fill('priya@example.net')
+  await dialog.getByLabel('Message', { exact: true }).fill('Payment is scheduled.')
+  await page.getByRole('button', { name: 'Send message' }).click()
+  await dialog.getByText('Email service unavailable').waitFor()
+  await dialog.getByRole('button', { name: 'Retry same request' }).waitFor()
+  await page.unroute('**/api/rpc/send')
+  failingSends = false
+  await page.keyboard.press('Escape')
+  await dialog.waitFor({ state: 'hidden' })
+  await page.getByRole('link', { name: 'Research assistant' }).click()
+  await page.waitForURL(/\/inboxes\/research%40example\.com$/)
+  await page.getByRole('button', { name: 'Compose' }).click()
+  await dialog.getByText('This draft belongs to support@example.com').waitFor()
+  await dialog.getByText('From: support@example.com').waitFor()
+  await dialog.getByRole('button', { name: 'Discard draft' }).click()
+  await page.getByRole('button', { name: 'Discard', exact: true }).click()
+  await dialog.getByText(`From: ${research.inboxId}`).waitFor()
+  assert.equal(await dialog.getByLabel('To', { exact: true }).inputValue(), '')
+  await page.keyboard.press('Escape')
 
   await page.locator('[data-folder="quarantined"]').click()
   await page.locator('[data-thread-id]', { hasText: 'You have won a prize' }).click()
@@ -118,6 +158,17 @@ test('the Pluto-design web app runs the dashboard flows against the fixture', { 
   await page.waitForURL(/\/sign-in$/)
   await page.goto(app + '/billing')
   await page.waitForURL(/\/sign-in\?next=%2Fbilling$/)
+
+  // The link in the email opens the dashboard origin; opening its fragment here stands in for serving this app there.
+  await page.getByRole('tab', { name: 'Magic link' }).click()
+  await page.getByLabel('Email address').fill('owner@example.net')
+  await page.getByRole('button', { name: 'Email me a sign-in link' }).click()
+  await page.getByText(/Open the link in your email/).waitFor()
+  const link = (await sends(context.request)).filter(message => message.to.includes('owner@example.net')).at(-1).text.match(/\/magic-link#(\S+)/)[1]
+  await page.goto(`${app}/magic-link#${link}`)
+  await page.getByRole('button', { name: 'Continue to workspace' }).click()
+  await page.waitForURL(/\/billing$/)
+  await page.getByTestId('plan-name').waitFor()
 
   const next = await browser.newContext({ viewport: { width: 1440, height: 900 } }), fresh = await next.newPage()
   t.after(() => next.close())

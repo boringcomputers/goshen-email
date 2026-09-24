@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ds/button';
 	import { Input } from '$lib/components/ds/input';
 	import { FormField, InlineAlert, TabBar } from '$lib/components/ds/patterns';
-	import { api, safeReturnPath } from '$lib/workspace.svelte';
+	import { api, rememberReturnPath, safeReturnPath, takeReturnPath } from '$lib/workspace.svelte';
 	import type { AuthMode } from '$lib/services/dashboard-api';
 
 	type Method = 'code' | 'link';
@@ -37,13 +37,13 @@
 		}
 	});
 
+	// The Worker resolves callbacks against its own public origin, so paths stay valid wherever this app runs.
 	async function sendEmail() {
 		await api.auth(method === 'code' ? 'email-otp/send-verification-otp' : 'sign-in/magic-link', {
 			email,
-			...(method === 'code'
-				? { type: 'sign-in' }
-				: { ...(name ? { name } : {}), callbackURL: `${location.origin}${next}`, errorCallbackURL: `${location.origin}/sign-in` })
+			...(method === 'code' ? { type: 'sign-in' } : { ...(name ? { name } : {}), callbackURL: next, errorCallbackURL: '/sign-in' })
 		});
+		if (method === 'link') rememberReturnPath(next);
 		sent = true;
 		resendAt = Date.now() + 60_000;
 		notice =
@@ -62,9 +62,11 @@
 			if (authMode === 'password') {
 				await api.login(password);
 				password = '';
+				takeReturnPath();
 				await goto(next, { replaceState: true });
 			} else if (sent && method === 'code') {
 				await api.auth('sign-in/email-otp', { email, otp: code.trim(), ...(name ? { name } : {}) });
+				takeReturnPath();
 				await goto(next, { replaceState: true });
 			} else {
 				email = email.trim();

@@ -59,6 +59,10 @@ These rules carry over from the classic dashboard:
 What is different:
 
 - Replies are written under the conversation instead of in a dialog.
+- A closed draft that was never sent moves to the inbox you reopen compose
+  from and keeps what you typed. A draft whose send was attempted stays with
+  its inbox and says so, until you retry or discard it. The classic dashboard
+  keeps every draft on its first inbox.
 - The Quarantine folder offers Release and "Move to trash". The classic
   dashboard also offers "Move to inbox" there.
 - The app does not paint a saved workspace before the session answers. It
@@ -96,11 +100,15 @@ DASHBOARD_URL=http://127.0.0.1:3194 pnpm --filter @bezalel/email-web preview
 EMAIL_WEB_TEST_URL=http://127.0.0.1:5290 node --test apps/email-web/test/browser/web-app.mjs
 ```
 
-It signs in with an emailed code, seeds two inboxes, reads, replies, composes
-with an attachment, releases a quarantined message, searches, saves settings,
-switches themes, signs out, and checks a second account on the Free plan. The
-fixture allows three emailed codes per address every 10 minutes and the check
-uses two, so restart the fixture between runs. Set `PLAYWRIGHT_MODULE` and
+It signs in with an emailed code, seeds two inboxes, reads, replies, and
+composes with an attachment. It checks that a closed draft moves to the inbox
+compose is reopened from, and that a draft with a failed send stays with its
+inbox. Then it releases a quarantined message, searches, saves settings,
+switches themes, signs out, signs back in with a magic link that returns to
+the page it started from, and checks a second account on the Free plan. The
+fixture allows three emailed codes and three magic links per client address
+every 10 minutes. The check uses two codes and one link, so restart the fixture
+between runs. Set `PLAYWRIGHT_MODULE` and
 `CHROMIUM_PATH` for an external Playwright, and `DASHBOARD_EVIDENCE_DIR` to
 save screenshots.
 

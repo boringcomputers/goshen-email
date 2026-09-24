@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ds/button';
 	import * as Dialog from '$lib/components/ds/dialog/index.js';
 	import { Input } from '$lib/components/ds/input';
-	import { ConfirmDialog, FormField } from '$lib/components/ds/patterns';
+	import { ConfirmDialog, FormField, InlineAlert } from '$lib/components/ds/patterns';
 	import { Textarea } from '$lib/components/ds/textarea';
 	import { draftPayload, newDraft, type Draft } from '$lib/services/mail';
 	import { useWorkspace } from '$lib/workspace.svelte';
@@ -22,13 +23,20 @@
 
 	const open = $derived(workspace.composeFor !== null);
 	const frozen = $derived(Boolean(draft?.payload));
+	// A draft whose send was attempted stays with its inbox, so a retry repeats the same request.
+	const stale = $derived(Boolean(draft && workspace.composeFor && draft.inboxId !== workspace.composeFor && draft.payload));
 
-	// Reopening compose returns to the unsent draft, including one whose send needs a retry.
+	// Reopening compose returns to the closed draft. A draft that was never sent moves to the inbox
+	// compose was opened from, keeping what was typed.
 	$effect(() => {
-		if (workspace.composeFor && !draft) {
-			draft = newDraft(workspace.composeFor);
-			error = '';
-		}
+		const target = workspace.composeFor;
+		if (!target) return;
+		untrack(() => {
+			if (!draft || (draft.inboxId !== target && !draft.payload)) {
+				draft = newDraft(target);
+				error = '';
+			}
+		});
 	});
 
 	function clear() {
@@ -47,6 +55,14 @@
 			clear();
 			close();
 		}
+	}
+
+	// Discarding another inbox's pending send leaves compose open on a fresh draft for this inbox.
+	function discardConfirmed() {
+		const target = stale ? workspace.composeFor : null;
+		clear();
+		if (target) draft = newDraft(target);
+		else close();
 	}
 
 	async function submit(event: SubmitEvent) {
@@ -80,6 +96,12 @@
 			<Dialog.Title>New message</Dialog.Title>
 			<Dialog.Description>From: {draft?.inboxId ?? workspace.composeFor}</Dialog.Description>
 		</Dialog.Header>
+		{#if stale}
+			<InlineAlert tone="warning" title={`This draft belongs to ${draft?.inboxId}`}>
+				Its last send may already have been accepted. Retry it from that inbox, or discard it to write from
+				{workspace.composeFor}.
+			</InlineAlert>
+		{/if}
 		<form class="mt-1 space-y-3" onsubmit={submit}>
 			<FormField label="To" for="compose-to">
 				<Input id="compose-to" bind:value={to} placeholder="name@example.com" required disabled={frozen} autocomplete="off" />
@@ -108,8 +130,5 @@
 	description="A send without a confirmed receipt may already have been accepted."
 	confirmLabel="Discard"
 	tone="destructive"
-	onConfirm={() => {
-		clear();
-		close();
-	}}
+	onConfirm={discardConfirmed}
 />

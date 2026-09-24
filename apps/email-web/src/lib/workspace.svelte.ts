@@ -13,6 +13,30 @@ const returnPattern = /^\/[a-z][a-z0-9-]*(\/[^\s#?]*)?(\?[^\s#]*)?$/;
 export const safeReturnPath = (value: string | null | undefined) =>
 	value && returnPattern.test(value) && !value.startsWith('//') ? value : '';
 
+// A magic link opens in a fresh page, so the page to return to waits in sessionStorage from the
+// moment the link is sent. Every other way into the workspace clears it.
+const returnStorageKey = 'bezalel-web-return';
+
+export function rememberReturnPath(path: string) {
+	try {
+		const safe = safeReturnPath(path);
+		if (safe && safe !== '/') sessionStorage.setItem(returnStorageKey, safe);
+		else sessionStorage.removeItem(returnStorageKey);
+	} catch {
+		// Without storage the link lands on the inbox list.
+	}
+}
+
+export function takeReturnPath() {
+	try {
+		const saved = safeReturnPath(sessionStorage.getItem(returnStorageKey));
+		sessionStorage.removeItem(returnStorageKey);
+		return saved;
+	} catch {
+		return '';
+	}
+}
+
 export class Workspace {
 	session = $state<Session | null>(null);
 	inboxes = $state<Inbox[]>([]);

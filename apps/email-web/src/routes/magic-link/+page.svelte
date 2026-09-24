@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ds/button';
 	import { InlineAlert } from '$lib/components/ds/patterns';
-	import { api } from '$lib/workspace.svelte';
+	import { api, takeReturnPath } from '$lib/workspace.svelte';
 
 	// The link carries its token in the fragment, which never reaches a server log. It waits in
 	// sessionStorage for ten minutes so a reload before confirming still works.
@@ -39,7 +39,7 @@
 		try {
 			await api.auth('magic-link/verify', { token: confirmation.token, email: confirmation.email });
 			sessionStorage.removeItem(storageKey);
-			await goto('/', { replaceState: true });
+			await goto(takeReturnPath() || '/', { replaceState: true });
 		} catch (failure) {
 			error = failure instanceof Error ? failure.message : 'Could not connect. Please try again.';
 		} finally {
