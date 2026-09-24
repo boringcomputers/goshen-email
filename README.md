@@ -100,8 +100,11 @@ Goshen Email runs on Cloudflare. A deployment needs:
 - For customer domains at other DNS providers, a server that allows SMTP on
   port 25.
 
-Both `wrangler.jsonc` files contain the hosted service's account ID, resource
-IDs, routes, and domains. Replace them with your own before you deploy.
+`apps/email/wrangler.jsonc` and `apps/email-dashboard/wrangler.jsonc` contain
+the hosted service's account ID, resource IDs, routes, and domains. Replace
+them with your own before you deploy. In the dashboard's file, also remove the
+`NATIVE_MAIL_API` service binding and the `NATIVE_MAIL_*` variables. They
+connect the hosted dashboard to a separate Bezalel deployment.
 
 1. Set up the API Worker with the [Worker guide](apps/email/README.md). It
    covers the Cloudflare account, secrets, R2, and queues.
