@@ -40,6 +40,22 @@ test('Access dashboard forwards only the identity assertion and rejects password
   assert.equal((await request('/.env')).status, 404)
 })
 
+test('Access errors carry the Worker code so the browser can tell lost access from a refused operation', async () => {
+  const answers = { listCustomers: ['Administrator access required', 'forbidden'], listInboxes: ['Your dashboard access has been disabled', 'access_denied'] }
+  const client = customerMailClient({ workerUrl: 'https://mail.example', request: async url => {
+    const [message, code] = answers[String(url).split('/').at(-1)]
+    return Response.json({ error: { message, code } }, { status: 403 })
+  } })
+  const handle = accessDashboardHandler({ client, publicUrl: origin, asset: () => 'dashboard' })
+  const call = operation => handle(new Request(`${origin}/api/rpc/${operation}`, { method: 'POST', body: '{}',
+    headers: { origin, 'content-type': 'application/json', 'cf-access-jwt-assertion': 'signed.identity.assertion' } }))
+  for (const [operation, [error, code]] of Object.entries(answers)) {
+    const response = await call(operation)
+    assert.equal(response.status, 403)
+    assert.deepEqual(await response.json(), { error, code, authMode: 'access' })
+  }
+})
+
 test('Access errors never fall back to a platform credential', async () => {
   let requests = 0
   const client = customerMailClient({ workerUrl: 'https://mail.example', apiToken: 'unused-platform-secret', request: async () => {

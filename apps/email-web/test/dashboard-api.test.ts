@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ApiError, createDashboardApi } from '../src/lib/services/dashboard-api.ts';
+import { ApiError, createDashboardApi, sessionEndReason } from '../src/lib/services/dashboard-api.ts';
 
 function recorder(respond: (path: string, init?: RequestInit) => Response | Promise<Response>) {
 	const calls: Array<{ path: string; init?: RequestInit }> = [];
@@ -52,4 +52,13 @@ test('unreadable responses and network failures become explained errors', async 
 		throw new TypeError('fetch failed');
 	});
 	await assert.rejects(offline.api.session(), { name: 'ApiError', status: 0, message: /Could not reach Goshen Email/ });
+});
+
+test('only a missing session or lost account access ends the session', () => {
+	assert.equal(sessionEndReason(new ApiError('Sign in to continue', 401)), '');
+	assert.equal(sessionEndReason(new ApiError('Your dashboard access has been disabled', 403, 'access_denied')), 'access_denied');
+	assert.equal(sessionEndReason(new ApiError('Administrator access required', 403, 'forbidden')), null);
+	assert.equal(sessionEndReason(new ApiError('Invalid request origin', 403)), null);
+	assert.equal(sessionEndReason(new ApiError('Inbox limit reached', 402, 'billing_limit')), null);
+	assert.equal(sessionEndReason(new Error('network')), null);
 });

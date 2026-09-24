@@ -6,9 +6,10 @@ export const operations = new Set([
 ])
 
 export class DashboardError extends Error {
-  constructor(message, status = 400) {
+  constructor(message, status = 400, code) {
     super(message)
     this.status = status
+    if (code) this.code = code
   }
 }
 
@@ -57,7 +58,8 @@ function rpcClient({ workerUrl, request = fetch, endpoint, allowed, authorize, t
       }
       if (!response.ok) {
         const message = typeof body?.error?.message === 'string' ? body.error.message.slice(0, 1000) : 'The email request failed'
-        throw new DashboardError(message, response.status >= 400 && response.status <= 599 ? response.status : 502)
+        const code = typeof body?.error?.code === 'string' ? body.error.code.slice(0, 100) : undefined
+        throw new DashboardError(message, response.status >= 400 && response.status <= 599 ? response.status : 502, code)
       }
       if (!body || !Object.hasOwn(body, 'result')) throw new DashboardError('The email response has no result', 502)
       return body.result
