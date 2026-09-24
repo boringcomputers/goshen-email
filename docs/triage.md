@@ -84,7 +84,7 @@ page = email.messages.list(
 ```
 
 ```sh
-bezalel-email threads list --inbox-id support@example.com --needs-reply yes
+goshenemail threads list --inbox-id support@example.com --needs-reply yes
 ```
 
 The same arguments work with MCP's `list_messages`, `search_messages`, and
