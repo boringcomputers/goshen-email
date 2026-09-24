@@ -35,11 +35,11 @@
 		},
 		{
 			icon: TerminalIcon,
-			title: 'SDKs & CLI',
-			body: 'Use the TypeScript SDK, Python SDK, or CLI to work with your inboxes and named groups.',
+			title: 'CLI',
+			body: 'Use the JSON CLI from scripts and shells to work with your inboxes and named groups.',
 			label: '',
 			value: '',
-			link: { href: 'https://goshenemail.com/docs', text: 'Setup and examples' }
+			link: { href: 'https://goshenemail.com/docs/cli', text: 'Setup and examples' }
 		}
 	]);
 </script>

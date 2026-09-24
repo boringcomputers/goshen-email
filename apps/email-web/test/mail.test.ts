@@ -128,7 +128,7 @@ test('setup is offered to customer accounts while the inbox supports it', () => 
 test('connection command targets the inbox RPC endpoint without embedding a key', () => {
 	const command = connectionCommand('https://api.example.com');
 	assert.match(command, /https:\/\/api\.example\.com\/inbox-rpc\/getInbox/);
-	assert.match(command, /\$BEZALEL_MAILBOX_KEY/);
+	assert.match(command, /\$GOSHENEMAIL_MAILBOX_KEY/);
 });
 
 test('attachments encode to base64 and respect the size limits', async () => {
