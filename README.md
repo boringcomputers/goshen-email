@@ -50,6 +50,7 @@ flowchart LR
 | --- | --- |
 | [`apps/email`](apps/email) | The API, a Cloudflare Worker. It stores mailboxes, sends and receives mail, and serves the REST API, the older RPC API, and hosted MCP. |
 | [`apps/email-dashboard`](apps/email-dashboard) | The dashboard, homepage, and docs site. It runs as a Cloudflare Worker, or as a Node server for local or VPS hosting. |
+| [`apps/email-web`](apps/email-web) | A redesigned dashboard on Pluto's design system. It calls the dashboard's `/api` routes, holds no credentials, and is not deployed yet. |
 | [`apps/email-gateway`](apps/email-gateway) | The SMTP gateway for domains at any DNS provider, packaged with Docker. |
 | [`packages/email-sdk`](packages/email-sdk) | TypeScript and JavaScript client. |
 | [`packages/email-python`](packages/email-python) | Python client. It uses only the standard library. |
@@ -222,6 +223,7 @@ the API from an agent developer's side. The guides here cover running it.
 | [Triage](docs/triage.md) | Categories, needs-reply, urgency, and what data leaves the Worker |
 | [Pricing](docs/pricing.md) | Hosted plans and Autumn billing |
 | [Dashboard UX](docs/dashboard-ux.md) and [design system](docs/design-system.md) | Dashboard behavior and visual tokens |
+| [Web app](docs/web-app.md) | The Pluto-design dashboard: local runs, checks, and rollout |
 
 The `native-*`, `verification`, and `evidence` files in `docs/` record the
 hosted deployment's releases and the original extraction.

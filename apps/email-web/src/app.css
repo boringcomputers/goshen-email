@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+/* Drive Tailwind's `dark:` variant from the app's theme class instead of the OS
+   `prefers-color-scheme`. The light theme adds `.light` to <html>; the dark theme
+   omits it. */
+@custom-variant dark (&:where(:root:not(.light), :root:not(.light) *));
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-fg);
+  /* Popovers must stay opaque. In :root.ds, --card is a translucent surface
+     wash; --popover is the solid elevated panel used by menus/dialogs. */
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--fg);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-fg);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--fg);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-fg);
+  --color-accent: var(--muted);
+  --color-accent-foreground: var(--fg);
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--border-color);
+  --color-input: var(--border-color);
+  --color-ring: var(--accent);
+  --color-subtle: var(--text-subtle);
+  --color-default: var(--text-default);
+  --color-strong: var(--text-strong);
+  --color-selected: var(--bg-selected);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 18px;
+  --text-base: 13px;
+  --text-base--line-height: 18px;
+  --text-md: 14px;
+  --text-md--line-height: 20px;
+  --text-lg: 16px;
+  --text-lg--line-height: 22px;
+  --text-xl: 18px;
+  --text-xl--line-height: 24px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 30px;
+
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+/* Dark theme (default) */
+:root {
+  --text-subtle: #b5b5b5;
+  --text-default: #eeeeee;
+  --text-strong: #ffffff;
+  --bg-selected: #212121;
+  --icon-stroke-width: 1px;
+  --accent: #4466ff;
+  --accent-hover: #3355ee;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(68, 102, 255, 0.12);
+  --bg: #0a0a0a;
+  --fg: var(--text-default);
+  --card: #070707;
+  --popover: var(--card);
+  --card-fg: var(--text-default);
+  --secondary: #1a1a1a;
+  --muted: var(--bg-selected);
+  --muted-fg: var(--text-subtle);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(255, 255, 255, 0.2);
+  --surface: #0a0a0a;
+  --surface-hover: var(--bg-selected);
+  --subtle: var(--text-subtle);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --destructive: #ef4444;
+  --destructive-hover: #dc2626;
+  --destructive-fg: #ffffff;
+  --status-success-bg: rgba(6, 78, 59, 0.45);
+  --status-success-fg: #6ee7b7;
+  --status-success-ring: rgba(52, 211, 153, 0.28);
+  --status-success-soft-bg: rgba(6, 78, 59, 0.2);
+  --status-success-track: rgba(52, 211, 153, 0.45);
+  --status-info-bg: rgba(30, 64, 175, 0.42);
+  --status-info-fg: #60a5fa;
+  --status-info-ring: rgba(96, 165, 250, 0.28);
+  --status-info-emphasis: rgba(96, 165, 250, 0.22);
+  --status-warning-bg: rgba(120, 53, 15, 0.42);
+  --status-warning-fg: #fbbf24;
+  --status-warning-ring: rgba(251, 191, 36, 0.28);
+  --status-danger-bg: rgba(127, 29, 29, 0.42);
+  --status-danger-fg: #fca5a5;
+  --status-danger-ring: rgba(248, 113, 113, 0.28);
+  --status-neutral-bg: #1a1a1a;
+  --status-neutral-fg: #a3a3a3;
+  --status-neutral-ring: rgba(82, 82, 82, 0.3);
+  color-scheme: dark;
+}
+
+/* Light theme */
+:root.light {
+  --accent: #4466ff;
+  --accent-hover: #3355ee;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(68, 102, 255, 0.08);
+  --bg: #ffffff;
+  --fg: #171717;
+  --card: #ffffff;
+  --card-fg: #171717;
+  --secondary: #f0f0f0;
+  --muted: #f0f0f0;
+  --muted-fg: #525252;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --border-hover: rgba(0, 0, 0, 0.2);
+  --surface: #ffffff;
+  --surface-hover: #f5f5f5;
+  --subtle: #737373;
+  --overlay: rgba(0, 0, 0, 0.5);
+  --destructive: #dc2626;
+  --destructive-hover: #b91c1c;
+  --destructive-fg: #ffffff;
+  --status-success-bg: #f0fdf4;
+  --status-success-fg: #166534;
+  --status-success-ring: #bbf7d0;
+  --status-success-soft-bg: #f0fdf4;
+  --status-success-track: #86efac;
+  --status-info-bg: #eff6ff;
+  --status-info-fg: #1d4ed8;
+  --status-info-ring: #bfdbfe;
+  --status-info-emphasis: #dbeafe;
+  --status-warning-bg: #fffbeb;
+  --status-warning-fg: #a16207;
+  --status-warning-ring: #fde68a;
+  --status-danger-bg: #fef2f2;
+  --status-danger-fg: #b91c1c;
+  --status-danger-ring: #fecaca;
+  --status-neutral-bg: #f5f5f5;
+  --status-neutral-fg: #737373;
+  --status-neutral-ring: #e5e5e5;
+  color-scheme: light;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :where(svg.lucide) {
+    stroke-width: var(--icon-stroke-width);
+  }
+}
+
+/* ==== Design system scope (dashboard) ==== */
+:root.ds {
+	/* DS-native tokens */
+	--surface: rgba(255, 255, 255, 0.04);
+	--surface-2: rgba(255, 255, 255, 0.06);
+	--active: rgba(255, 255, 255, 0.08);
+	--ds-border: rgba(255, 255, 255, 0.08);
+	--border-strong: rgba(255, 255, 255, 0.25);
+	--border-cardhover: rgba(255, 255, 255, 0.14);
+	--popover: rgb(20, 20, 20);
+	--tooltip: rgb(30, 30, 30);
+	--scrim: rgba(0, 0, 0, 0.6);
+	--fg: rgb(237, 237, 237);
+	--radius-card: 12px;
+	--radius-pill: 20px;
+	--radius-inner: 4px;
+	--ease-out-ds: cubic-bezier(0.23, 1, 0.32, 1);
+	--panel-ease: cubic-bezier(0.32, 0.72, 0, 1);
+	/* Accent (blue through the DS accent math) */
+	--accent: #4466ff;
+	--accent-hover: #5577ff;
+	--accent-fg: #ffffff;
+	--accent-text: #4466ff;
+	/* Legacy-name remap so unmigrated markup renders DS-correct */
+	--bg: rgb(10, 10, 10);
+	--card: rgba(255, 255, 255, 0.04);
+	--secondary: rgba(255, 255, 255, 0.06);
+	--muted: rgba(255, 255, 255, 0.06);
+	--surface-hover: rgba(255, 255, 255, 0.06);
+	--border-color: rgba(255, 255, 255, 0.08);
+	--border-hover: rgba(255, 255, 255, 0.14);
+	--text-strong: rgb(237, 237, 237);
+	--text-default: rgb(237, 237, 237);
+	--text-subtle: rgb(122, 122, 122);
+	--muted-fg: rgb(122, 122, 122);
+	--subtle: rgb(122, 122, 122);
+	--radius-sm: 4px;
+	--radius-md: 8px;
+	--radius-lg: 12px;
+	--radius-xl: 16px;
+	--font-sans: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}
+:root.ds.light {
+	--surface: rgba(0, 0, 0, 0.04);
+	--surface-2: rgba(0, 0, 0, 0.06);
+	--active: rgba(0, 0, 0, 0.08);
+	--ds-border: rgba(0, 0, 0, 0.1);
+	--border-strong: rgba(0, 0, 0, 0.3);
+	--border-cardhover: rgba(0, 0, 0, 0.18);
+	--popover: #ffffff;
+	--tooltip: #ffffff;
+	--scrim: rgba(0, 0, 0, 0.35);
+	--fg: rgb(23, 23, 23);
+	--bg: rgb(248, 248, 246);
+	--card: rgba(0, 0, 0, 0.04);
+	--secondary: rgba(0, 0, 0, 0.06);
+	--muted: rgba(0, 0, 0, 0.06);
+	--surface-hover: rgba(0, 0, 0, 0.06);
+	--border-color: rgba(0, 0, 0, 0.1);
+	--border-hover: rgba(0, 0, 0, 0.18);
+	--text-strong: rgb(23, 23, 23);
+	--text-default: rgb(23, 23, 23);
+	--text-subtle: rgb(112, 112, 112);
+	--muted-fg: rgb(112, 112, 112);
+	--subtle: rgb(112, 112, 112);
+}
+
+/* DS toasts: outrank svelte-sonner's unlayered component styles inside the ds
+   scope so dashboard toasts follow the design system in both themes. */
+:root.ds [data-sonner-toast][data-styled='true'] {
+	background: var(--popover);
+	border: 1px solid var(--ds-border);
+	color: var(--fg);
+	border-radius: var(--radius-card);
+	font-size: 13px;
+}
+:root.ds [data-sonner-toast][data-styled='true'] [data-description] {
+	color: var(--muted-fg);
+}
