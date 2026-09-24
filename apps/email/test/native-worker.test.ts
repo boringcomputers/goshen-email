@@ -31,10 +31,12 @@ describe("native deployment boundary", () => {
   it.each([
     { MAIL_EVENTS_URL: undefined }, { MAIL_EVENTS_URL: "" },
     { MAIL_EVENTS_URL: "http://another.example/events" },
+    { MAIL_EVENTS_URL: "http://127.0.0.1:8788/events" },
     { MAIL_EVENTS_URL: "https://user:secret@another.example/events" },
     { BEZALEL_EVENTS_URL: "https://another.example/events" },
     { DEFAULT_EMAIL_DOMAIN: "" }, { DEFAULT_EMAIL_DOMAIN: undefined },
     { PUBLIC_EMAIL_URL: "" }, { PUBLIC_EMAIL_URL: "http://another.example" },
+    { PUBLIC_EMAIL_URL: "http://localhost:8788" },
     { PUBLIC_EMAIL_URL: "https://another.example/?token=1" },
     { TYPESAFE_API_KEY: "private-triage-key" }, { AUTH_PUBLIC_URL: "https://accounts.example.com" },
     { AUTH_PUBLIC_URL: " " },

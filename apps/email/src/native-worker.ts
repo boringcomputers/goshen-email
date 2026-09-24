@@ -8,9 +8,11 @@ const standaloneSettings = [
   "DASHBOARD_ADMIN_EMAILS",
 ] as const
 
+// validateUrl admits HTTP on loopback for local development. The native Worker publishes
+// attachment links and posts events from Cloudflare's network, so both URLs must be HTTPS.
 const secureUrl = (value: string | undefined): boolean => {
   if (!value) return false
-  try { validateUrl(value); return true } catch { return false }
+  try { return validateUrl(value).protocol === "https:" } catch { return false }
 }
 
 // The native entry point serves platform mail for one Bezalel deployment. It needs a default

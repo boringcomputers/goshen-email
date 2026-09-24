@@ -23,7 +23,10 @@ admin RPC, test RPC, direct-client, attachment, and gateway routes. Account,
 dashboard, developer API, and MCP routes return 404.
 
 Before dispatching requests or background handlers, it requires a default
-domain, an HTTPS public URL, and an HTTPS event destination. It accepts the old
+domain, an HTTPS public URL, and an HTTPS event destination. Loopback HTTP,
+which the standalone Worker allows for local development, is refused here
+because the native Worker publishes attachment links and posts events from
+Cloudflare's network. It accepts the old
 `BEZALEL_EVENTS_URL` alias, but rejects conflicting aliases and nonempty
 account, Access, or Typesafe settings. Missing webhook configuration must fail
 before the service can claim an outbox event. Which domain and URLs those are
