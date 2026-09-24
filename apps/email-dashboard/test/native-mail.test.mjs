@@ -3,14 +3,15 @@ import assert from 'node:assert/strict'
 import { accountDashboardHandler } from '../src/account-handler.mjs'
 import { nativeMailClient, nativeReadOperations } from '../src/service.mjs'
 
-const origin = 'https://dashboard.example.com', nativeUrl = 'https://bezalel-email.michaelwasihun96.workers.dev'
+const origin = 'https://dashboard.example.com', nativeUrl = 'https://native-mail.example.com'
 const token = 'fixture-native-token-'.repeat(3), proxy = 'fixture-proxy-token-'.repeat(3)
-function fixture() {
+function fixture({ downloadUrl = nativeUrl + '/attachments/signed-fixture' } = {}) {
   const accountCalls = [], nativeCalls = []
   let customer = { email: 'owner@example.net', role: 'admin' }, status = 200
   const client = nativeMailClient({ workerUrl: nativeUrl, apiToken: token, adminEmails: ' OWNER@example.net ',
     request: async (url, init) => {
       nativeCalls.push({ url, init })
+      if (url.pathname.endsWith('/getAttachment')) return Response.json({ result: { downloadUrl, filename: 'summary.txt' } })
       return Response.json({ result: { inboxes: [{ inboxId: 'existing@goshenemail.com' }] } })
     },
   })
@@ -92,11 +93,28 @@ test('CSRF, content type, request method, and malformed bodies fail before a nat
   assert.equal(f.nativeCalls.length, 0)
 })
 
-test('native client is optional, rejects another destination, and permits only read operations', async () => {
+test('native client is optional, requires an HTTPS origin, and permits only read operations', async () => {
   assert.equal(nativeMailClient({}), undefined)
-  assert.throws(() => nativeMailClient({ workerUrl: 'https://attacker.example', apiToken: token, adminEmails: 'owner@example.net' }), /dedicated Bezalel Worker/)
+  for (const workerUrl of [undefined, 'not a url', 'http://native.example', 'https://user:pw@native.example', 'https://native.example/rpc', 'https://native.example/?x=1'])
+    assert.throws(() => nativeMailClient({ workerUrl, apiToken: token, adminEmails: 'owner@example.net' }), /NATIVE_MAIL_WORKER_URL must be an HTTPS origin/)
   assert.throws(() => nativeMailClient({ workerUrl: nativeUrl, apiToken: 'short', adminEmails: 'owner@example.net' }), /at least 32/)
+  assert.ok(nativeMailClient({ workerUrl: 'https://another-deployment.example', apiToken: token, adminEmails: 'owner@example.net' }))
   const f = fixture()
   for (const operation of nativeReadOperations) assert.equal((await f.request('/api/native-rpc/' + operation, { inboxId: 'existing@goshenemail.com' })).status, 200)
   assert.equal(f.nativeCalls.length, 7)
+})
+
+test('attachment links must point at the configured native Worker before the browser sees them', async () => {
+  const input = { inboxId: 'existing@goshenemail.com', messageId: 'm1', attachmentId: 'a1' }
+  const ok = await fixture().request('/api/native-rpc/getAttachment', input)
+  assert.equal(ok.status, 200)
+  assert.equal((await ok.json()).result.downloadUrl, nativeUrl + '/attachments/signed-fixture')
+  for (const downloadUrl of ['https://attacker.example/attachments/x', nativeUrl + '/other/x', 'http://native-mail.example.com/attachments/x',
+    'https://user:pw@native-mail.example.com/attachments/x', 'not a url', null]) {
+    const response = await fixture({ downloadUrl }).request('/api/native-rpc/getAttachment', input)
+    assert.equal(response.status, 502, String(downloadUrl))
+    const text = await response.text()
+    assert.match(text, /invalid attachment URL/)
+    assert.ok(!text.includes('attacker.example'))
+  }
 })

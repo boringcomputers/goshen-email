@@ -37,8 +37,8 @@ continue through the standalone service binding and credential.
 | Dashboard setting | Value |
 | --- | --- |
 | `DASHBOARD_AUTH_MODE` | `account` |
-| `NATIVE_MAIL_WORKER_URL` | `https://bezalel-email.michaelwasihun96.workers.dev` |
-| `NATIVE_MAIL_ADMIN_EMAILS` | `michaelwasihun96@gmail.com` |
+| `NATIVE_MAIL_WORKER_URL` | The native Worker's public HTTPS origin, in `wrangler.jsonc` |
+| `NATIVE_MAIL_ADMIN_EMAILS` secret | Comma-separated owner addresses |
 | `NATIVE_MAIL_API` service binding | `bezalel-email` |
 | `NATIVE_MAIL_API_TOKEN` secret | The existing native platform token |
 
@@ -47,10 +47,17 @@ service's `DASHBOARD_ADMIN_EMAILS`. The production profile names only the
 requested owner. Other administrators do not receive native access automatically.
 Without the native secret or allowlist, the page stays disabled.
 
-Provision `NATIVE_MAIL_API_TOKEN` from protected storage without printing it or
-putting it in a command argument. Preserve the existing native token and all
-existing dashboard secrets. Build, verify, and deploy only the dashboard.
+Provision `NATIVE_MAIL_API_TOKEN` and `NATIVE_MAIL_ADMIN_EMAILS` as Worker
+secrets with `wrangler secret put`, from protected storage, without printing
+them or putting them in a command argument. Neither belongs in `wrangler.jsonc`
+or Git: the allowlist is a personal address and the token is a credential.
+Wrangler keeps secrets across deploys. Preserve the existing native token and
+all existing dashboard secrets. Build, verify, and deploy only the dashboard.
 No mail Worker, database, routing, or ownership migration is needed.
+
+The dashboard checks every attachment link the native Worker returns against
+`NATIVE_MAIL_WORKER_URL` before the browser opens it, so the browser code carries
+no Worker hostname.
 
 Record the previous dashboard version before activation. Verify anonymous
 requests fail, the configured owner can read the expected inboxes, and customer

@@ -17,8 +17,8 @@
 	import type { Attachment, Inbox, Message, Thread, ThreadSummary } from '$lib/services/types';
 	import { useWorkspace } from '$lib/workspace.svelte';
 
-	// Attachment links must come from the dedicated Bezalel Worker.
-	const nativeOrigin = 'https://bezalel-email.michaelwasihun96.workers.dev';
+	// The dashboard checks that attachment links point at the configured native Worker before
+	// they reach the browser; this page only confirms the path and protocol.
 	const nativeFolders = [
 		{ value: 'all', label: 'All mail' },
 		{ value: 'received', label: 'Inbox' },
@@ -181,7 +181,7 @@
 			});
 			if (version !== readVersion || target !== inbox) return;
 			const link = document.createElement('a');
-			link.href = safeDownloadUrl(result.downloadUrl, { origin: nativeOrigin, pathPrefix: '/attachments/' });
+			link.href = safeDownloadUrl(result.downloadUrl, { pathPrefix: '/attachments/' });
 			link.rel = 'noreferrer noopener';
 			link.target = '_blank';
 			link.click();

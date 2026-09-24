@@ -128,8 +128,7 @@ no layout shift and that fresh data changes nothing already on screen.
 `saved-workspace.mjs` checks that sign-out, an ended session, and another
 account clear it.
 Set `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` if Chromium and Playwright are
-installed outside the worktree. Run this workload through `homelab-job` on the
-homelab.
+installed outside the worktree.
 
 The console regression checks navigation, grouped search, pagination, reloads,
 API key creation and secret clearing, mobile navigation, and deletion including

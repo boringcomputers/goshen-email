@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # The pnpm workspace: one lockfile at the root covers apps/ and packages/.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  # ops/autumn has its own npm lockfile.
+  - package-ecosystem: npm
+    directory: /ops/autumn
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+  # Workflow actions are pinned to commit SHAs; keep the pins current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

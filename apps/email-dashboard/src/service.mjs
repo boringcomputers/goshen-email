@@ -23,20 +23,35 @@ export const nativeReadOperations = new Set([
 
 export function nativeMailClient({ workerUrl, apiToken, adminEmails = '', request }) {
   if (!apiToken || !adminEmails.trim()) return undefined
-  if (workerUrl !== 'https://bezalel-email.michaelwasihun96.workers.dev')
-    throw new Error('The native mail client requires the dedicated Bezalel Worker')
   if (apiToken.length < 32) throw new Error('NATIVE_MAIL_API_TOKEN must contain at least 32 characters')
   const admins = new Set(adminEmails.split(',').map(email => email.trim().toLowerCase()).filter(Boolean))
+  const client = rpcClient({ workerUrl, request, endpoint: '/rpc', allowed: nativeReadOperations,
+    authorize: () => `Bearer ${apiToken}`, setting: 'NATIVE_MAIL_WORKER_URL' })
+  const origin = new URL(workerUrl).origin
   return {
-    ...rpcClient({ workerUrl, request, endpoint: '/rpc', allowed: nativeReadOperations, authorize: () => `Bearer ${apiToken}` }),
+    async execute(operation, input, identityToken) {
+      const result = await client.execute(operation, input, identityToken)
+      // The browser opens attachment links directly, so they must point back at the configured
+      // native Worker. The dashboard knows that origin; the browser does not.
+      if (operation === 'getAttachment' && !attachmentUrl(result?.downloadUrl, origin))
+        throw new DashboardError('The native mail service returned an invalid attachment URL', 502)
+      return result
+    },
     permits: customer => customer?.role === 'admin' && typeof customer.email === 'string' && admins.has(customer.email.toLowerCase()),
   }
 }
 
-function rpcClient({ workerUrl, request = fetch, endpoint, allowed, authorize, transform = (_, input) => input }) {
-  const base = new URL(workerUrl)
+function attachmentUrl(value, origin) {
+  let url
+  try { url = new URL(value) } catch { return false }
+  return url.origin === origin && url.pathname.startsWith('/attachments/') && !url.username && !url.password
+}
+
+function rpcClient({ workerUrl, request = fetch, endpoint, allowed, authorize, transform = (_, input) => input, setting = 'MAIL_WORKER_URL' }) {
+  let base
+  try { base = new URL(workerUrl) } catch { throw new Error(`${setting} must be an HTTPS origin`) }
   if (base.protocol !== 'https:' || base.username || base.password || base.pathname !== '/' || base.search || base.hash)
-    throw new Error('MAIL_WORKER_URL must be an HTTPS origin')
+    throw new Error(`${setting} must be an HTTPS origin`)
   return {
     async execute(operation, input, identityToken) {
       if (!allowed.has(operation)) throw new DashboardError('Unknown email operation', 404)

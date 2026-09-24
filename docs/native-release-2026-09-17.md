@@ -130,7 +130,8 @@ remain through at least September 25 at 00:00 UTC.
    observation and recovery checks pass.
 2. Read back the Hyperdrive origin and verify the current Worker version and
    bindings against the inventory. Stop if another deployment changed them.
-3. Provide the existing schema-owner URL through `NATIVE_DATABASE_URL` and run
+3. Provide the existing schema-owner URL through `NATIVE_DATABASE_URL`, name its
+   host separately in `NATIVE_DATABASE_HOST`, and run
    `pnpm --filter @bezalel/email exec tsx scripts/migrate-native.ts`.
    This command rejects other database identities, uses verified TLS, retains
    the native owner, and runs the schema statements in one transaction with a
