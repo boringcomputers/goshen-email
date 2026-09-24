@@ -1,0 +1,66 @@
+name: Bug report
+description: Something doesn't work the way the docs say it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Found a security problem? Don't file it here. Follow [SECURITY.md](https://github.com/boringcomputers/goshen-email/blob/main/SECURITY.md) instead.
+
+        Leave out API keys, tokens, and the contents of real mail.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - API Worker (apps/email)
+        - Dashboard (apps/email-dashboard)
+        - SMTP gateway (apps/email-gateway)
+        - TypeScript SDK
+        - Python client
+        - CLI
+        - MCP server
+        - Docs
+        - Other or not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where did it happen?
+      options:
+        - Hosted service (goshenemail.com)
+        - Self-hosted deployment
+        - Local fixture or tests
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Requests, commands, or clicks. The smaller the better.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or package version
+      description: Output of `git rev-parse --short HEAD`, or the package version you installed.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output
+      description: Paste error responses or logs. Redact keys and addresses.
+      render: text

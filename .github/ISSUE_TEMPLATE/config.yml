@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/boringcomputers/goshen-email/security/advisories/new
+    about: Report vulnerabilities privately. Don't open a public issue.
+  - name: Documentation
+    url: https://goshenemail.com/docs
+    about: The quickstart, guides, and API reference.

@@ -1,227 +1,245 @@
 # Goshen Email
 
-Email inboxes for AI agents, with a dashboard for the people who run them, an
-HTTP API, and an optional SMTP gateway for custom domains.
+Email inboxes for AI agents. Each agent gets a real address, threads,
+attachments, and an API key that reaches only its own mail. People see the same
+mail in a dashboard, where they can reply, check delivery, and release
+quarantined messages.
 
-This project extracts the email implementation from
-[Bezalel](https://github.com/boringcomputers/bezalel). The original code stays in
-Bezalel. This repository runs independently and retains the AGPL-3.0-only license.
-See [SOURCE.md](SOURCE.md) for the source revision and how to carry fixes between projects.
+[Hosted service](https://goshenemail.com) ·
+[Documentation](https://goshenemail.com/docs) ·
+[API reference](https://goshenemail.com/docs/api) ·
+[Contributing](CONTRIBUTING.md) ·
+[License](LICENSE)
 
-## Included
+![The dashboard showing an agent's inbox with an open conversation](docs/images/dashboard.png)
 
-- A dashboard for inboxes, conversations, search, composing, replies,
-  attachments, custom-domain DNS records, delivery outcomes, and quarantine review.
-- A Cloudflare Worker for mailbox storage, sending and receiving, threading,
-  labels, signed webhooks, delivery tracking, and mailbox-scoped application keys.
-- An SMTP gateway using Postfix, Rspamd, and ClamAV for domains at any DNS provider.
-- PostgreSQL migrations, R2 attachment storage, local database tests, and deployment guides.
+## What it does
 
-The Cloudflare dashboard supports public passwordless accounts with magic links,
-six-digit email codes, and sign-out. See the [account guide](docs/accounts.md) for
-configuration and rollout.
-The [Settings page](docs/settings.md) saves organization and profile names,
-plus desktop and email notification preferences for each account.
-Accounts see their own inboxes. Owners can manage all inboxes.
-Applications and agents use an account API key to manage their account's inboxes.
-Optional mailbox keys restrict an agent to a single inbox.
-New accounts get a guided inbox setup with routing retries, a copyable agent
-connection command, and checks for the first incoming email. See the
-[inbox setup guide](docs/inbox-setup.md).
-The [developer tools](docs/developers.md) add account API keys, a versioned HTTP
-API with OpenAPI, TypeScript and Python SDKs, a JSON CLI, and hosted/stdio MCP.
-One key works across all clients. Accounts have no default inbox-count cap and
-can organize their inboxes into named groups.
-See the [AgentMail comparison](docs/agentmail-comparison.md) for this release's
-scope and remaining gaps. These additions require the documented migration and
-deployment; packages are not yet published to registries.
-Hosted accounts have plans with inbox, send, and triage allowances, billed
-through Autumn and Stripe. See the [pricing guide](docs/pricing.md). Without an
-Autumn key the Worker runs unmetered. Bezalel's approval policies and analytics
-stay in Bezalel.
+- One API call creates an inbox. Inboxes send, receive, and reply, and replies
+  stay threaded with the original conversation.
+- The REST API has 17 operations, described in an
+  [OpenAPI document](docs/openapi.json). TypeScript and Python SDKs, a JSON CLI,
+  and an MCP server (hosted or stdio) expose the same 17 operations.
+- An account key reaches every inbox in its account, limited to the scopes you
+  pick. A mailbox key reaches one inbox. No key can release quarantine or
+  create other keys.
+- Every send needs an idempotency key. Retrying a timed-out send with the same
+  key and contents never sends a second copy.
+- Mail on custom domains arrives through an SMTP gateway that checks SPF, DKIM,
+  and DMARC and scans with Rspamd and ClamAV. Spam, failed authentication, and
+  malware wait in quarantine until a person releases them.
+- Signed webhooks report new mail and delivery outcomes: delivered, deferred,
+  bounced, failed, rejected, and complained.
+- Optional triage labels new mail with a category, whether it needs a reply,
+  and an urgency score.
 
-## Documentation site
+## How it fits together
 
-Public docs live at <https://goshenemail.com/docs>. The dashboard Worker serves
-them as fixed assets. Sources are Markdown pages in `apps/email-dashboard/docs/`
-with a title and description in front matter; `scripts/build-docs.mjs` renders
-them and generates one API reference page per operation from `docs/openapi.json`,
-plus a `.md` twin for every page and `/docs/llms.txt` for agents. The output in
-`apps/email-dashboard/public/docs/` and the route list in `src/docs-assets.mjs`
-are committed. After editing a page or the contract, run `pnpm docs:generate`;
-`pnpm check` fails when the committed output is out of date.
+```mermaid
+flowchart LR
+  agent["Agent or app"] -->|"API key or MCP"| api["API Worker"]
+  person["Person"] --> dashboard["Dashboard"]
+  dashboard --> api
+  api --> db[("PostgreSQL through Hyperdrive")]
+  api --> r2[("R2: raw mail and attachments")]
+  api <-->|"managed domains"| cloudflare["Cloudflare Email Routing and Sending"]
+  api <-->|"custom domains"| gateway["SMTP gateway: Postfix, Rspamd, ClamAV"]
+```
 
-## Homepage
+| Path | Contents |
+| --- | --- |
+| [`apps/email`](apps/email) | The API, a Cloudflare Worker. It stores mailboxes, sends and receives mail, and serves the REST API, the older RPC API, and hosted MCP. |
+| [`apps/email-dashboard`](apps/email-dashboard) | The dashboard, homepage, and docs site. It runs as a Cloudflare Worker, or as a Node server for local or VPS hosting. |
+| [`apps/email-gateway`](apps/email-gateway) | The SMTP gateway for domains at any DNS provider, packaged with Docker. |
+| [`packages/email-sdk`](packages/email-sdk) | TypeScript and JavaScript client. |
+| [`packages/email-python`](packages/email-python) | Python client. It uses only the standard library. |
+| [`packages/email-cli`](packages/email-cli) | Command-line client that prints JSON. |
+| [`packages/email-mcp`](packages/email-mcp) | MCP server over stdio. |
+| [`ops/email`](ops/email) | The gateway's Docker Compose, Caddy, and Rspamd configuration, plus reviewed SQL for the hosted database. |
+| [`ops/autumn`](ops/autumn) | Plan definitions for hosted billing. |
+| [`docs`](docs) | Operator guides and the OpenAPI document. |
 
-The root page uses Fancy's **Bezalel Email Landing** layout from
-[Paper](https://app.paper.design/file/01M2M5SZD5HN356SQFCWH7BCEN/1-0). The copy
-presents Goshen Email as email inboxes for AI agents: one call creates an
-inbox, threads and attachments, scoped API keys, quarantine review, and a
-dashboard that shows the same mail. The numbers strip and the setup cards
-describe shipped capabilities only (17 operations, 5 key scopes, 2 SDKs).
-The email thread and file names are illustrative examples.
+## Try it locally
 
-The page shares the dashboard's Paper tokens and local Inter font. Smaller
-screens reflow the cards, navigation, and product illustration. Sign-in, inbox,
-and API key links open `/app`. Docs links open the developer guide and the
-SMTP runbook on GitHub. Contact, status, and legal footer destinations remain
-`#` placeholders.
-
-## Run the local owner dashboard
-
-Install Node.js 24 and pnpm 10.15.1. Set up the email Worker using the
-[Worker guide](apps/email/README.md), then:
+You need Node.js 24 and pnpm 10.15.1. The local fixture runs the API and the
+dashboard against an in-memory PostgreSQL database (PGlite). Routing, domain
+checks, sending, and file storage are test doubles, so you need no accounts or
+credentials, and no mail leaves your machine.
 
 ```sh
+git clone https://github.com/boringcomputers/goshen-email.git
+cd goshen-email
 pnpm install --frozen-lockfile
+pnpm build
+pnpm --filter @bezalel/email exec tsx test/dashboard-fixture.ts
+```
+
+Open <http://127.0.0.1:3038/app> and sign in with the fixture password,
+`fixture-dashboard-password-fixture-dashboard-password-`. Create an inbox with
+the username `hello`, then deliver a message to it from a second terminal:
+
+```sh
+curl -X POST http://127.0.0.1:3039/receive \
+  -H 'Content-Type: application/json' \
+  -d '{"inboxId":"hello@example.com","subject":"Hello from the fixture"}'
+```
+
+The message appears in the inbox. Mail you send or reply with from the
+dashboard stays inside the fixture; `curl http://127.0.0.1:3039/sends` lists it.
+The fixture listens on loopback only. Don't deploy it.
+
+## Self-host
+
+Goshen Email runs on Cloudflare. A deployment needs:
+
+- A Cloudflare account on the Workers Paid plan, with Email Sending and Email
+  Routing set up for your domain.
+- A PostgreSQL database that Cloudflare Hyperdrive can reach. The guide uses
+  PlanetScale.
+- An R2 bucket, plus a delivery queue and its dead-letter queue.
+- For customer domains at other DNS providers, a server that allows SMTP on
+  port 25.
+
+`apps/email/wrangler.jsonc` and `apps/email-dashboard/wrangler.jsonc` contain
+the hosted service's account ID, resource IDs, routes, and domains. Replace
+them with your own before you deploy. The [Worker guide](apps/email/README.md)
+lists the API Worker's settings. In the dashboard's file:
+
+- Point the `MAIL_API` service binding at your API Worker's name, and set
+  `MAIL_WORKER_URL` to that Worker's HTTPS origin.
+- Set `DASHBOARD_PUBLIC_URL` and `routes` to your dashboard's domain.
+- Remove the `NATIVE_MAIL_API` service binding and the `NATIVE_MAIL_*`
+  variables. They connect the hosted dashboard to a separate Bezalel
+  deployment.
+
+1. Set up the API Worker with the [Worker guide](apps/email/README.md). It
+   covers the Cloudflare account, secrets, R2, and queues.
+2. Create the database and connect Hyperdrive with the
+   [database guide](docs/planetscale.md). Put a direct connection string in
+   `apps/email/.env` as `DATABASE_URL` and run `pnpm migrate`. It applies the
+   full schema and is safe to rerun on upgrades.
+3. Pick a dashboard. The Cloudflare Worker dashboard supports public
+   passwordless accounts; follow the [account guide](docs/accounts.md). The
+   Node dashboard below uses one shared owner password and can see every inbox,
+   so use it only for a single operator.
+4. For customer domains, deploy the SMTP gateway with its
+   [runbook](ops/email/README.md).
+5. Deploy with `pnpm deploy:worker`, then `pnpm deploy:dashboard`. Deploy the
+   API first, because a newer dashboard calls operations an older API rejects.
+
+[Triage](docs/triage.md) needs a TypeSafe API key.
+[Billing](docs/pricing.md) uses Autumn and Stripe; without `AUTUMN_SECRET_KEY`
+the API runs unmetered.
+
+The CI workflow in this repository deploys the hosted service when a commit
+lands on `main`. In a fork, remove the `deploy` job from
+`.github/workflows/ci.yml` or point it at your own Cloudflare secrets.
+
+### Run the Node dashboard
+
+```sh
 cp apps/email-dashboard/.env.example apps/email-dashboard/.env
 openssl rand -hex 32
 ```
 
 Save the generated value as `DASHBOARD_PASSWORD`. Set `MAIL_WORKER_URL` to your
-Worker's HTTPS origin and `MAIL_API_TOKEN` to its platform token. Use independent
-values for the dashboard password and Worker token.
+API Worker's HTTPS origin and `MAIL_API_TOKEN` to its platform token. Don't
+reuse the token as the password.
 
 ```sh
 pnpm build
 pnpm start
 ```
 
-Open <http://127.0.0.1:3031> for the homepage, or
-<http://127.0.0.1:3031/app> to sign in with the dashboard password. The Worker
-token remains on the dashboard server. Sessions expire after eight hours,
-sign-out revokes them, and restarting the dashboard signs everyone out.
+Open <http://127.0.0.1:3031/app>. The Worker token stays on the dashboard
+server. Sessions expire after eight hours, signing out revokes them, and a
+restart signs everyone out.
 
-For remote access, put the dashboard behind an HTTPS reverse proxy, set
-`DASHBOARD_PUBLIC_URL` to its exact public origin, and preserve the incoming
-Host header. Set `HOST=0.0.0.0` when the proxy runs outside the dashboard container.
-The dashboard uses an HTTP-only, SameSite=Strict cookie and checks request origins.
-Set `DASHBOARD_TRUSTED_PROXY_IPS` to the comma-separated IP addresses from which
-your reverse proxy connects. Configure that proxy to overwrite `X-Real-IP` with
-the client's connection IP. Login throttles then apply per client. Direct
-connections use their socket address and ignore forwarded headers. Trusted
-proxy requests without a valid `X-Real-IP` cannot sign in.
+To serve it remotely, put it behind an HTTPS reverse proxy that preserves the
+Host header, and set `DASHBOARD_PUBLIC_URL` to the exact public origin. Set
+`HOST=0.0.0.0` if the proxy runs outside the dashboard's container. List the
+proxy's IP addresses in `DASHBOARD_TRUSTED_PROXY_IPS` and have the proxy
+overwrite `X-Real-IP` with the client's IP, so login throttling applies per
+client. Requests from a trusted proxy without a valid `X-Real-IP` can't sign in.
 
-`pnpm dev` starts the dashboard with file watching. `pnpm dev:worker` starts
-Wrangler separately. Local Worker development still needs a dedicated PostgreSQL
-database. The root `build` command bundles the Worker without deploying it.
+## Use the API
 
-## Cloudflare deployment
-
-The API and dashboard both run on Cloudflare Workers:
-
-- [Dashboard](https://goshenemail.com/app). `www.goshenemail.com` and the
-  Worker's `workers.dev` address redirect there.
-- [API](https://bezalel-email-standalone.michaelwasihun96.workers.dev/healthz)
-
-The dashboard uses Better Auth accounts, static assets for the interface, and a
-service binding to the API. The API validates the session and mailbox ownership
-on every request. Complete the approved schema migration and account configuration
-before deploying account mode. Follow the [account guide](docs/accounts.md).
-Cloudflare Access remains an optional invitation-based mode.
-
-The Node dashboard remains available for local or VPS hosting with a shared owner
-password. Its access includes every inbox, so use Cloudflare customer mode for
-customer-facing deployments.
-
-The API connects to PlanetScale through Hyperdrive and uses its own R2 bucket
-and delivery queues. See the [database guide](docs/planetscale.md).
+Create a key under **API keys** in the dashboard, then:
 
 ```sh
-pnpm deploy:worker
-pnpm deploy:dashboard
-```
+export BEZALEL_BASE_URL="https://your-api-worker.example.com"
+export BEZALEL_API_KEY="bze_..."
 
-A push to `main` deploys these Workers after tests pass. Wrangler reads
-`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from GitHub Actions
-secrets to upload the scripts. That token is not the Email Routing token
-stored on the API Worker. The job does not apply SQL. Deploy the API before the
-dashboard: a newer dashboard calls operations an older API rejects with
-"Unknown dashboard operation", which the Settings page reports as an email API
-that needs its latest deployment. Set `MAIL_API_TOKEN` and
-`MAIL_WEBHOOK_SECRET` as API Worker secrets. Account mode also requires independent `AUTH_SECRET` and `AUTH_PROXY_SECRET`
-values. Follow the account guide to configure both Workers before switching modes.
-
-The API uses `agents.goshenemail.com` for standalone inboxes. Cloudflare shares
-one catch-all across a zone, so this deployment creates an exact address rule
-for each new inbox. The `goshenemail.com` catch-all continues to target the
-original Bezalel Worker. The API verifies sending and public MX records before
-provisioning an inbox, and refuses to overwrite a conflicting address rule.
-
-Set a scoped `CLOUDFLARE_API_TOKEN` secret with Email Sending access, Email
-Routing settings read access, and Email Routing Rules Write for this zone.
-Until it is present, dashboard reads work but mailbox creation and sending fail
-with a configuration error. Never deploy a short-lived Wrangler login token as
-this secret. See the [Worker setup](apps/email/README.md).
-
-A pull request runs CI only. A push to `main` deploys the Workers after those
-tests pass, if that commit is still the tip of `main` and the Cloudflare
-deploy secrets are set. The job does not deploy the SMTP gateway.
-For customer-owned domains, follow the [SMTP gateway runbook](ops/email/README.md).
-That gateway needs a host that permits incoming and outgoing SMTP on port 25.
-
-Migration reads a direct PostgreSQL URL from `apps/email/.env`. Worker development
-reads `apps/email/.dev.vars`; deployed secrets are set through Wrangler. Keep these
-files out of Git. Apply required migrations separately before a Worker upgrade.
-
-`MAIL_EVENTS_URL` optionally configures a shared signed webhook. With it unset,
-shared-mailbox events are settled without delivery or later replay. Client
-mailboxes keep their own provisioned webhooks. Customer dashboard inboxes have no
-webhook by default and never fall back to the shared webhook. The legacy `BEZALEL_EVENTS_URL`
-setting also works when connecting this Worker back to Bezalel.
-
-## Connect an application or agent
-
-Sign in and open **Developers** to create an account API key. Use that same key
-with the REST API, SDKs, CLI, or MCP to create, group, and use multiple inboxes.
-See the [developer guide](docs/developers.md) for setup and examples.
-
-For restricted single-inbox access, the platform can provision a mailbox through
-`POST /clients/provision` and give the application its returned mailbox key.
-That key reads and sends only from its assigned inbox and cannot provision other
-inboxes or release quarantine.
-
-```sh
-curl --fail-with-body "$MAIL_WORKER_URL/inbox-rpc/listMessages" \
-  -H "Authorization: Bearer $MAILBOX_API_KEY" \
+curl "$BEZALEL_BASE_URL/v1/inboxes" \
+  -H "Authorization: Bearer $BEZALEL_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"limit":20}'
+  -d '{"username":"research","displayName":"Research agent"}'
 ```
 
-See the [API guide](docs/api.md) for provisioning, sends, idempotency, webhooks,
-and custom domains. Keep the platform token out of agent prompts and browsers.
+The [quickstart](https://goshenemail.com/docs/quickstart) continues with
+sending and reading replies, and lists the hosted API's base URL. The
+[developer guide](docs/developers.md) covers the SDKs, the CLI, and MCP. The
+packages aren't on npm or PyPI yet, so build them from this checkout.
 
-## Checks
+The project started inside Bezalel, so package names, environment variables,
+and key prefixes still say `bezalel`: `@bezalel/email-sdk`, `bezalel_email`,
+`BEZALEL_API_KEY`, and `bze_`.
 
-```sh
-pnpm install --frozen-lockfile
-pnpm build
-pnpm check
-pnpm test
-pnpm source:check
-```
+## Development
 
-Tests use PGlite's embedded PostgreSQL, isolated files, local SMTP fixtures,
-and simulated Cloudflare/R2 responses. They do not require Bezalel or a shared
-database. Run `pnpm test:postgres` with a dedicated local `TEST_DATABASE_URL`
-to repeat the mailbox tests through the production PostgreSQL driver and exercise the
-Hyperdrive binding in the Workers runtime. See the [database guide](docs/planetscale.md#verification).
+| Command | What it does |
+| --- | --- |
+| `pnpm build` | Builds every package. The Workers build with Wrangler dry runs, so nothing deploys. |
+| `pnpm check` | Type-checks the workspace and fails if generated API files or docs are stale. |
+| `pnpm test` | Runs every package's tests on PGlite with test doubles for Cloudflare, R2, and SMTP. |
+| `pnpm test:postgres` | Runs the API tests through the production PostgreSQL driver. Needs `TEST_DATABASE_URL`; see the [database guide](docs/planetscale.md#verification). |
+| `pnpm source:check` | Checks files extracted from Bezalel against the hashes in `SOURCE.json`. |
+| `pnpm api:generate` | Regenerates the OpenAPI document, SDK types, and CLI and MCP schemas after a contract change. |
+| `pnpm docs:generate` | Rebuilds the docs site from `apps/email-dashboard/docs/` and the OpenAPI document. |
+| `pnpm dev` | Starts the Node dashboard with file watching on port 3031. |
+| `pnpm dev:worker` | Starts the API Worker locally on port 8788. It needs a local PostgreSQL database. |
 
-Live sending, public DNS, scanner deployment, and inbox placement
-require the deployment canary in the SMTP runbook.
+Local tests can't prove live delivery, DNS, Cloudflare routing, Hyperdrive, R2,
+queues, or cron. The SMTP runbook's deployment canary checks those against a
+real deployment.
 
-To exercise the dashboard against temporary mail storage without provider credentials:
+## Documentation
 
-```sh
-pnpm --filter @bezalel/email exec tsx test/dashboard-fixture.ts
-```
+The public docs at [goshenemail.com/docs](https://goshenemail.com/docs) cover
+the API from an agent developer's side. The guides here cover running it.
 
-Open <http://127.0.0.1:3038> for the homepage or
-<http://127.0.0.1:3038/app> for the dashboard. The fixture password is
-`fixture-dashboard-password-fixture-dashboard-password-`. It runs only on
-loopback and never sends real email. Its test control endpoint on port 3039 can
-inject mail with `POST /receive` and a JSON `inboxId`. Do not deploy the fixture.
+| Guide | Covers |
+| --- | --- |
+| [Worker setup](apps/email/README.md) | Cloudflare setup, secrets, delivery tracking, suppression, quarantine, and failure handling |
+| [Database](docs/planetscale.md) | PostgreSQL, Hyperdrive, migrations, and local databases |
+| [SMTP gateway](ops/email/README.md) | Customer domains, Postfix, Rspamd, ClamAV, TLS, and deployment canaries |
+| [Accounts](docs/accounts.md) | Passwordless sign-up and sign-in |
+| [Cloudflare Access](docs/customer-auth.md) | Optional invitation-only sign-in |
+| [Developer tools](docs/developers.md) | API keys, REST, SDKs, CLI, and MCP |
+| [RPC API](docs/api.md) | The older RPC interface, mailbox provisioning, and webhooks |
+| [Inbox setup](docs/inbox-setup.md) | The first-inbox flow for new accounts |
+| [Settings](docs/settings.md) | Organization, profile, and notification settings |
+| [Triage](docs/triage.md) | Categories, needs-reply, urgency, and what data leaves the Worker |
+| [Pricing](docs/pricing.md) | Hosted plans and Autumn billing |
+| [Dashboard UX](docs/dashboard-ux.md) and [design system](docs/design-system.md) | Dashboard behavior and visual tokens |
 
-Mail bodies render as text. Drafts remain in the open browser tab, and uncertain
-sends retain their exact request ID for retry. The mailbox database retains
-delivery outcomes and scanner findings; the dashboard shows those on each message.
+The `native-*`, `verification`, and `evidence` files in `docs/` record the
+hosted deployment's releases and the original extraction.
+
+## Where it came from
+
+Goshen Email began as the email service inside Bezalel, a private Boring
+Computers project. [SOURCE.md](SOURCE.md) records the extracted revision and
+how fixes move between the two projects.
+
+## Contributing and security
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Report
+vulnerabilities privately as described in [SECURITY.md](SECURITY.md), never in
+a public issue. Everyone taking part follows the
+[code of conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+[AGPL-3.0-only](LICENSE). If you run a modified version as a network service,
+you must offer its users the source code of your version.
