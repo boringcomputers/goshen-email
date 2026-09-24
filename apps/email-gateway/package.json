@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "nodemailer": "8.0.7",
-    "zod": "4.4.3"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "mailauth": "^5.0.3",
-    "smtp-server": "^3.19.9"
+    "smtp-server": "^3.19.13"
   }
 }
