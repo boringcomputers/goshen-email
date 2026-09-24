@@ -22,8 +22,8 @@ A message is one email, sent or received. Read, list, search, and label messages
 ## Listing messages
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages?labels=received&labels=unread&limit=20" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/messages?labels=received&labels=unread&limit=20" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 Lists are newest first. `labels` repeats for each label and matches messages that carry all of them. Pages hold up to 100 messages (default 20). When [triage](/docs/triage) is enabled, `category`, `needsReply`, and `urgency` filter on the classification.
@@ -63,8 +63,8 @@ Messages you send carry the `sent` label. Once the receiving server answers, the
 Reading a message through the API does not remove `unread`. Remove it explicitly when your agent has handled the message:
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages/%3Cid%40example.net%3E/labels" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" -X PATCH \
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/messages/%3Cid%40example.net%3E/labels" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" -X PATCH \
   -H "Content-Type: application/json" \
   -d '{"removeLabels":["unread"],"addLabels":["handled"]}'
 ```

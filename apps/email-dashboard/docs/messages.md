@@ -24,7 +24,7 @@ description: A message is one email, sent or received. Read, list, search, and l
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages?labels=received&labels=unread&limit=20" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 Lists are newest first. `labels` repeats for each label and matches messages that carry all of them. Pages hold up to 100 messages (default 20). When [triage](/docs/triage) is enabled, `category`, `needsReply`, and `urgency` filter on the classification.
@@ -65,7 +65,7 @@ Reading a message through the API does not remove `unread`. Remove it explicitly
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages/%3Cid%40example.net%3E/labels" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" -X PATCH \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" -X PATCH \
   -H "Content-Type: application/json" \
   -d '{"removeLabels":["unread"],"addLabels":["handled"]}'
 ```

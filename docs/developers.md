@@ -1,15 +1,16 @@
 # Developer tools
 
-Goshen Email has an account API, TypeScript and Python clients, a JSON CLI, and
-MCP over Streamable HTTP or stdio. All use the same 17-operation contract.
+Goshen Email has an account API, a JSON CLI, and MCP over Streamable HTTP or
+stdio. All use the same 17-operation contract. There is no SDK; call the REST
+API directly from any language.
 
 When the operator enables [email triage](triage.md), message and thread responses
 include category, needs-reply, and urgency judgments. Lists and searches accept
-the same triage filters across REST, SDKs, CLI, and MCP.
+the same triage filters across REST, CLI, and MCP.
 
-This release needs the migration and Worker/dashboard rollout below. The npm
-and Python packages are built from this repository; they have not been published
-to a package registry. Installation examples here use the checkout.
+This release needs the migration and Worker/dashboard rollout below. The CLI and
+the stdio MCP server are built from this repository and have not been published
+to npm. Installation examples here use the checkout.
 
 ## Get an API key
 
@@ -21,7 +22,7 @@ old keys. An account can have up to 20 active keys for rotation or different
 applications. One key is enough to manage all its inboxes through any client.
 Keys default to 30 days and can expire after 1 to 365 days.
 
-Use `BEZALEL_API_KEY` for SDKs, CLI, and MCP. Account keys start with `bze_` and
+Use `GOSHENEMAIL_API_KEY` for the CLI and MCP. Account keys start with `bze_` and
 can access only inboxes owned by that account. Even a dashboard administrator's
 key cannot access other customers or legacy platform inboxes. On the hosted
 service the account's plan sets its inbox count and monthly send and triage
@@ -39,7 +40,7 @@ create other keys, release quarantine, or change plans.
 | `messages:write` | Update message and thread labels |
 | `messages:send` | Send and reply |
 
-Existing `gme_` mailbox keys also work with the REST API, SDKs, CLI, and stdio MCP.
+Existing `gme_` mailbox keys also work with the REST API, CLI, and stdio MCP.
 They can list only their assigned inbox and cannot create or delete inboxes.
 Hosted MCP currently requires an account key. Neither surface accepts the
 platform's `MAIL_API_TOKEN`.
@@ -49,13 +50,13 @@ platform's `MAIL_API_TOKEN`.
 The base URL is your email Worker origin. For the hosted deployment:
 
 ```sh
-export BEZALEL_BASE_URL=https://bezalel-email-standalone.michaelwasihun96.workers.dev
-# Set BEZALEL_API_KEY through your secret manager or environment.
-curl "$BEZALEL_BASE_URL/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+export GOSHENEMAIL_BASE_URL=https://api.goshenemail.com
+# Set GOSHENEMAIL_API_KEY through your secret manager or environment.
+curl "$GOSHENEMAIL_BASE_URL/v1/inboxes" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 
-curl "$BEZALEL_BASE_URL/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "$GOSHENEMAIL_BASE_URL/v1/inboxes" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"username":"research","displayName":"Research agent"}'
 ```
@@ -94,83 +95,10 @@ Schema validation also checks body presence, combined body/attachment sizes,
 and recipient limits that JSON Schema does not fully describe. CLI dry runs
 validate the published schema; the server remains authoritative.
 
-## TypeScript / JavaScript
-
-Build with Node 24 and pnpm 10.15.1:
-
-```sh
-pnpm install --frozen-lockfile
-pnpm build
-```
-
-Use the workspace package `@bezalel/email-sdk`, or create a local tarball with
-`pnpm --filter @bezalel/email-sdk pack --pack-destination /tmp` and install that
-tarball in another project. Both JavaScript and TypeScript use the same client:
-
-```ts
-import { BezalelEmail } from '@bezalel/email-sdk'
-
-const email = new BezalelEmail({
-  apiKey: process.env.BEZALEL_API_KEY!,
-  baseUrl: process.env.BEZALEL_BASE_URL,
-})
-const inbox = await email.inboxes.create({ username: 'research', group: 'agents' })
-const agents = await email.inboxes.list({ group: 'agents' })
-await email.inboxes.update({ inboxId: inbox.inboxId, group: 'research' })
-for await (const page of email.pages('listInboxes', { group: 'research' })) {
-  for (const inbox of page.inboxes) console.log(inbox.inboxId)
-}
-const page = await email.messages.list({ inboxId: inbox.inboxId, limit: 20 })
-
-// Only send after the user authorizes the message. Save this key for retries.
-const idempotencyKey = crypto.randomUUID()
-await email.messages.send({
-  inboxId: inbox.inboxId, to: ['recipient@example.net'], subject: 'Hello',
-  text: 'Hello from Bezalel', idempotencyKey,
-})
-
-for await (const page of email.pages('listMessages', { inboxId: inbox.inboxId })) {
-  for (const message of page.messages) console.log(message.subject)
-}
-```
-
-`BezalelError` exposes `status`, `code`, and `transient`. A `network_error` means
-that the outcome may be unknown, not that a send failed. The default timeout is
-30 seconds; configure `timeoutMs` or pass a signal to `client.request`.
-Caller cancellation returns non-transient `request_cancelled`. Cancellation
-does not undo a send that the server has already accepted.
-
-## Python
-
-Python 3.10 or later is supported. The runtime uses the standard library.
-
-```sh
-python3 -m pip install ./packages/email-python
-```
-
-```python
-import os
-from bezalel_email import BezalelEmail
-
-email = BezalelEmail(api_key=os.environ['BEZALEL_API_KEY'])
-inbox = email.inboxes.create(username='research', group='agents')
-email.inboxes.update(inbox_id=inbox['inboxId'], group='research')
-for page in email.pages('listInboxes', group='research'):
-    for item in page['inboxes']:
-        print(item['inboxId'])
-messages = email.messages.list(inbox_id=inbox['inboxId'], limit=20)
-for page in email.pages('listMessages', inbox_id=inbox['inboxId']):
-    for message in page['messages']:
-        print(message['subject'])
-```
-
-Python keyword arguments use snake case; responses keep the API's camel-case
-field names. `BezalelError` has `status`, `code`, and `transient`. Set `base_url`
-for another deployment and `timeout` in seconds. The client is synchronous.
-
 ## CLI
 
-From the built checkout:
+Build with Node 24 and pnpm 10.15.1 (`pnpm install --frozen-lockfile`, then
+`pnpm build`), then run it from the checkout:
 
 ```sh
 node packages/email-cli/dist/main.js inboxes list
@@ -201,9 +129,9 @@ rather than committing an actual token:
 ```json
 {
   "mcpServers": {
-    "bezalel-email": {
-      "url": "https://bezalel-email-standalone.michaelwasihun96.workers.dev/mcp",
-      "headers": { "Authorization": "Bearer ${BEZALEL_API_KEY}" }
+    "goshenemail": {
+      "url": "https://api.goshenemail.com/mcp",
+      "headers": { "Authorization": "Bearer ${GOSHENEMAIL_API_KEY}" }
     }
   }
 }
@@ -217,8 +145,8 @@ key's scopes. Tools enforce authorization again when called.
 pagination fields as the REST API.
 
 For stdio, configure `node` with the absolute path to
-`packages/email-mcp/dist/main.js` and pass `BEZALEL_API_KEY` and optionally
-`BEZALEL_BASE_URL` in the subprocess environment. Stdio advertises the complete
+`packages/email-mcp/dist/main.js` and pass `GOSHENEMAIL_API_KEY` and optionally
+`GOSHENEMAIL_BASE_URL` in the subprocess environment. Stdio advertises the complete
 catalog; the API rejects operations outside the key's scope. It writes only
 MCP protocol messages to stdout.
 
@@ -252,7 +180,7 @@ and `account-inbox-schema.ts`.
 Run `pnpm build`, `pnpm check`, `pnpm test`, `pnpm test:postgres`, and
 `pnpm source:check` with isolated local databases.
 
-`developer-api.test.ts` runs the SDK, CLI, and a real MCP client against the
+`developer-api.test.ts` runs the internal client, CLI, and a real MCP client against the
 Worker handlers and local storage. Provider delivery, domain verification, and
 object storage use test doubles. It does not prove real email delivery.
 Browser evidence uses `apps/email/test/dashboard-fixture.ts` in account mode.

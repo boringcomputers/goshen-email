@@ -4,7 +4,7 @@ List a page of account inboxes, optionally filtered by group. Pass nextPageToken
 
 `GET /v1/inboxes`
 
-Requires scope `inboxes:read`. MCP tool `list_inboxes`. SDK `email.inboxes.list()`. CLI `bezalel-email inboxes list`.
+Requires scope `inboxes:read`. MCP tool `list_inboxes`. CLI `goshenemail inboxes list`.
 
 ## Request
 
@@ -35,25 +35,13 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
-```
-
-### TypeScript
-
-```ts
-const result = await email.inboxes.list()
-```
-
-### Python
-
-```python
-result = email.inboxes.list()
+curl "https://api.goshenemail.com/v1/inboxes" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ### CLI
 
 ```sh
-bezalel-email inboxes list
+goshenemail inboxes list
 ```
 

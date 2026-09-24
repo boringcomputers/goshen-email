@@ -29,7 +29,7 @@ const sections = [
   { title: 'Getting started', pages: ['introduction', 'quickstart'] },
   { title: 'Core concepts', pages: ['inboxes', 'messages', 'threads', 'labels', 'attachments', 'groups', 'quarantine', 'triage'] },
   { title: 'Guides', pages: ['authentication', 'sending', 'pagination', 'webhooks', 'custom-domains', 'dashboard', 'agents'] },
-  { title: 'Integrations', pages: ['typescript', 'python', 'cli', 'mcp'] },
+  { title: 'Integrations', pages: ['cli', 'mcp'] },
   { title: 'Reference', pages: ['api', 'errors', 'limits'] },
 ]
 
@@ -187,17 +187,11 @@ function curlExample(operation) {
   const query = (operation.parameters ?? []).filter((param) => param.in === 'query' && param.required).map((param) => `${param.name}=${param.name === 'query' ? 'invoice' : 'value'}`)
   const url = `${site.apiBase}${path}${query.length ? `?${query.join('&')}` : ''}`
   const body = exampleBody(operation.requestBody?.content?.['application/json']?.schema)
-  const lines = [`curl "${url}" \\`, `  -H "Authorization: Bearer $BEZALEL_API_KEY"`]
+  const lines = [`curl "${url}" \\`, `  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"`]
   if (operation.method !== 'GET') lines[lines.length - 1] += ' \\'
   if (operation.method !== 'GET') lines.push(`  -X ${operation.method}${body ? ' \\' : ''}`)
   if (body) lines.push(`  -H "Content-Type: application/json" \\`, `  -d '${JSON.stringify(body, null, 2).replace(/\n/g, '\n  ')}'`)
   return lines.join('\n')
-}
-const sdkMethod = {
-  listInboxes: 'inboxes.list', createInbox: 'inboxes.create', getInbox: 'inboxes.get', updateInbox: 'inboxes.update', deleteInbox: 'inboxes.delete', finishInboxSetup: 'inboxes.finishSetup',
-  listMessages: 'messages.list', searchMessages: 'messages.search', getMessage: 'messages.get', send: 'messages.send', reply: 'messages.reply', updateMessageLabels: 'messages.updateLabels',
-  getAttachment: 'messages.getAttachment', listThreads: 'threads.list', getThread: 'threads.get', updateThreadLabels: 'threads.updateLabels',
-  getUsage: 'account.usage',
 }
 const cliCommand = Object.fromEntries(Object.entries({
   'inboxes list': 'listInboxes', 'inboxes create': 'createInbox', 'inboxes get': 'getInbox', 'inboxes delete': 'deleteInbox', 'inboxes finish-setup': 'finishInboxSetup', 'inboxes update': 'updateInbox',
@@ -205,26 +199,17 @@ const cliCommand = Object.fromEntries(Object.entries({
   'messages attachment': 'getAttachment', 'threads list': 'listThreads', 'threads get': 'getThread', 'threads labels': 'updateThreadLabels',
   'account usage': 'getUsage',
 }).map(([command, id]) => [id, command]))
-function sdkInput(operation) {
+function exampleInput(operation) {
   const input = {}
   for (const param of operation.parameters ?? []) if (param.in === 'path' || param.required) input[param.name] = examplePath[param.name] ?? (param.name === 'query' ? 'invoice' : 'value')
   Object.assign(input, exampleBody(operation.requestBody?.content?.['application/json']?.schema) ?? {})
   return input
 }
-const toPython = (value) => JSON.stringify(value).replace(/\btrue\b/g, 'True').replace(/\bfalse\b/g, 'False').replace(/\bnull\b/g, 'None')
-function sdkExamples(operation) {
-  const input = sdkInput(operation)
-  const method = sdkMethod[operation.operationId]
-  const tsArgs = Object.keys(input).length ? JSON.stringify(input, null, 2).replace(/"(\w+)":/g, '$1:').replace(/"/g, "'") : ''
-  const pyArgs = Object.entries(input).map(([key, value]) => `${snake(key)}=${toPython(value)}`).join(', ')
-  const pyMethod = method.replace(/\.(\w+)/, (_, name) => '.' + snake(name))
+function cliExample(operation) {
+  const input = exampleInput(operation)
   const cliArgs = Object.entries(input).filter(([, value]) => typeof value !== 'object').map(([key, value]) => `--${kebab(key)} ${JSON.stringify(String(value))}`).join(' ')
   const cliJson = Object.values(input).some((value) => typeof value === 'object') ? ` --json '${JSON.stringify(input)}'` : ''
-  return [
-    { label: 'TypeScript', lang: 'ts', code: `const result = await email.${method}(${tsArgs})` },
-    { label: 'Python', lang: 'python', code: `result = email.${pyMethod}(${pyArgs})` },
-    { label: 'CLI', lang: 'sh', code: `bezalel-email ${cliCommand[operation.operationId]}${cliJson || (cliArgs ? ' ' + cliArgs : '')}` },
-  ]
+  return `goshenemail ${cliCommand[operation.operationId]}${cliJson || (cliArgs ? ' ' + cliArgs : '')}`
 }
 
 function apiPageHtml(operation) {
@@ -233,12 +218,11 @@ function apiPageHtml(operation) {
   const response = operation.responses?.['200']?.content?.['application/json']?.schema
   // The summary is the page's lede; a longer description, when the contract has one, follows the endpoint.
   const description = operation.description && operation.description !== operation.summary ? operation.description : ''
-  const examples = sdkExamples(operation)
   const headings = [{ id: 'request', text: 'Request' }, { id: 'response', text: 'Response' }, { id: 'examples', text: 'Examples' }]
   const html = `
 <p class="endpoint"><span class="method method-${operation.method.toLowerCase()}">${operation.method}</span><code>${escape(operation.path)}</code></p>
 ${description ? `<p>${escape(description)}</p>` : ''}
-<p class="scope">Requires an API key with the <code>${escape(operation['x-required-scope'])}</code> scope. MCP tool: <code>${snake(operation.operationId)}</code>. SDK: <code>email.${sdkMethod[operation.operationId]}()</code>. CLI: <code>bezalel-email ${cliCommand[operation.operationId]}</code>.</p>
+<p class="scope">Requires an API key with the <code>${escape(operation['x-required-scope'])}</code> scope. MCP tool: <code>${snake(operation.operationId)}</code>. CLI: <code>goshenemail ${cliCommand[operation.operationId]}</code>.</p>
 <h2 id="request">Request</h2>
 ${params.some((param) => param.in === 'path') ? `<h3>Path parameters</h3>${paramsTable(params.filter((param) => param.in === 'path'))}` : ''}
 ${params.some((param) => param.in === 'query') ? `<h3>Query parameters</h3>${paramsTable(params.filter((param) => param.in === 'query'))}` : ''}
@@ -249,7 +233,8 @@ ${response ? rowsTable(schemaRows(response), { requiredColumn: false }) : '<p>An
 <h2 id="examples">Examples</h2>
 <h3>curl</h3>
 <pre><code class="language-sh">${escape(curlExample(operation))}</code></pre>
-${examples.map((example) => `<h3>${example.label}</h3><pre><code class="language-${example.lang}">${escape(example.code)}</code></pre>`).join('\n')}
+<h3>CLI</h3>
+<pre><code class="language-sh">${escape(cliExample(operation))}</code></pre>
 `
   return { html, headings }
 }
@@ -264,7 +249,7 @@ function apiPageMarkdown(operation) {
   return [
     `# ${operationTitle(operation)}`, '', operation.summary ?? '', '', `\`${operation.method} ${operation.path}\``, '',
     ...(operation.description && operation.description !== operation.summary ? [operation.description, ''] : []),
-    `Requires scope \`${operation['x-required-scope']}\`. MCP tool \`${snake(operation.operationId)}\`. SDK \`email.${sdkMethod[operation.operationId]}()\`. CLI \`bezalel-email ${cliCommand[operation.operationId]}\`.`, '',
+    `Requires scope \`${operation['x-required-scope']}\`. MCP tool \`${snake(operation.operationId)}\`. CLI \`goshenemail ${cliCommand[operation.operationId]}\`.`, '',
     '## Request', '',
     ...(params.some((param) => param.in === 'path') ? ['### Path parameters', '', rows(paramRows(params.filter((param) => param.in === 'path'))), ''] : []),
     ...(params.some((param) => param.in === 'query') ? ['### Query parameters', '', rows(paramRows(params.filter((param) => param.in === 'query'))), ''] : []),
@@ -272,7 +257,7 @@ function apiPageMarkdown(operation) {
     '## Response', '', response ? rows(schemaRows(response)) : 'An empty JSON body with status 200.', '',
     'Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5xx status.', '',
     '## Examples', '', '```sh', curlExample(operation), '```', '',
-    ...sdkExamples(operation).flatMap((example) => [`### ${example.label}`, '', '```' + example.lang, example.code, '```', '']),
+    '### CLI', '', '```sh', cliExample(operation), '```', '',
   ].join('\n')
 }
 

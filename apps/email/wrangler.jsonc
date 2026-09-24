@@ -7,7 +7,11 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  // The dashboard and SMTP gateway call the workers.dev address; developers use api.goshenemail.com.
   "workers_dev": true,
+  "routes": [
+    { "pattern": "api.goshenemail.com", "custom_domain": true }
+  ],
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
@@ -24,7 +28,7 @@
     "EMAIL_DOMAINS": "{\"agents.goshenemail.com\":\"35ea2f533f87f566600d95300aba1475\"}",
     "DEFAULT_EMAIL_DOMAIN": "agents.goshenemail.com",
     "EMAIL_ADDRESS_ROUTING_DOMAINS": "agents.goshenemail.com",
-    "PUBLIC_EMAIL_URL": "https://bezalel-email-standalone.michaelwasihun96.workers.dev"
+    "PUBLIC_EMAIL_URL": "https://api.goshenemail.com"
   },
   "r2_buckets": [
     {

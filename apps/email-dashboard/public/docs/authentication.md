@@ -5,11 +5,11 @@ Every request carries a bearer key. Account keys reach all of an account's inbox
 ## Sending a key
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+curl "https://api.goshenemail.com/v1/inboxes" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
-The SDKs, CLI, and MCP server read the key from `BEZALEL_API_KEY`. No client accepts a key as a command-line flag or writes one to a config file, so keys stay in your secret manager or environment.
+The CLI and the stdio MCP server read the key from `GOSHENEMAIL_API_KEY`. No client accepts a key as a command-line flag or writes one to a config file, so keys stay in your secret manager or environment.
 
 ## Two kinds of key
 
@@ -55,7 +55,7 @@ An account can hold up to 20 active keys, which leaves room to rotate without do
 
 ## Mailbox keys
 
-Open an inbox, choose **Get started**, then **Get a mailbox key**. The key is masked until you choose **Copy key**. Save it as `BEZALEL_MAILBOX_KEY` in the agent's environment; the dashboard's **Copy command** gives you a `curl` call that references that variable rather than embedding the key.
+Open an inbox, choose **Get started**, then **Get a mailbox key**. The key is masked until you choose **Copy key**. Save it as `GOSHENEMAIL_MAILBOX_KEY` in the agent's environment; the dashboard's **Copy command** gives you a `curl` call that references that variable rather than embedding the key.
 
 Requesting a new mailbox key replaces the old one. The dashboard's **Check connection** turns green after the first successful request with the current key, which confirms the key reached the API. It does not prove that your agent's automation is running or that mail is being delivered.
 

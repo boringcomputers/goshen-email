@@ -4,7 +4,7 @@ Send an email only when the user has authorized it. Retry with the SAME idempote
 
 `POST /v1/inboxes/{inboxId}/messages/send`
 
-Requires scope `messages:send`. MCP tool `send`. SDK `email.messages.send()`. CLI `bezalel-email messages send`.
+Requires scope `messages:send`. MCP tool `send`. CLI `goshenemail messages send`.
 
 ## Request
 
@@ -44,8 +44,8 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages/send" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/messages/send" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{
@@ -58,29 +58,9 @@ curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/r
   }'
 ```
 
-### TypeScript
-
-```ts
-const result = await email.messages.send({
-  inboxId: 'research@agents.goshenemail.com',
-  text: 'Hello, could you send the current quote?',
-  to: [
-    'recipient@example.net'
-  ],
-  subject: 'Quote request',
-  idempotencyKey: '2f7c1c1e-6d1a-4a3b-9b0e-0c9b3f5c8a11'
-})
-```
-
-### Python
-
-```python
-result = email.messages.send(inbox_id="research@agents.goshenemail.com", text="Hello, could you send the current quote?", to=["recipient@example.net"], subject="Quote request", idempotency_key="2f7c1c1e-6d1a-4a3b-9b0e-0c9b3f5c8a11")
-```
-
 ### CLI
 
 ```sh
-bezalel-email messages send --json '{"inboxId":"research@agents.goshenemail.com","text":"Hello, could you send the current quote?","to":["recipient@example.net"],"subject":"Quote request","idempotencyKey":"2f7c1c1e-6d1a-4a3b-9b0e-0c9b3f5c8a11"}'
+goshenemail messages send --json '{"inboxId":"research@agents.goshenemail.com","text":"Hello, could you send the current quote?","to":["recipient@example.net"],"subject":"Quote request","idempotencyKey":"2f7c1c1e-6d1a-4a3b-9b0e-0c9b3f5c8a11"}'
 ```
 

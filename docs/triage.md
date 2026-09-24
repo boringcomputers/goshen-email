@@ -118,7 +118,7 @@ An operator can requeue specific failed message IDs by setting `triage` to
 
 `triage.test.ts` covers provider validation, uncertainty, storage, retry limits,
 duplicate receives, expired leases, quarantine, deletion, and thread filters.
-`triage-api.test.ts` checks SDK, REST, CLI, MCP, permissions, and response schemas.
+`triage-api.test.ts` checks the client, REST, CLI, MCP, permissions, and response schemas.
 Both run against isolated local databases, including the PostgreSQL suite.
 
 Start `test/dashboard-fixture.ts` with `FIXTURE_AUTH_MODE=account` and

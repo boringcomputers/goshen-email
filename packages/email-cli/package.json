@@ -1,5 +1,5 @@
 {
-  "name": "@bezalel/email-cli",
+  "name": "goshenemail-cli",
   "version": "0.1.0",
   "description": "Command-line client for the Goshen Email API",
   "type": "module",
@@ -37,10 +37,10 @@
     "@types/node": "^24.10.9"
   },
   "bin": {
-    "bezalel-email": "dist/main.js"
+    "goshenemail": "dist/main.js"
   },
   "dependencies": {
-    "@bezalel/email-sdk": "workspace:*",
+    "@goshenemail/client": "workspace:*",
     "zod": "4.4.3"
   }
 }

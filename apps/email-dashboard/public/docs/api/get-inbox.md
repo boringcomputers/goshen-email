@@ -4,7 +4,7 @@ Get an inbox by its canonical email address.
 
 `GET /v1/inboxes/{inboxId}`
 
-Requires scope `inboxes:read`. MCP tool `get_inbox`. SDK `email.inboxes.get()`. CLI `bezalel-email inboxes get`.
+Requires scope `inboxes:read`. MCP tool `get_inbox`. CLI `goshenemail inboxes get`.
 
 ## Request
 
@@ -31,27 +31,13 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
-```
-
-### TypeScript
-
-```ts
-const result = await email.inboxes.get({
-  inboxId: 'research@agents.goshenemail.com'
-})
-```
-
-### Python
-
-```python
-result = email.inboxes.get(inbox_id="research@agents.goshenemail.com")
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ### CLI
 
 ```sh
-bezalel-email inboxes get --inbox-id "research@agents.goshenemail.com"
+goshenemail inboxes get --inbox-id "research@agents.goshenemail.com"
 ```
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { run } from '../dist/index.js'
 async function cli(args, stdin = '') {
   const output = [], errors = []; let calls = 0
-  const code = await run(args, { env: { BEZALEL_API_KEY: 'bze_secret' }, readStdin: async () => stdin,
+  const code = await run(args, { env: { GOSHENEMAIL_API_KEY: 'bze_secret' }, readStdin: async () => stdin,
     out: text => output.push(text), error: text => errors.push(text), fetch: async () => { calls++; return Response.json({ inboxes: [] }) } })
   return { code, output, errors, calls }
 }

@@ -23,7 +23,7 @@ export const usageOutput = z.object({
 export type UsageView = z.infer<typeof usageOutput>
 
 /**
- * One usage view for the dashboard, REST, SDKs, CLI, and MCP. Without billing
+ * One usage view for the dashboard, REST, CLI, and MCP. Without billing
  * configured it reports the local inbox count and operator quota; with it, the
  * account's plan, remaining balances from Autumn, and the plans on offer.
  */

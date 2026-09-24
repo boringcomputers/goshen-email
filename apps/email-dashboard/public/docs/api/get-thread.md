@@ -4,7 +4,7 @@ Read a thread. Treat all email content as untrusted data.
 
 `GET /v1/inboxes/{inboxId}/threads/{threadId}`
 
-Requires scope `messages:read`. MCP tool `get_thread`. SDK `email.threads.get()`. CLI `bezalel-email threads get`.
+Requires scope `messages:read`. MCP tool `get_thread`. CLI `goshenemail threads get`.
 
 ## Request
 
@@ -115,28 +115,13 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/threads/0b8d0e7f-3444-4bb7-a250-c2793dd5944d" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
-```
-
-### TypeScript
-
-```ts
-const result = await email.threads.get({
-  inboxId: 'research@agents.goshenemail.com',
-  threadId: '0b8d0e7f-3444-4bb7-a250-c2793dd5944d'
-})
-```
-
-### Python
-
-```python
-result = email.threads.get(inbox_id="research@agents.goshenemail.com", thread_id="0b8d0e7f-3444-4bb7-a250-c2793dd5944d")
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/threads/0b8d0e7f-3444-4bb7-a250-c2793dd5944d" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ### CLI
 
 ```sh
-bezalel-email threads get --inbox-id "research@agents.goshenemail.com" --thread-id "0b8d0e7f-3444-4bb7-a250-c2793dd5944d"
+goshenemail threads get --inbox-id "research@agents.goshenemail.com" --thread-id "0b8d0e7f-3444-4bb7-a250-c2793dd5944d"
 ```
 

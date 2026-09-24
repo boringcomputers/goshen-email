@@ -72,8 +72,6 @@ export const docsAssets = [
   ["/docs/messages.md", ["docs/messages.md","text/markdown; charset=utf-8"]],
   ["/docs/pagination", ["docs/pagination.html","text/html; charset=utf-8"]],
   ["/docs/pagination.md", ["docs/pagination.md","text/markdown; charset=utf-8"]],
-  ["/docs/python", ["docs/python.html","text/html; charset=utf-8"]],
-  ["/docs/python.md", ["docs/python.md","text/markdown; charset=utf-8"]],
   ["/docs/quarantine", ["docs/quarantine.html","text/html; charset=utf-8"]],
   ["/docs/quarantine.md", ["docs/quarantine.md","text/markdown; charset=utf-8"]],
   ["/docs/quickstart", ["docs/quickstart.html","text/html; charset=utf-8"]],
@@ -84,8 +82,6 @@ export const docsAssets = [
   ["/docs/threads.md", ["docs/threads.md","text/markdown; charset=utf-8"]],
   ["/docs/triage", ["docs/triage.html","text/html; charset=utf-8"]],
   ["/docs/triage.md", ["docs/triage.md","text/markdown; charset=utf-8"]],
-  ["/docs/typescript", ["docs/typescript.html","text/html; charset=utf-8"]],
-  ["/docs/typescript.md", ["docs/typescript.md","text/markdown; charset=utf-8"]],
   ["/docs/webhooks", ["docs/webhooks.html","text/html; charset=utf-8"]],
   ["/docs/webhooks.md", ["docs/webhooks.md","text/markdown; charset=utf-8"]],
 ]

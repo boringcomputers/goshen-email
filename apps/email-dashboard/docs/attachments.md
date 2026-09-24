@@ -9,7 +9,7 @@ description: Send files with a message and download the files that arrive.
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages/send" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H "Content-Type: application/json" \
   -d @- <<'EOF'
 {
@@ -26,18 +26,6 @@ EOF
 
 Limits per message: up to 10 files, 2 MiB combined after base64 decoding, filenames of 1 to 200 characters, and a `contentType` in `type/subtype` form. Bodies (`text` plus `html`) are limited separately to 512 KiB. See [Limits](/docs/limits).
 
-In the TypeScript SDK:
-
-```ts
-import { readFile } from 'node:fs/promises'
-
-await email.messages.send({
-  inboxId, to: ['vendor@example.net'], subject: 'Purchase order 0419', text: 'The signed purchase order is attached.',
-  attachments: [{ filename: 'po-0419.pdf', contentType: 'application/pdf', content: (await readFile('po-0419.pdf')).toString('base64') }],
-  idempotencyKey: crypto.randomUUID(),
-})
-```
-
 ## Receiving attachments
 
 Messages list their attachments with an id, name, type, and size:
@@ -52,7 +40,7 @@ The bytes are not inlined. Ask for a download URL:
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages/%3Cid%40example.net%3E/attachments/4f40dbb7-c2aa-4288-af1e-2966ca55b6b7" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ```json

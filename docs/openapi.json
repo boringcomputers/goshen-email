@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://bezalel-email-standalone.michaelwasihun96.workers.dev"
+      "url": "https://api.goshenemail.com"
     }
   ],
   "paths": {

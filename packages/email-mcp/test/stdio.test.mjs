@@ -4,7 +4,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { createServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
-test('a real stdio client discovers the catalog and calls the API through the SDK', async () => {
+test('a real stdio client discovers the catalog and calls the API through the client', async () => {
   let requests = 0
   const api = createServer((request, response) => {
     requests++; assert.equal(request.headers.authorization, 'Bearer bze_test')
@@ -14,7 +14,7 @@ test('a real stdio client discovers the catalog and calls the API through the SD
   await new Promise(resolve => api.listen(0, '127.0.0.1', resolve))
   const client = new Client({ name: 'stdio-proof', version: '1.0.0' })
   const transport = new StdioClientTransport({ command: process.execPath, args: [fileURLToPath(new URL('../dist/main.js', import.meta.url))],
-    env: { BEZALEL_API_KEY: 'bze_test', BEZALEL_BASE_URL: `http://127.0.0.1:${api.address().port}` }, stderr: 'pipe' })
+    env: { GOSHENEMAIL_API_KEY: 'bze_test', GOSHENEMAIL_BASE_URL: `http://127.0.0.1:${api.address().port}` }, stderr: 'pipe' })
   try {
     await client.connect(transport)
     const tools = (await client.listTools()).tools

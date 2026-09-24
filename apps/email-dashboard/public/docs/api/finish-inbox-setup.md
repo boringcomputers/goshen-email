@@ -4,7 +4,7 @@ Retry delivery routing for a reserved inbox.
 
 `POST /v1/inboxes/{inboxId}/setup`
 
-Requires scope `inboxes:write`. MCP tool `finish_inbox_setup`. SDK `email.inboxes.finishSetup()`. CLI `bezalel-email inboxes finish-setup`.
+Requires scope `inboxes:write`. MCP tool `finish_inbox_setup`. CLI `goshenemail inboxes finish-setup`.
 
 ## Request
 
@@ -35,28 +35,14 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/setup" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/setup" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -X POST
-```
-
-### TypeScript
-
-```ts
-const result = await email.inboxes.finishSetup({
-  inboxId: 'research@agents.goshenemail.com'
-})
-```
-
-### Python
-
-```python
-result = email.inboxes.finish_setup(inbox_id="research@agents.goshenemail.com")
 ```
 
 ### CLI
 
 ```sh
-bezalel-email inboxes finish-setup --inbox-id "research@agents.goshenemail.com"
+goshenemail inboxes finish-setup --inbox-id "research@agents.goshenemail.com"
 ```
 

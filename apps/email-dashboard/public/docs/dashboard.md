@@ -30,7 +30,7 @@ Create, name, scope, expire, and revoke account keys. Keys are shown once. Up to
 
 ## Integrations
 
-Shows the API base URL, a link to the OpenAPI document, and a link to manage keys. Configuration snippets for the SDKs, CLI, and MCP are in these docs: [TypeScript](/docs/typescript), [Python](/docs/python), [CLI](/docs/cli), [MCP](/docs/mcp).
+Shows the API base URL, a link to the OpenAPI document, and a link to manage keys. Configuration snippets for the CLI and MCP are in these docs: [CLI](/docs/cli), [MCP](/docs/mcp).
 
 ## Domains
 

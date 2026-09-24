@@ -4,7 +4,7 @@ Reply to an email only when authorized. Preserve idempotencyKey and contents on 
 
 `POST /v1/inboxes/{inboxId}/messages/{messageId}/reply`
 
-Requires scope `messages:send`. MCP tool `reply`. SDK `email.messages.reply()`. CLI `bezalel-email messages reply`.
+Requires scope `messages:send`. MCP tool `reply`. CLI `goshenemail messages reply`.
 
 ## Request
 
@@ -45,8 +45,8 @@ Errors return `{ "error": { "code", "message", "transient" } }` with a 4xx or 5x
 ## Examples
 
 ```sh
-curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/research%40agents.goshenemail.com/messages/%3C20260920.12345%40agents.goshenemail.com%3E/reply" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/messages/%3C20260920.12345%40agents.goshenemail.com%3E/reply" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{
@@ -55,26 +55,9 @@ curl "https://bezalel-email-standalone.michaelwasihun96.workers.dev/v1/inboxes/r
   }'
 ```
 
-### TypeScript
-
-```ts
-const result = await email.messages.reply({
-  inboxId: 'research@agents.goshenemail.com',
-  messageId: '<20260920.12345@agents.goshenemail.com>',
-  text: 'Hello, could you send the current quote?',
-  idempotencyKey: '2f7c1c1e-6d1a-4a3b-9b0e-0c9b3f5c8a11'
-})
-```
-
-### Python
-
-```python
-result = email.messages.reply(inbox_id="research@agents.goshenemail.com", message_id="<20260920.12345@agents.goshenemail.com>", text="Hello, could you send the current quote?", idempotency_key="2f7c1c1e-6d1a-4a3b-9b0e-0c9b3f5c8a11")
-```
-
 ### CLI
 
 ```sh
-bezalel-email messages reply --inbox-id "research@agents.goshenemail.com" --message-id "<20260920.12345@agents.goshenemail.com>" --text "Hello, could you send the current quote?" --idempotency-key "2f7c1c1e-6d1a-4a3b-9b0e-0c9b3f5c8a11"
+goshenemail messages reply --inbox-id "research@agents.goshenemail.com" --message-id "<20260920.12345@agents.goshenemail.com>" --text "Hello, could you send the current quote?" --idempotency-key "2f7c1c1e-6d1a-4a3b-9b0e-0c9b3f5c8a11"
 ```
 

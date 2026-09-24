@@ -1,6 +1,6 @@
 # Email API
 
-For account API keys, versioned REST endpoints, SDKs, CLI, and MCP, see the
+For account API keys, versioned REST endpoints, CLI, and MCP, see the
 [developer guide](developers.md) and [OpenAPI specification](openapi.json).
 The existing RPC interface below remains supported.
 

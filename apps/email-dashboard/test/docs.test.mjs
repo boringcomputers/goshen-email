@@ -56,7 +56,7 @@ test('every internal link and asset reference in the docs resolves', () => {
   const publicDir = new URL('public/', root)
   const served = new Set([...assets.keys()])
   const files = readdirSync(new URL('docs/', publicDir), { recursive: true }).map(String).filter((name) => name.endsWith('.html'))
-  assert.ok(files.length >= 40)
+  assert.ok(files.length >= 38)
   for (const name of files) {
     const html = readFileSync(new URL(`docs/${name}`, publicDir), 'utf8')
     for (const [, href] of html.matchAll(/(?:href|src)="(\/[^"#]*)/g)) assert.ok(served.has(href), `${name} references ${href}`)

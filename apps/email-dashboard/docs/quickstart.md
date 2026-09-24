@@ -13,15 +13,15 @@ description: Create an API key, create an inbox, send a message, and read the re
 Account keys start with `bze_`. Put the key in your environment; never paste it into prompts, code, or browser storage.
 
 ```sh
-export BEZALEL_API_KEY="bze_..."
-export BEZALEL_BASE_URL="{{API_BASE}}"
+export GOSHENEMAIL_API_KEY="bze_..."
+export GOSHENEMAIL_BASE_URL="{{API_BASE}}"
 ```
 
 ## 2. Create an inbox
 
 ```sh
-curl "$BEZALEL_BASE_URL/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "$GOSHENEMAIL_BASE_URL/v1/inboxes" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"username":"research","displayName":"Research agent","group":"agents"}'
 ```
@@ -46,8 +46,8 @@ If `deliveryStatus` is `pending`, delivery routing did not finish. The address s
 Every send needs an `idempotencyKey` that you generate and keep. Retrying with the same key and the same contents never sends twice.
 
 ```sh
-curl "$BEZALEL_BASE_URL/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages/send" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "$GOSHENEMAIL_BASE_URL/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages/send" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "to": ["vendor@example.net"],
@@ -61,53 +61,38 @@ curl "$BEZALEL_BASE_URL/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages/send" 
 { "messageId": "<20260920180512.7f3a@{{DEFAULT_DOMAIN}}>", "threadId": "0b8d0e7f-3444-4bb7-a250-c2793dd5944d" }
 ```
 
-Path segments are URL encoded, so `@` becomes `%40`. The SDKs and CLI do this for you.
+Path segments are URL encoded, so `@` becomes `%40`. The CLI does this for you.
 
 ## 4. Read the reply
 
 When the vendor answers, the reply lands in the same inbox with the `received` and `unread` labels and joins the same thread.
 
 ```sh
-curl "$BEZALEL_BASE_URL/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages?labels=received&labels=unread" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+curl "$GOSHENEMAIL_BASE_URL/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages?labels=received&labels=unread" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 To read the whole conversation in order:
 
 ```sh
-curl "$BEZALEL_BASE_URL/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/threads/0b8d0e7f-3444-4bb7-a250-c2793dd5944d?includeBodies=true" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+curl "$GOSHENEMAIL_BASE_URL/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/threads/0b8d0e7f-3444-4bb7-a250-c2793dd5944d?includeBodies=true" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 ## 5. Reply in the thread
 
 ```sh
-curl "$BEZALEL_BASE_URL/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages/<message-id>/reply" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+curl "$GOSHENEMAIL_BASE_URL/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/messages/<message-id>/reply" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"text":"Thanks. Does the quote include shipping?","idempotencyKey":"9d5a0f0e-1b7c-4c1e-8f3a-6c2d1e0b9a77"}'
 ```
 
 `reply` addresses the original sender and keeps the thread. Set `replyAll: true` to include everyone on the original message, or pass `to`, `cc`, and `bcc` to choose recipients yourself.
 
-## Same thing with an SDK
-
-```ts
-import { BezalelEmail } from '@bezalel/email-sdk'
-
-const email = new BezalelEmail({ apiKey: process.env.BEZALEL_API_KEY!, baseUrl: process.env.BEZALEL_BASE_URL })
-const inbox = await email.inboxes.create({ username: 'research', group: 'agents' })
-await email.messages.send({
-  inboxId: inbox.inboxId, to: ['vendor@example.net'], subject: 'Quote request',
-  text: 'Hello, could you send the current quote for 200 units?', idempotencyKey: crypto.randomUUID(),
-})
-const { messages } = await email.messages.list({ inboxId: inbox.inboxId, labels: ['received', 'unread'] })
-```
-
-The [TypeScript](/docs/typescript) and [Python](/docs/python) pages cover installation and the full client. For an agent that should use the inbox as a tool rather than through code, see [MCP](/docs/mcp).
-
 ## Next
 
+- [MCP server](/docs/mcp) gives an agent the inbox as tools instead of HTTP calls.
 - [Sending mail](/docs/sending) explains idempotency, retries, attachments, and limits.
 - [Labels](/docs/labels) covers the system labels (`received`, `sent`, `unread`, `trash`, `quarantined`) and your own.
 - [Quarantine](/docs/quarantine) explains why some incoming mail waits for a person.

@@ -28,7 +28,7 @@ Mail that arrives without those headers starts a new thread, even if the subject
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes/research%40{{DEFAULT_DOMAIN}}/threads?labels=unread" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY"
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY"
 ```
 
 Threads are ordered by most recent activity. `labels` filters on the thread's labels. Threads whose messages are all in Trash are hidden unless `includeTrash=true`. The triage filters `category`, `needsReply`, and `urgency` apply to the latest incoming message; a reply the agent sends clears the thread's triage until the next message arrives.

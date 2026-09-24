@@ -160,7 +160,7 @@ a top-up, one winner among simultaneous sends on the last unit, a retried
 storage failure being checked again, no charge for rejected sends, mailbox-key
 sends, provider outage, administrator exemption, triage holds and refunds
 including a failed commit, simultaneous and missing quarantine releases,
-`getUsage` through REST, SDK, CLI, and MCP, and checkout and the billing
+`getUsage` through REST, CLI, and MCP, and checkout and the billing
 portal from the dashboard. A test also checks that the catalog in
 `pricing.ts` matches the plans, prices, and included amounts in
 `ops/autumn/autumn.config.ts`. No test contacts Autumn or Stripe.

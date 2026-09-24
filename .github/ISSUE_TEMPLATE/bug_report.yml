@@ -16,8 +16,6 @@ body:
         - API Worker (apps/email)
         - Dashboard (apps/email-dashboard)
         - SMTP gateway (apps/email-gateway)
-        - TypeScript SDK
-        - Python client
         - CLI
         - MCP server
         - Docs

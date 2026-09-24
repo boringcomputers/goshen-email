@@ -15,9 +15,8 @@ const files = {
   "ops/email/triage.sql": "-- Apply after developer-api.sql as the schema owner.\nBEGIN;\nSET LOCAL ROLE postgres;\n" + triageMigrations.join(";\n\n") + ";\nCOMMIT;\n",
   "ops/email/developer-api.sql": "-- Apply after inbox-onboarding.sql as the schema owner, with migration approval.\nBEGIN;\nSET LOCAL ROLE postgres;\n" + apiKeyMigrations.join(";\n\n") + ";\nCOMMIT;\n",
   "docs/openapi.json": JSON.stringify(document, null, 2) + "\n",
-  "packages/email-sdk/src/operations.ts": generated + types,
-  "packages/email-sdk/src/manifest.ts": generated + "export const manifest = " + JSON.stringify(manifest, null, 2) + " as const\n",
-  "packages/email-python/bezalel_email/manifest.json": JSON.stringify(manifest, null, 2) + "\n",
+  "packages/email-client/src/operations.ts": generated + types,
+  "packages/email-client/src/manifest.ts": generated + "export const manifest = " + JSON.stringify(manifest, null, 2) + " as const\n",
 }
 for (const [path, content] of Object.entries(files)) {
   const url = new URL(path, root)
@@ -25,4 +24,4 @@ for (const [path, content] of Object.entries(files)) {
     if (await readFile(url, "utf8") !== content) throw new Error(`Regenerate ${path} with pnpm api:generate`)
   } else { await mkdir(new URL(".", url), { recursive: true }); await writeFile(url, content) }
 }
-console.log(`${Object.keys(manifest).length} operations; OpenAPI, SDK types, CLI/MCP schemas, and Python manifest agree.`)
+console.log(`${Object.keys(manifest).length} operations; OpenAPI, client types, and CLI/MCP schemas agree.`)

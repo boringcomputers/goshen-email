@@ -38,7 +38,7 @@ If the domain already has an SPF record, merge the `ip4:` term into it instead o
 
 ```sh
 curl "{{API_BASE}}/v1/inboxes" \
-  -H "Authorization: Bearer $BEZALEL_API_KEY" \
+  -H "Authorization: Bearer $GOSHENEMAIL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"username":"research","domain":"mail.example.com"}'
 ```
