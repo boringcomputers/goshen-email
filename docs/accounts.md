@@ -1,7 +1,8 @@
 # Public accounts
 
-Anyone can create a Goshen Email account at `/sign-up`. Choose a magic link or
-a six-digit email code. Better Auth verifies ownership of the email address and
+Anyone can create a Goshen Email account at `/sign-up`, unless the deployment
+limits sign-in to a list of addresses. See [Private deployments](#private-deployments).
+Choose a magic link or a six-digit email code. Better Auth verifies ownership of the email address and
 creates an account on the first successful sign-in. Password sign-up, sign-in,
 and recovery endpoints are disabled.
 
@@ -44,6 +45,7 @@ Each account can change its own organization and profile names in
 | Email API | `AUTH_SECRET` | Independent random secret of at least 32 characters |
 | Both | `AUTH_PROXY_SECRET` | A second independent random secret shared only by these Workers |
 | Email API | `DASHBOARD_ADMIN_EMAILS` | Comma-separated owner emails, which must be verified during signup |
+| Email API | `AUTH_ALLOWED_EMAILS` | Optional comma-separated emails allowed to sign in. Unset keeps sign-up public |
 | Dashboard | `DASHBOARD_AUTH_MODE=account` | Enable public account pages and customer requests |
 
 The dashboard uses its service binding to reach the email Worker. It replaces
@@ -90,6 +92,30 @@ The account feature is not enabled in production merely by merging this code.
 Rollback switches the dashboard back to its previous password-mode version.
 Leave the new tables in place; do not drop account data during rollback. Deploy
 neither SMTP nor DNS changes for this feature.
+
+### Private deployments
+
+Set `AUTH_ALLOWED_EMAILS` on the API Worker to limit sign-in to the listed
+addresses. The API refuses any other address with a 403 before Better Auth
+runs, so it creates no account and sends no link or code. The sign-in page
+shows "Sign-in is limited to approved email addresses." A session that belongs
+to an unlisted address, including one issued before the list was set, stops
+working on its next request, and the dashboard sends that browser back to the
+sign-in page. If any entry is not a valid email address, account sign-in
+answers `not_configured` rather than opening sign-up.
+
+The list does not grant administrator rights. A single-owner deployment names
+the same address in `DASHBOARD_ADMIN_EMAILS` and `AUTH_ALLOWED_EMAILS`.
+
+The list controls dashboard sign-in only. Developer API keys that other
+accounts created before the list was set keep working. To cut those accounts
+off, disable them or revoke their keys.
+
+The list holds personal addresses, so keep it out of `wrangler.jsonc` and Git.
+Set it as a Worker secret with `wrangler secret put AUTH_ALLOWED_EMAILS` on the
+API Worker. Wrangler keeps secrets across deploys. Deploy the API and set the
+secret in either order; sign-in stays public until both are done. The
+dashboard and database need no change.
 
 ### Public origin
 

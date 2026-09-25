@@ -3,10 +3,10 @@ import { Pool } from "pg"
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { PGlite } from "@electric-sql/pglite"
 import { KyselyPGlite } from "kysely-pglite"
-import { createAccountAuth, handleAccountRequest, collectAccountGarbage, type AccountAuth } from "../src/account-auth.js"
+import { accountConfig, createAccountAuth, handleAccountRequest, collectAccountGarbage, type AccountAuth } from "../src/account-auth.js"
 import { fixture } from "./support.js"
 
-const config = { publicUrl: "https://accounts.example.com", secret: "test-account-secret-".repeat(3), proxySecret: "test-proxy-secret-".repeat(3), from: "accounts@example.com", adminEmails: ["owner@example.net"] }
+const config = { publicUrl: "https://accounts.example.com", secret: "test-account-secret-".repeat(3), proxySecret: "test-proxy-secret-".repeat(3), from: "accounts@example.com", adminEmails: ["owner@example.net"], allowedEmails: [] as string[] }
 
 describe("Public accounts", () => {
   let f: Awaited<ReturnType<typeof fixture>>, auth: AccountAuth, dialect: KyselyPGlite['dialect']
@@ -21,10 +21,10 @@ describe("Public accounts", () => {
     await f.pg.exec('truncate mail.auth_users, mail.auth_verifications, mail.auth_rate_limits, mail.customers, mail.inboxes, mail.domains cascade')
     f.send.mockClear()
   })
-  const request = (path: string, data?: unknown, cookie = '', headers = {}, instance = auth) => handleAccountRequest(new Request(`https://mail.example.com${path}`, {
+  const request = (path: string, data?: unknown, cookie = '', headers = {}, instance = auth, settings = config) => handleAccountRequest(new Request(`https://mail.example.com${path}`, {
     method: data === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${config.proxySecret}`, origin: config.publicUrl, 'content-type': 'application/json', 'x-bezalel-client-ip': '192.0.2.1', cookie, ...headers },
     ...(data === undefined ? {} : { body: JSON.stringify(data) }),
-  }), f.service, config, instance)
+  }), f.service, settings, instance)
   const rpc = (operation: string, cookie: string, data = {}) => request(`/account-rpc/${operation}`, data, cookie)
   const cookies = (response: Response) => response.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ')
   const emailUrl = () => new URL(f.send.mock.calls.at(-1)![0].text!.match(/https:\/\/\S+/)![0])
@@ -191,6 +191,39 @@ describe("Public accounts", () => {
     await collectAccountGarbage(f.service)
     expect(await f.db.query('select * from mail.auth_verifications')).toHaveLength(0)
     expect(await f.db.query('select * from mail.auth_users')).toHaveLength(1)
+  })
+  it('limits sign-in to the allowlist, sends nothing to other addresses, and ends their existing sessions', async () => {
+    const restricted = { ...config, allowedEmails: ['owner@example.net'] }
+    const privately = (path: string, data: unknown, cookie = '') => request(path, data, cookie, {}, auth, restricted)
+    const stranger = await verified(), owner = await verified('owner@example.net')
+    await signup(); const link = new URLSearchParams(emailUrl().hash.slice(1))
+    await sendCode(); const otp = code()
+    f.send.mockClear()
+    expect((await privately('/account-rpc/session', {}, stranger)).status).toBe(401)
+    expect((await privately('/account-rpc/session', {}, owner)).status).toBe(200)
+    for (const [path, data] of [
+      ['/api/auth/sign-in/magic-link', { email: 'b@example.net', name: 'B Person' }],
+      ['/api/auth/email-otp/send-verification-otp', { email: 'B@example.net', type: 'sign-in' }],
+      ['/api/auth/magic-link/verify', { token: link.get('token'), email: 'a@example.net' }],
+      ['/api/auth/sign-in/email-otp', { email: 'a@example.net', otp }],
+    ] as const) {
+      const response = await privately(path, data)
+      expect(response.status, path).toBe(403)
+      expect(cookies(response)).not.toContain('session_token=')
+      expect(await response.json()).toEqual({ error: { message: 'Sign-in is limited to approved email addresses.' } })
+    }
+    expect(f.send).not.toHaveBeenCalled()
+    expect(await f.db.query('select email from mail.auth_users order by email')).toEqual([{ email: 'a@example.net' }, { email: 'owner@example.net' }])
+    expect((await privately('/api/auth/email-otp/send-verification-otp', { email: 'Owner@Example.net', type: 'sign-in' })).status).toBe(200)
+    const login = await privately('/api/auth/sign-in/email-otp', { email: 'owner@example.net', otp: code() })
+    expect(login.status, await login.clone().text()).toBe(200)
+    expect(await (await privately('/account-rpc/session', {}, cookies(login))).json()).toMatchObject({ result: { customer: { email: 'owner@example.net', role: 'admin' } } })
+  })
+  it('reads the sign-in allowlist from AUTH_ALLOWED_EMAILS and refuses invalid entries', () => {
+    const env = { AUTH_PUBLIC_URL: config.publicUrl, AUTH_SECRET: config.secret, AUTH_PROXY_SECRET: config.proxySecret, AUTH_FROM: config.from }
+    expect(accountConfig(env).allowedEmails).toEqual([])
+    expect(accountConfig({ ...env, AUTH_ALLOWED_EMAILS: ' Owner@Example.net, b@example.net ' }).allowedEmails).toEqual(['owner@example.net', 'b@example.net'])
+    expect(() => accountConfig({ ...env, AUTH_ALLOWED_EMAILS: 'owner@example.net, not-an-address' })).toThrow('Account sign-in is not configured')
   })
   it('enforces durable email-send throttling across instances', async () => {
     for (let i = 0; i < 3; i++) expect((await signup()).status).toBe(200)

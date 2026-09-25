@@ -5,7 +5,7 @@ import { validateUrl } from "./security.js"
 const standaloneSettings = [
   "TYPESAFE_API_KEY", "TYPESAFE_MODEL", "AUTH_PUBLIC_URL", "AUTH_SECRET",
   "AUTH_PROXY_SECRET", "AUTH_FROM", "ACCESS_TEAM_DOMAIN", "ACCESS_AUD",
-  "DASHBOARD_ADMIN_EMAILS",
+  "DASHBOARD_ADMIN_EMAILS", "AUTH_ALLOWED_EMAILS",
 ] as const
 
 // validateUrl admits HTTP on loopback for local development. The native Worker publishes

@@ -50,7 +50,9 @@ const service = new MailService({
 })
 const port = Number(process.env.FIXTURE_PORT ?? 3038)
 const accountMode = process.env.FIXTURE_AUTH_MODE === 'account'
-const accountConfig = { publicUrl: `http://127.0.0.1:${port}`, secret: 'fixture-account-secret-'.repeat(3), proxySecret: 'fixture-proxy-secret-'.repeat(3), from: 'accounts@example.com', adminEmails: ['owner@example.net'] }
+// FIXTURE_ALLOWED_EMAILS restricts sign-in to a comma-separated list, as AUTH_ALLOWED_EMAILS does on the Worker.
+const allowedEmails = (process.env.FIXTURE_ALLOWED_EMAILS ?? '').split(',').map(email => email.trim().toLowerCase()).filter(Boolean)
+const accountConfig = { publicUrl: `http://127.0.0.1:${port}`, secret: 'fixture-account-secret-'.repeat(3), proxySecret: 'fixture-proxy-secret-'.repeat(3), from: 'accounts@example.com', adminEmails: ['owner@example.net'], allowedEmails }
 const auth = accountMode ? createAccountAuth(accountConfig, new KyselyPGlite(pg).dialect, service) : undefined
 const native = process.env.FIXTURE_NATIVE_MAIL === 'true' ? await nativeDashboardFixture(objects, service.transport) : undefined
 const server = dashboardServer({ ...(accountMode ? {
