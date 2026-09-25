@@ -50,11 +50,11 @@ const service = new MailService({
 })
 const port = Number(process.env.FIXTURE_PORT ?? 3038)
 const accountMode = process.env.FIXTURE_AUTH_MODE === 'account'
-// FIXTURE_ALLOWED_EMAILS goes through the Worker's own parser as AUTH_ALLOWED_EMAILS, so the fixture
-// refuses to start with a list that production would reject.
+// In account mode, FIXTURE_ALLOWED_EMAILS goes through the Worker's own parser as AUTH_ALLOWED_EMAILS, so
+// the fixture refuses to start with a list that production would reject. Password mode ignores it.
 const accountConfig = parseAccountConfig({ AUTH_PUBLIC_URL: `http://127.0.0.1:${port}`, AUTH_SECRET: 'fixture-account-secret-'.repeat(3),
   AUTH_PROXY_SECRET: 'fixture-proxy-secret-'.repeat(3), AUTH_FROM: 'accounts@example.com', DASHBOARD_ADMIN_EMAILS: 'owner@example.net',
-  AUTH_ALLOWED_EMAILS: process.env.FIXTURE_ALLOWED_EMAILS })
+  AUTH_ALLOWED_EMAILS: accountMode ? process.env.FIXTURE_ALLOWED_EMAILS : undefined })
 const auth = accountMode ? createAccountAuth(accountConfig, new KyselyPGlite(pg).dialect, service) : undefined
 const native = process.env.FIXTURE_NATIVE_MAIL === 'true' ? await nativeDashboardFixture(objects, service.transport) : undefined
 const server = dashboardServer({ ...(accountMode ? {
