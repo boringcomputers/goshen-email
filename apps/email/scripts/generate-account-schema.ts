@@ -9,7 +9,7 @@ import type { MailService } from "../src/mail-service.js"
 // Schema generation uses a fresh in-memory database, never deployment credentials.
 const pg = new KyselyPGlite()
 await pg.client.exec("create schema mail")
-const options = accountOptions({ publicUrl: "https://accounts.example.com", secret: "schema-only-".repeat(4), proxySecret: "schema-only-".repeat(4), from: "accounts@example.com", adminEmails: [] }, pg.dialect, {} as MailService)
+const options = accountOptions({ publicUrl: "https://accounts.example.com", secret: "schema-only-".repeat(4), proxySecret: "schema-only-".repeat(4), from: "accounts@example.com", adminEmails: [], allowedEmails: [] }, pg.dialect, {} as MailService)
 const plan = await getMigrations(options)
 const sql = (await plan.compileMigrations()).replaceAll("create table ", "create table if not exists ").replaceAll("create index ", "create index if not exists ").replaceAll("create unique index ", "create unique index if not exists ")
 const statements = sql.split(";").map((s) => s.trim()).filter(Boolean)

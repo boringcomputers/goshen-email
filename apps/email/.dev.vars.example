@@ -30,3 +30,5 @@ CLOUDFLARE_API_TOKEN=replace-with-your-scoped-cloudflare-api-token
 # AUTH_SECRET=replace-with-an-independent-random-value-at-least-32-characters
 # AUTH_PROXY_SECRET=match-the-dashboard-proxy-secret
 # DASHBOARD_ADMIN_EMAILS=owner@example.com
+# Optional. Only these addresses can sign in; unset keeps sign-up public.
+# AUTH_ALLOWED_EMAILS=owner@example.com

@@ -59,6 +59,7 @@ export interface Env {
   AUTH_SECRET?: string
   AUTH_PROXY_SECRET?: string
   AUTH_FROM?: string
+  AUTH_ALLOWED_EMAILS?: string
   ACCESS_TEAM_DOMAIN?: string
   ACCESS_AUD?: string
   DASHBOARD_ADMIN_EMAILS?: string

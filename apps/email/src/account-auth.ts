@@ -11,8 +11,11 @@ import { CustomerStore } from "./customer-store.js"
 import { executeCustomerRequest } from "./customer-api.js"
 import type { MailService } from "./mail-service.js"
 
-export interface AccountConfig { publicUrl: string; secret: string; proxySecret: string; from: string; adminEmails: string[] }
-export function accountConfig(env: { AUTH_PUBLIC_URL?: string; AUTH_SECRET?: string; AUTH_PROXY_SECRET?: string; AUTH_FROM?: string; DASHBOARD_ADMIN_EMAILS?: string }): AccountConfig {
+// An empty allowedEmails list, from an unset AUTH_ALLOWED_EMAILS, keeps sign-up public. Any entry restricts
+// sign-in to the listed addresses. A set but blank AUTH_ALLOWED_EMAILS is a configuration error.
+export interface AccountConfig { publicUrl: string; secret: string; proxySecret: string; from: string; adminEmails: string[]; allowedEmails: string[] }
+const emailList = (value: string | undefined) => z.array(z.email()).safeParse((value ?? "").split(",").map((entry) => entry.trim().toLowerCase()).filter(Boolean))
+export function accountConfig(env: { AUTH_PUBLIC_URL?: string; AUTH_SECRET?: string; AUTH_PROXY_SECRET?: string; AUTH_FROM?: string; DASHBOARD_ADMIN_EMAILS?: string; AUTH_ALLOWED_EMAILS?: string }): AccountConfig {
   const parsed = z.object({ publicUrl: z.url(), secret: z.string().min(32), proxySecret: z.string().min(32), from: z.email() }).safeParse({
     publicUrl: env.AUTH_PUBLIC_URL, secret: env.AUTH_SECRET, proxySecret: env.AUTH_PROXY_SECRET, from: env.AUTH_FROM,
   })
@@ -20,10 +23,12 @@ export function accountConfig(env: { AUTH_PUBLIC_URL?: string; AUTH_SECRET?: str
   const url = new URL(parsed.data.publicUrl)
   if ((url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))) || url.origin !== parsed.data.publicUrl || url.username || url.password)
     throw new MailError("Account sign-in is not configured", "not_configured", 503)
-  const admins = z.array(z.email()).safeParse((env.DASHBOARD_ADMIN_EMAILS ?? "").split(",").map((value) => value.trim().toLowerCase()).filter(Boolean))
-  if (!admins.success) throw new MailError("Account sign-in is not configured", "not_configured", 503)
-  return { ...parsed.data, adminEmails: admins.data }
+  const admins = emailList(env.DASHBOARD_ADMIN_EMAILS), allowed = emailList(env.AUTH_ALLOWED_EMAILS)
+  if (!admins.success || !allowed.success || (env.AUTH_ALLOWED_EMAILS !== undefined && !allowed.data.length))
+    throw new MailError("Account sign-in is not configured", "not_configured", 503)
+  return { ...parsed.data, adminEmails: admins.data, allowedEmails: allowed.data }
 }
+const maySignIn = (config: AccountConfig, email: string) => !config.allowedEmails.length || config.allowedEmails.includes(email.toLowerCase())
 
 const linkHash = (token: string, secret: string) => createHmac("sha256", secret).update(token).digest("hex")
 
@@ -106,6 +111,8 @@ export async function handleAccountRequest(request: Request, service: MailServic
       if (request.method === "POST" && url.pathname !== "/api/auth/sign-out") {
         if (!z.email().max(254).safeParse(input.email).success || (input.name !== undefined && !z.string().trim().min(1).max(200).safeParse(input.name).success))
           throw new MailError("Enter a valid name and email address")
+        // Refuse before Better Auth runs, so a refused address never receives a link or code.
+        if (!maySignIn(config, String(input.email))) throw new MailError("Sign-in is limited to approved email addresses.", "forbidden", 403)
         if (url.pathname === "/api/auth/magic-link/verify") {
           const token = z.string().regex(/^[A-Za-z0-9_-]{20,256}$/).safeParse(input.token)
           if (!token.success) throw new MailError("Invalid or expired sign-in link", "invalid_token", 401)
@@ -128,7 +135,8 @@ export async function handleAccountRequest(request: Request, service: MailServic
     if (url.pathname.startsWith("/account-rpc/")) {
       if (request.method !== "POST") throw new MailError("Not found", "not_found", 404)
       const { response: session, headers: sessionHeaders } = await auth.api.getSession({ headers, returnHeaders: true })
-      if (!session?.user.emailVerified) throw new MailError("Sign in to continue", "unauthorized", 401)
+      // Sessions for addresses outside the allowlist, such as ones issued before it was set, count as signed out.
+      if (!session?.user.emailVerified || !maySignIn(config, session.user.email)) throw new MailError("Sign in to continue", "unauthorized", 401)
       const store = new CustomerStore(service.store.db, config.adminEmails)
       const customer = await store.resolveAccount(session.user)
       const response = await executeCustomerRequest(authRequest, service, store, customer, url.pathname.slice("/account-rpc/".length))
