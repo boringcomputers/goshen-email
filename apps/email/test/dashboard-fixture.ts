@@ -6,7 +6,7 @@ import { Metering } from "../src/metering.js"
 import { pricingPlans } from "../src/pricing.js"
 import { nativeDashboardFixture } from './native-dashboard-fixture.js'
 import { KyselyPGlite } from "kysely-pglite"
-import { createAccountAuth, handleAccountRequest } from "../src/account-auth.js"
+import { accountConfig as parseAccountConfig, createAccountAuth, handleAccountRequest } from "../src/account-auth.js"
 import { PGlite } from '@electric-sql/pglite'
 import { createServer } from 'node:http'
 import { migrate, type Database } from '../src/database.js'
@@ -50,9 +50,11 @@ const service = new MailService({
 })
 const port = Number(process.env.FIXTURE_PORT ?? 3038)
 const accountMode = process.env.FIXTURE_AUTH_MODE === 'account'
-// FIXTURE_ALLOWED_EMAILS restricts sign-in to a comma-separated list, as AUTH_ALLOWED_EMAILS does on the Worker.
-const allowedEmails = (process.env.FIXTURE_ALLOWED_EMAILS ?? '').split(',').map(email => email.trim().toLowerCase()).filter(Boolean)
-const accountConfig = { publicUrl: `http://127.0.0.1:${port}`, secret: 'fixture-account-secret-'.repeat(3), proxySecret: 'fixture-proxy-secret-'.repeat(3), from: 'accounts@example.com', adminEmails: ['owner@example.net'], allowedEmails }
+// FIXTURE_ALLOWED_EMAILS goes through the Worker's own parser as AUTH_ALLOWED_EMAILS, so the fixture
+// refuses to start with a list that production would reject.
+const accountConfig = parseAccountConfig({ AUTH_PUBLIC_URL: `http://127.0.0.1:${port}`, AUTH_SECRET: 'fixture-account-secret-'.repeat(3),
+  AUTH_PROXY_SECRET: 'fixture-proxy-secret-'.repeat(3), AUTH_FROM: 'accounts@example.com', DASHBOARD_ADMIN_EMAILS: 'owner@example.net',
+  AUTH_ALLOWED_EMAILS: process.env.FIXTURE_ALLOWED_EMAILS })
 const auth = accountMode ? createAccountAuth(accountConfig, new KyselyPGlite(pg).dialect, service) : undefined
 const native = process.env.FIXTURE_NATIVE_MAIL === 'true' ? await nativeDashboardFixture(objects, service.transport) : undefined
 const server = dashboardServer({ ...(accountMode ? {

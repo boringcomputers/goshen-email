@@ -219,11 +219,12 @@ describe("Public accounts", () => {
     expect(login.status, await login.clone().text()).toBe(200)
     expect(await (await privately('/account-rpc/session', {}, cookies(login))).json()).toMatchObject({ result: { customer: { email: 'owner@example.net', role: 'admin' } } })
   })
-  it('reads the sign-in allowlist from AUTH_ALLOWED_EMAILS and refuses invalid entries', () => {
+  it('reads the sign-in allowlist from AUTH_ALLOWED_EMAILS and refuses invalid or blank values', () => {
     const env = { AUTH_PUBLIC_URL: config.publicUrl, AUTH_SECRET: config.secret, AUTH_PROXY_SECRET: config.proxySecret, AUTH_FROM: config.from }
     expect(accountConfig(env).allowedEmails).toEqual([])
     expect(accountConfig({ ...env, AUTH_ALLOWED_EMAILS: ' Owner@Example.net, b@example.net ' }).allowedEmails).toEqual(['owner@example.net', 'b@example.net'])
-    expect(() => accountConfig({ ...env, AUTH_ALLOWED_EMAILS: 'owner@example.net, not-an-address' })).toThrow('Account sign-in is not configured')
+    for (const value of ['owner@example.net, not-an-address', '', '  ', ' , '])
+      expect(() => accountConfig({ ...env, AUTH_ALLOWED_EMAILS: value }), JSON.stringify(value)).toThrow('Account sign-in is not configured')
   })
   it('enforces durable email-send throttling across instances', async () => {
     for (let i = 0; i < 3; i++) expect((await signup()).status).toBe(200)

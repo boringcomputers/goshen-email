@@ -101,8 +101,9 @@ runs, so it creates no account and sends no link or code. The sign-in page
 shows "Sign-in is limited to approved email addresses." A session that belongs
 to an unlisted address, including one issued before the list was set, stops
 working on its next request, and the dashboard sends that browser back to the
-sign-in page. If any entry is not a valid email address, account sign-in
-answers `not_configured` rather than opening sign-up.
+sign-in page. If the variable is set but blank, or any entry is not a valid
+email address, account sign-in answers `not_configured` rather than opening
+sign-up.
 
 The list does not grant administrator rights. A single-owner deployment names
 the same address in `DASHBOARD_ADMIN_EMAILS` and `AUTH_ALLOWED_EMAILS`.

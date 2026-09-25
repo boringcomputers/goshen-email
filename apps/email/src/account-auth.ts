@@ -11,7 +11,8 @@ import { CustomerStore } from "./customer-store.js"
 import { executeCustomerRequest } from "./customer-api.js"
 import type { MailService } from "./mail-service.js"
 
-// An empty allowedEmails list keeps sign-up public. Any entry restricts sign-in to the listed addresses.
+// An empty allowedEmails list, from an unset AUTH_ALLOWED_EMAILS, keeps sign-up public. Any entry restricts
+// sign-in to the listed addresses. A set but blank AUTH_ALLOWED_EMAILS is a configuration error.
 export interface AccountConfig { publicUrl: string; secret: string; proxySecret: string; from: string; adminEmails: string[]; allowedEmails: string[] }
 const emailList = (value: string | undefined) => z.array(z.email()).safeParse((value ?? "").split(",").map((entry) => entry.trim().toLowerCase()).filter(Boolean))
 export function accountConfig(env: { AUTH_PUBLIC_URL?: string; AUTH_SECRET?: string; AUTH_PROXY_SECRET?: string; AUTH_FROM?: string; DASHBOARD_ADMIN_EMAILS?: string; AUTH_ALLOWED_EMAILS?: string }): AccountConfig {
@@ -23,7 +24,8 @@ export function accountConfig(env: { AUTH_PUBLIC_URL?: string; AUTH_SECRET?: str
   if ((url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))) || url.origin !== parsed.data.publicUrl || url.username || url.password)
     throw new MailError("Account sign-in is not configured", "not_configured", 503)
   const admins = emailList(env.DASHBOARD_ADMIN_EMAILS), allowed = emailList(env.AUTH_ALLOWED_EMAILS)
-  if (!admins.success || !allowed.success) throw new MailError("Account sign-in is not configured", "not_configured", 503)
+  if (!admins.success || !allowed.success || (env.AUTH_ALLOWED_EMAILS !== undefined && !allowed.data.length))
+    throw new MailError("Account sign-in is not configured", "not_configured", 503)
   return { ...parsed.data, adminEmails: admins.data, allowedEmails: allowed.data }
 }
 const maySignIn = (config: AccountConfig, email: string) => !config.allowedEmails.length || config.allowedEmails.includes(email.toLowerCase())
