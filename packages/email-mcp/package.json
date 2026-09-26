@@ -14,7 +14,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "licenses"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
