@@ -2,7 +2,7 @@
   "name": "bezalel-email",
   "private": true,
   "description": "Email inboxes for AI agents: API, dashboard, and SMTP gateway",
-  "license": "AGPL-3.0-only",
+  "license": "FSL-1.1-ALv2",
   "homepage": "https://goshenemail.com",
   "repository": {
     "type": "git",

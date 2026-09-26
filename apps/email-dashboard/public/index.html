@@ -38,7 +38,7 @@
       <div class="band-inner hero">
         <div class="hero-copy">
           <h1 id="hero-title" class="display"><span class="subtle">Email inboxes for AI agents.</span> <span>Your agent writes. You stay in the loop.</span></h1>
-          <p class="hero-description">Give each agent a real address with threads, attachments, and a key that reaches only its own mail. Drive it from the REST API, CLI, or MCP, and read along from the dashboard. Open source under AGPL-3.0.</p>
+          <p class="hero-description">Give each agent a real address with threads, attachments, and a key that reaches only its own mail. Drive it from the REST API, CLI, or MCP, and read along from the dashboard. The full source is on GitHub.</p>
           <div class="hero-actions">
             <a href="/app" class="button button-primary">Get started</a>
             <a href="/docs/quickstart" class="button button-secondary">Read the docs</a>
@@ -415,7 +415,7 @@ $ goshenemail messages reply --json - &lt; reply.json
           </article>
           <article class="plan">
             <div class="plan-name"><h3>Self-host</h3><p>Your Cloudflare account, your data.</p></div>
-            <p class="plan-price"><span class="plan-amount">$0</span><span>under AGPL-3.0</span></p>
+            <p class="plan-price"><span class="plan-amount">$0</span><span>under FSL-1.1</span></p>
             <a href="https://github.com/boringcomputers/goshen-email" class="plan-button">View on GitHub</a>
             <ul class="plan-features">
               <li>API, dashboard, and SMTP gateway</li>
@@ -433,11 +433,11 @@ $ goshenemail messages reply --json - &lt; reply.json
     <section id="open-source" aria-labelledby="open-source-title" class="band">
       <div class="band-inner section split">
         <div class="split-main">
-          <h2 id="open-source-title" class="title"><span class="subtle">Every line, down to the mail server,</span> <span>is open source.</span></h2>
+          <h2 id="open-source-title" class="title"><span class="subtle">Every line, down to the mail server,</span> <span>is on GitHub.</span></h2>
           <div class="detail-card">
             <div class="detail-head">
               <div class="detail-name"><strong>boringcomputers/goshen-email</strong><span>Public repository on GitHub</span></div>
-              <span class="pill pill-neutral"><span class="dot"></span>AGPL-3.0</span>
+              <span class="pill pill-neutral"><span class="dot"></span>FSL-1.1</span>
             </div>
             <div class="detail-row"><span class="detail-label">Includes</span><span class="tags"><span class="tag">API Worker</span><span class="tag">Dashboard</span><span class="tag">SMTP gateway</span></span></div>
             <div class="detail-row"><span class="detail-label">Run it</span><code>pnpm install &amp;&amp; pnpm build</code></div>
@@ -445,7 +445,8 @@ $ goshenemail messages reply --json - &lt; reply.json
           </div>
         </div>
         <ul class="fact-list">
-          <li>The API Worker, the dashboard, and the SMTP gateway live in one repository under AGPL-3.0.</li>
+          <li>The API Worker, the dashboard, and the SMTP gateway live in one repository.</li>
+          <li>The Functional Source License lets you use it for anything except a competing commercial product or service. Each release becomes Apache 2.0 two years later.</li>
           <li>Run it locally against an in-memory database. You need no accounts or credentials, and no mail leaves your machine.</li>
           <li>Self-host on your own Cloudflare account, with PostgreSQL through Hyperdrive, R2, and delivery queues.</li>
           <li>Read exactly how your agents' mail is stored and checked.</li>
@@ -485,14 +486,14 @@ $ goshenemail messages reply --json - &lt; reply.json
             <ul><li><a href="/docs/api">API reference</a></li><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/cli">CLI</a></li><li><a href="/docs/mcp">MCP server</a></li></ul>
           </nav>
           <nav aria-labelledby="footer-open-source" class="footer-column">
-            <h2 id="footer-open-source">Open source</h2>
+            <h2 id="footer-open-source">Source</h2>
             <ul><li><a href="https://github.com/boringcomputers/goshen-email">GitHub</a></li><li><a href="https://github.com/boringcomputers/goshen-email#self-host">Self-hosting guide</a></li><li><a href="https://github.com/boringcomputers/goshen-email/blob/main/LICENSE">License</a></li></ul>
           </nav>
         </div>
       </div>
       <div class="footer-bottom">
         <p>© 2026 Boring Computers</p>
-        <p>Open source under AGPL-3.0</p>
+        <p>Source available under FSL-1.1-ALv2</p>
       </div>
     </div>
   </footer>

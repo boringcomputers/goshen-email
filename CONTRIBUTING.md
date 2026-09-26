@@ -86,5 +86,9 @@ this repository should.
 
 ## License
 
-By contributing, you agree to license your work under the project's
-[AGPL-3.0-only license](LICENSE).
+By contributing, you license your contribution to Boring Computers under the
+[Apache License 2.0](licenses/Apache-2.0.txt) and confirm you have the right to
+do so. Boring Computers releases it to everyone else under the project's
+[FSL-1.1-ALv2 license](LICENSE). Because contributions come in under Apache 2.0,
+the repository and the CLI and MCP packages ship its text in
+`licenses/Apache-2.0.txt`.

@@ -46,5 +46,7 @@ Do not copy local `.env`, `.dev.vars`, Wrangler state, or production credentials
 only the declared modifications. Update the manifest deliberately when changing
 another extracted file. The check verifies provenance, not runtime correctness.
 
-The original [AGPL-3.0-only license](LICENSE) applies to the extracted code and
-this project. This repository does not publish or deploy changes automatically.
+The [FSL-1.1-ALv2 license](LICENSE) applies to the extracted code and this
+project. Bezalel keeps its AGPL-3.0-only license. Both repositories have the
+same copyright holder, so the extracted code can carry a different license here.
+This repository does not publish or deploy changes automatically.
