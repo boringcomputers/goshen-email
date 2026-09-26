@@ -4,6 +4,7 @@ import { gatewayTransport } from "../src/gateway.js"
 import { MailService } from "../src/mail-service.js"
 import { handleRequest } from "../src/worker.js"
 import { fixture, rawMail, config, cleanProtection } from "./support.js"
+import { redirectResponse, workersFetch } from "./workers-fetch.js"
 
 const domain = "agents.customer.test"
 const gateway: GatewayConfig = {
@@ -58,6 +59,7 @@ describe("native custom domains", () => {
     await service.execute("send", { inboxId: inbox.inboxId, to: ["reader@example.net"], text: "Domain canary", idempotencyKey: "custom-send" })
     expect(f.send).not.toHaveBeenCalled()
     const payload = JSON.parse(String(request.mock.calls[0]![1]!.body))
+    expect(request.mock.calls[0]![1]?.redirect).toBe("manual")
     expect(payload.dkim.domainName).toBe(domain)
     expect(payload.dkim.privateKey).toContain("BEGIN PRIVATE KEY")
     expect(initial.records.some((record) => record.name.startsWith(payload.dkim.keySelector))).toBe(true)
@@ -174,6 +176,13 @@ it("decodes DNS TXT chunks and fails closed on DNS errors", async () => {
   expect(decodeTxt('"a\\032b"')).toBe("a b")
   const lookup = dnsLookup(vi.fn().mockResolvedValue(Response.json({ Status: 2 })))
   await expect(lookup("example.com", "TXT")).rejects.toMatchObject({ code: "dns_unavailable" })
+})
+
+it("reads DNS under the Workers fetch rules and does not follow redirects", async () => {
+  const answer = vi.fn(workersFetch(async () => Response.json({ Status: 0, Answer: [{ type: 16, data: '"v=spf1 -all"' }] })))
+  await expect(dnsLookup(answer)("example.com", "TXT")).resolves.toEqual(["v=spf1 -all"])
+  expect(answer.mock.calls[0]![1]?.redirect).toBe("manual")
+  await expect(dnsLookup(workersFetch(async () => redirectResponse()))("example.com", "TXT")).rejects.toMatchObject({ code: "dns_unavailable" })
 })
 
 it("accepts a merged SPF record but rejects duplicate policies and an IP after all", () => {

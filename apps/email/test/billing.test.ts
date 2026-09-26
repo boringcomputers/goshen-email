@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises"
 import { URL } from "node:url"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { GoshenEmailClient } from "@goshenemail/client"
 import { run } from "goshenemail-cli"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
@@ -19,6 +19,7 @@ import { handleRequest } from "../src/worker.js"
 import { fakeAutumn } from "./autumn-fixture.js"
 import { cleanProtection, fixture, rawMail } from "./support.js"
 import { fixtureTriage } from "./triage-fixture.js"
+import { redirectResponse, workersFetch } from "./workers-fetch.js"
 
 const admin = "owner@example.net"
 
@@ -416,5 +417,12 @@ describe("plan limits through Autumn", () => {
     await expect(executeCustomerRequest(new Request("https://dashboard.test/rpc", { method: "POST", body: JSON.stringify({ planId: "developer" }) }), plain, store, customer, "startCheckout"))
       .rejects.toMatchObject({ status: 503, code: "not_configured" })
     expect(autumn.has(customer.id)).toBe(false)
+  })
+
+  it("does not follow a redirect from Autumn", async () => {
+    const request = vi.fn(workersFetch(async () => redirectResponse()))
+    await expect(autumnBilling("am_sk_test_fixture", request).usage({ id: "redirected", email: "redirected@example.net" }))
+      .rejects.toMatchObject({ code: "billing_unavailable" })
+    expect(request.mock.calls[0]![1]?.redirect).toBe("manual")
   })
 })
