@@ -62,7 +62,8 @@ export function jevAnalyzer(apiKey: string, model = "jev-latest", request: typeo
     } catch { throw new TriageError("provider_unavailable", true) }
     if (!response.ok) {
       await response.body?.cancel().catch(() => {})
-      const transient = response.status === 429 || response.status >= 500
+      // A redirect is not followed. Like an outage, it may pass, so the analysis stays eligible for retry.
+      const transient = response.status === 429 || response.status >= 500 || (response.status >= 300 && response.status < 400)
       const header = response.headers.get("retry-after") ?? ""
       const delay = /^\d+$/.test(header) ? Number(header) : Math.ceil((Date.parse(header) - Date.now()) / 1000)
       throw new TriageError(transient ? "provider_unavailable" : "provider_rejected", transient, Number.isFinite(delay) ? Math.max(0, Math.min(delay, 3600)) : 0)

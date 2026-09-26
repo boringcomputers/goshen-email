@@ -49,7 +49,7 @@ describe("Jev triage with simulated inference and real message storage", () => {
     expect(init?.headers).toMatchObject({ authorization: "Bearer fixture-secret" })
     expect(init?.redirect).toBe("manual")
     await expect(jevAnalyzer("fixture-secret", "jev-test", workersFetch(async () => redirectResponse()))(message))
-      .rejects.toMatchObject({ code: "provider_rejected", retryable: false })
+      .rejects.toMatchObject({ code: "provider_unavailable", retryable: true })
     const body = JSON.parse(String(init?.body))
     expect(body.model).toBe("jev-test")
     expect(Object.keys(body.questions)).toEqual(["category", "needs_reply", "urgency"])
