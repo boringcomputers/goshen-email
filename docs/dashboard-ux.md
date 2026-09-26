@@ -5,8 +5,11 @@ and has an options menu for copying the address or deleting that inbox. Search
 matches names, addresses, and groups. Group filters and ten-row pages use the
 complete paginated account inventory.
 
-The resource sidebar contains Inboxes, Domains when enabled, API keys,
-and Integrations. Inbox folders and mailbox keys live inside the inbox view.
+The sidebar starts with Compose, API keys, Integrations, Domains when enabled,
+and Docs. Below them the Inboxes link shows the inbox count against the plan's
+limit, followed by every inbox from the inventory the dashboard already loaded,
+so the list adds no requests. Inbox folders and mailbox keys live inside the
+inbox view.
 The reader's Filter messages button expands the
 existing Jev category, response, and urgency controls.
 
@@ -14,7 +17,11 @@ Configured administrators also see [Bezalel inboxes](native-admin.md), a read-on
 view of the dedicated native deployment. It keeps native mail separate from the
 standalone account inventory and checks administrator access on every read.
 
-Plan and usage sits above Settings in the workspace section. It shows the
+Plan and usage opens from the usage card between Settings and the account
+button. The card shows sends this month against the plan's allowance, read
+once per load from `getUsage` and after each send, and saved with the
+workspace so a reload paints it at once. Without metered billing the card
+reads Plan and usage. The page shows the
 account's plan with its renewal date, meters for inboxes, sends, and triage
 analyses against the plan's allowances, and cards for every plan with an
 upgrade button that hands the browser to the hosted checkout page. Manage
@@ -27,7 +34,7 @@ dashboard redirects to `/sign-in#/billing`, the sign-in page carries the
 fragment back to `/app#/billing` after a code or link, and only fragments that
 look like dashboard routes qualify. An explicit sign-out drops the route.
 
-Settings sits above the account button. It edits notification preferences and the organization and profile
+Settings sits above the usage card. It edits notification preferences and the organization and profile
 names, shows the verified sign-in email, and links to API keys. The saved
 organization name appears in the breadcrumb. See
 [workspace settings](settings.md) for persistence and rollout details.
@@ -99,18 +106,18 @@ the breadcrumb can change width once the organization name arrives.
 
 ## Design
 
-The dashboard shell matches the Fancy Dashboard artboard. Shared tokens live in
-`tokens.css`. The canvas is sand 50 (`#F3F2EF`). The sidebar is 240px with
-20px vertical and 12px horizontal padding. Navigation is 13px, with 16px icons
-and a white active row. The header is 64px tall, with 32px side padding and a
-20px semibold title. Content padding is 8px on top and 32px on the sides and
-bottom. Panels, tables, and the mail reader use a 12px radius, a hairline
-border, and a white surface. Primary actions stay ink pills at 32px. Inputs
-are 40px with an 8px radius. Mobile navigation keeps 44px tap targets.
+The dashboard follows the Dashboard page of the Goshen Email file in Paper;
+see [design system](design-system.md) for tokens and fonts. A 248px sidebar on
+the `#F8F8F8` canvas sits beside a white panel with a 12px radius. Navigation
+is Inter at 14px with 15px icons and a filled active row. Page heads carry the
+breadcrumb as the title. The mail view has its own 64px head with the inbox
+name, a status pill, and its actions. Buttons are 30px with a 6px radius, the
+primary one dark gray. Inputs are 36px with an 8px radius. Mobile navigation
+keeps 44px tap targets.
 
-`console.css` sets that layout for inboxes, API keys, integrations, domains,
-settings, and the native inbox inventory. `native-mail.css` uses the same
-tokens for its reader. Mobile navigation and the single-column mail reader
+`style.css` sets the shell, the mail view, and dialogs. `console.css` sets the
+inboxes, API keys, integrations, domains, plan, settings, and native inbox
+pages. `native-mail.css` uses the same tokens for its reader. Mobile navigation and the single-column mail reader
 keep their existing breakpoints and keyboard behavior.
 
 ## Verification
