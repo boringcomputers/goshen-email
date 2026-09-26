@@ -39,7 +39,7 @@ export const dnsLookup = (request: typeof fetch = fetch): Lookup => async (name,
     url.searchParams.set("type", type)
     const response = await request(url, {
       headers: { accept: "application/dns-json" },
-      signal: AbortSignal.timeout(5000), redirect: "error"
+      signal: AbortSignal.timeout(5000), redirect: "manual"
     })
     if (!response.ok) throw new Error()
     const parsed = dnsResponse.parse(JSON.parse(new TextDecoder().decode(await readBytes(response.body, 64 * 1024))))

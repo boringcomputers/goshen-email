@@ -52,7 +52,7 @@ export function jevAnalyzer(apiKey: string, model = "jev-latest", request: typeo
     try {
       response = await request("https://api.typesafe.ai/v1/systemone", {
         method: "POST", headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-        signal: AbortSignal.timeout(15_000), redirect: "error",
+        signal: AbortSignal.timeout(15_000), redirect: "manual",
         body: JSON.stringify({ model, questions: triageQuestions, state: {
           receivedAt: message.timestamp,
           email: { from: message.data.from, to: message.data.to.slice(0, 50), subject: message.data.subject.slice(0, 998), text },

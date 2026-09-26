@@ -14,7 +14,7 @@ export const gatewayScanner = (config: { url: string; token: string }, request: 
       method: "POST", headers: { authorization: `Bearer ${config.token}`,
         "content-type": "message/rfc822", "x-bezalel-sender": envelope.sender,
         "x-bezalel-recipient": envelope.recipient },
-      body: raw as BodyInit, signal: AbortSignal.timeout(55_000), redirect: "error",
+      body: raw as BodyInit, signal: AbortSignal.timeout(55_000), redirect: "manual",
     })
     if (!response.ok) throw new MailError("Incoming mail scanners are unavailable", "scanner_unavailable", 503, true)
     return inboundProtection.parse(JSON.parse(new TextDecoder().decode(await readBytes(response.body, 8192))))
@@ -55,7 +55,7 @@ export const gatewayTransport = (
           authorization: `Bearer ${custom.config.token}`, "content-type": "application/json"
         },
         body: JSON.stringify({ ...input, trackingId, recipients: allowed, dkim }),
-        signal: AbortSignal.timeout(25_000), redirect: "error"
+        signal: AbortSignal.timeout(25_000), redirect: "manual"
       })
     } catch {
       throw new MailError("Mail gateway did not return a receipt; delivery may have occurred", "delivery_uncertain", 502, true)

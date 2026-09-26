@@ -97,7 +97,7 @@ export function autumnBilling(secretKey: string, request: typeof fetch = fetch, 
     let response: Response
     try {
       response = await request(`${baseUrl}/${path}`, {
-        method: "POST", redirect: "error", signal: AbortSignal.timeout(10_000),
+        method: "POST", redirect: "manual", signal: AbortSignal.timeout(10_000),
         headers: { authorization: `Bearer ${secretKey}`, "content-type": "application/json", "x-api-version": "2.4.0" },
         body: JSON.stringify(body),
       })

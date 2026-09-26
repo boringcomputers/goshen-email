@@ -4,6 +4,7 @@ import { jevAnalyzer, TriageError, type TriageAnalyzer } from "../src/triage.js"
 import { messageTriage, triageResult, type TriageResult } from "../src/triage-contract.js"
 import { triageMigrations } from "../src/triage-schema.js"
 import { cleanProtection, fixture, rawMail } from "./support.js"
+import { redirectResponse, workersFetch } from "./workers-fetch.js"
 
 const response = () => ({ model: "jev-fixture", usage: { input_tokens: 250, output_tokens: 40 }, answers: {
   category: { type: "choice", choice: "billing", confidence: 0.93,
@@ -38,7 +39,7 @@ describe("Jev triage with simulated inference and real message storage", () => {
     const received = await service.receive(inboxId, rawMail())
     const message = await service.store.message(row.id, received.messageId)
     message.data.text = "a".repeat(40_000); message.data.html = "private HTML"; message.data.bcc = ["secret@example.net"]
-    const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json(response()))
+    const request = vi.fn(workersFetch(async () => Response.json(response())))
     const result = await jevAnalyzer("fixture-secret", "jev-test", request)(message)
     expect(triageResult.parse(result)).toMatchObject({ status: "complete", model: "jev-fixture", bodyTruncated: true,
       category: { value: "billing" }, needsReply: { value: true, probability: 0.98 }, urgency: { value: "normal" } })
@@ -46,6 +47,9 @@ describe("Jev triage with simulated inference and real message storage", () => {
     const [url, init] = request.mock.calls[0]!
     expect(url).toBe("https://api.typesafe.ai/v1/systemone")
     expect(init?.headers).toMatchObject({ authorization: "Bearer fixture-secret" })
+    expect(init?.redirect).toBe("manual")
+    await expect(jevAnalyzer("fixture-secret", "jev-test", workersFetch(async () => redirectResponse()))(message))
+      .rejects.toMatchObject({ code: "provider_rejected", retryable: false })
     const body = JSON.parse(String(init?.body))
     expect(body.model).toBe("jev-test")
     expect(Object.keys(body.questions)).toEqual(["category", "needs_reply", "urgency"])

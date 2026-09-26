@@ -168,6 +168,7 @@ describe("incoming protection", () => {
     const scan = gatewayScanner({ url: "https://mx.example.com", token: "test-token" }, request)
     await scan(rawMail(), { sender: "envelope@example.net", recipient: "agent@example.com" })
     const headers = new Headers(request.mock.calls[0]![1]!.headers)
+    expect(request.mock.calls[0]![1]?.redirect).toBe("manual")
     expect(headers.get("x-bezalel-ip")).toBeNull()
     expect(headers.get("x-bezalel-sender")).toBe("envelope@example.net")
     request.mockResolvedValueOnce(Response.json({ ...cleanProtection(), antivirus: { status: "infected", signatures: [] } }))

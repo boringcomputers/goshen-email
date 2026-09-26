@@ -31,6 +31,10 @@ Changes to the copied code:
 - Messages can carry optional Jev triage. The standalone analyzer and retry
   processor are new files; message storage, reads, and Worker scheduling call them.
 - Documentation describes the standalone owner dashboard and deployment.
+- Outbound fetches from the Worker use `redirect: "manual"`. The Workers runtime
+  throws on `redirect: "error"` before a request leaves, which broke the DNS-over-HTTPS
+  check in `custom-domains.ts` and the gateway calls in `gateway.ts`. Bezalel's
+  copies still use `"error"`.
 
 There is no automatic synchronization. When taking a fix from Bezalel, inspect
 the diff from this recorded revision, apply only the relevant changes, and run

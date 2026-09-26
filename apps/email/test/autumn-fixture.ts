@@ -1,4 +1,5 @@
 import { allocatedFeatures, billingFeatures, type BillingFeature } from "../src/billing.js"
+import { workersFetch } from "./workers-fetch.js"
 
 /**
  * In-memory stand-in for the Autumn REST API. It is not Autumn: it models the
@@ -27,7 +28,7 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
     const usage = c.usage[feature] ?? 0, held = c.held[feature] ?? 0
     return { feature_id: feature, granted: c.granted[feature], usage, remaining: c.granted[feature]! - usage - held, unlimited: false, next_reset_at: Date.UTC(2026, 9, 1) }
   }
-  const request: typeof fetch = async (input, init) => {
+  const request: typeof fetch = workersFetch(async (input, init) => {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url)
     const path = url.pathname.replace(/^\/v1\//, "")
     state.calls.push(path)
@@ -82,7 +83,7 @@ export function fakeAutumn(options: FakeAutumnOptions = {}) {
     }
     if (path === "billing.open_customer_portal") return json({ customer_id: id, url: `https://billing.stripe.test/session/${id}` })
     return json({ code: "not_found" }, 404)
-  }
+  })
   return {
     request, state, events,
     usage: (id: string, feature: BillingFeature) => customers.get(id)?.usage[feature] ?? 0,
