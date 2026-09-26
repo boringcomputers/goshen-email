@@ -152,14 +152,22 @@ test('Cloudflare customer mode forwards Access assertions without password secre
     assert.equal(icon.headers.get('content-type'), 'image/png')
     assert.equal(Buffer.from(await icon.arrayBuffer()).subarray(1, 4).toString(), 'PNG')
   }
+  for (const name of ['sea', 'dunes', 'road']) {
+    const photo = await worker.fetch(origin + `/images/landing/${name}.webp`)
+    assert.equal(photo.status, 200)
+    assert.equal(photo.headers.get('content-type'), 'image/webp')
+    assert.equal(Buffer.from(await photo.arrayBuffer()).subarray(8, 12).toString(), 'WEBP')
+  }
   const tokens = await worker.fetch(origin + '/tokens.css')
   assert.equal(tokens.status, 200)
-  assert.match(await tokens.text(), /--color-sand-50: #F3F2EF/)
-  const font = await worker.fetch(origin + '/fonts/InterVariable.woff2')
-  assert.equal(font.status, 200)
-  assert.equal(font.headers.get('content-type'), 'font/woff2')
-  assert.equal(Buffer.from(await font.arrayBuffer()).subarray(0, 4).toString(), 'wOF2')
-  assert.match(font.headers.get('content-security-policy'), /font-src 'self';/)
+  assert.match(await tokens.text(), /--color-background: #F8F8F8/)
+  for (const path of ['/fonts/InterVariable.woff2', '/fonts/GeistVariable.woff2', '/fonts/GeistMonoVariable.woff2']) {
+    const font = await worker.fetch(origin + path)
+    assert.equal(font.status, 200, path)
+    assert.equal(font.headers.get('content-type'), 'font/woff2')
+    assert.equal(Buffer.from(await font.arrayBuffer()).subarray(0, 4).toString(), 'wOF2')
+    assert.match(font.headers.get('content-security-policy'), /font-src 'self';/)
+  }
   const identity = { 'cf-access-jwt-assertion': 'fixture-access-assertion' }
   const session = await worker.fetch(origin + '/api/session', { headers: identity })
   assert.equal(session.status, 200)

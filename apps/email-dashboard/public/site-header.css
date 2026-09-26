@@ -1,44 +1,42 @@
-/* Shared navigation from the homepage design. */
-.site-header { align-items: center; display: flex; flex-shrink: 0; height: 72px; max-width: var(--container-landing); margin: 0 auto; padding: 24px clamp(20px, 4.45vw, 64px) 0; font: 400 16px var(--font-sans), sans-serif; font-synthesis: none; -moz-osx-font-smoothing: grayscale; -webkit-font-smoothing: antialiased; overflow-wrap: anywhere; justify-content: space-between; width: 100%; }
-.brand { align-items: center; display: flex; flex-shrink: 0; gap: 10px; }
+/* Shared navigation for the landing and docs pages. Source: Paper file "Goshen Email", Landing / Nav bar. */
+.site-header { align-items: center; display: flex; gap: 40px; height: 52px; margin: 0 auto; max-width: var(--container-page); padding-inline: 20px; width: 100%; font: 400 var(--text-sm) / var(--leading-sm) var(--font-sans), sans-serif; font-synthesis: none; -moz-osx-font-smoothing: grayscale; -webkit-font-smoothing: antialiased; }
+.brand { align-items: center; color: var(--color-primary); display: flex; flex-shrink: 0; gap: 8px; }
 .brand-icon { flex-shrink: 0; }
-.brand-name { color: var(--color-text); font-size: 20px; font-weight: var(--font-weight-semibold); letter-spacing: -0.03em; line-height: 24px; }
-.site-nav { align-items: center; display: flex; gap: 28px; }
-.site-header-product { color: var(--color-text-muted); font-size: var(--text-md); line-height: var(--leading-normal); }
-.nav-actions { align-items: center; display: flex; gap: 24px; min-height: 42px; }
-.site-header-log-in { color: var(--color-text); font-size: var(--text-base); line-height: var(--leading-snug); }
-.site-header-start-free { align-items: center; background-color: var(--color-primary); border-radius: var(--radius-full); display: flex; font-weight: var(--font-weight-medium); justify-content: center; padding-block: 10px; padding-inline: 16px; }
-.site-header-start-free-2 { color: var(--color-primary-foreground); display: flex; font-size: var(--text-base); font-weight: var(--font-weight-medium); line-height: var(--leading-snug); }
+.brand-name { font-size: var(--text-base); font-weight: var(--font-weight-medium); letter-spacing: var(--tracking-title); line-height: 20px; }
+.site-nav { align-items: center; display: flex; }
+.site-nav a { align-items: center; border-radius: var(--radius-full); color: var(--color-primary); display: flex; height: 28px; padding: 1px 12px 0; }
+.site-nav a:hover, .site-nav a[aria-current="page"] { background: var(--color-fill); }
+.nav-actions { align-items: center; display: flex; gap: 6px; margin-left: auto; }
+.site-header-log-in { align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-full); color: var(--color-primary); display: flex; height: 28px; padding: 0 12px 1px; }
+.site-header-log-in:hover { background: var(--color-fill); }
+.site-header-start-free { align-items: center; background: var(--color-primary); border-radius: var(--radius-full); display: flex; height: 28px; padding: 0 12px 1px; }
+.site-header-start-free:hover { background: var(--color-neutral-800); }
+.site-header-start-free-2 { color: var(--color-primary-foreground); display: flex; }
 .site-header a { text-decoration: none; -webkit-tap-highlight-color: transparent; }
-.site-header a:hover { opacity: .78; }
-.site-header a:focus-visible { outline: 2px solid var(--color-info); outline-offset: 4px; }
+.site-header a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 /* Signed-in account menu, painted by site-header.js in place of the Log in and Get started links. */
 .nav-actions > [hidden] { display: none; }
 .site-account-menu { position: relative; }
-.site-account-menu > summary { align-items: center; border-radius: var(--radius-full); cursor: pointer; display: flex; gap: 8px; list-style: none; padding: 4px 8px 4px 4px; color: var(--color-text); font-size: var(--text-base); line-height: var(--leading-snug); -webkit-tap-highlight-color: transparent; }
+.site-account-menu > summary { align-items: center; border-radius: var(--radius-full); color: var(--color-primary); cursor: pointer; display: flex; gap: 6px; height: 28px; list-style: none; padding: 0 8px 0 2px; -webkit-tap-highlight-color: transparent; }
 .site-account-menu > summary::-webkit-details-marker { display: none; }
-.site-account-menu > summary:hover, .site-account-menu[open] > summary { background: var(--color-sand-100); }
-.site-account-menu > summary:focus-visible, .site-account-popover a:focus-visible, .site-account-popover button:focus-visible { outline: 2px solid var(--color-info); outline-offset: 2px; }
-.site-avatar { align-items: center; background: var(--color-sand-100); border-radius: var(--radius-full); color: var(--color-ink); display: inline-flex; flex: 0 0 32px; font-size: var(--text-xs); font-weight: var(--font-weight-semibold); height: 32px; justify-content: center; line-height: 16px; width: 32px; }
-.site-account-menu[open] .site-avatar, .site-account-menu > summary:hover .site-avatar { background: var(--color-surface); }
+.site-account-menu > summary:hover, .site-account-menu[open] > summary { background: var(--color-fill); }
+.site-account-menu > summary:focus-visible, .site-account-popover a:focus-visible, .site-account-popover button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.site-avatar { align-items: center; background: var(--color-neutral-200); border-radius: var(--radius-full); color: var(--color-foreground); display: inline-flex; flex: 0 0 24px; font: var(--font-weight-medium) 10px / 12px var(--font-ui), sans-serif; height: 24px; justify-content: center; letter-spacing: var(--tracking-ui); width: 24px; }
 .site-account-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.site-account-chevron { color: var(--color-text-muted); flex-shrink: 0; }
-.site-account-popover { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: 0 6px 24px #00000014; padding: 6px; position: absolute; right: 0; text-align: left; top: calc(100% + 6px); width: 240px; z-index: 20; }
-.site-account-identity { border-bottom: 1px solid var(--color-border); font-size: var(--text-sm); line-height: 20px; margin-bottom: 6px; overflow-wrap: anywhere; padding: 8px 10px 10px; }
-.site-account-identity strong { color: var(--color-text); display: block; font-weight: var(--font-weight-medium); }
-.site-account-identity p { color: var(--color-text-muted); font-size: var(--text-xs); line-height: 16px; margin: 0; }
-.site-account-popover a, .site-account-popover button { background: none; border: 0; border-radius: var(--radius-sm); color: var(--color-text); cursor: pointer; display: flex; font: inherit; font-size: var(--text-sm); line-height: 20px; padding: 10px; text-align: left; width: 100%; }
-.site-account-popover a:hover, .site-account-popover button:hover { background: var(--color-sand-100); opacity: 1; }
-.site-account-popover button:disabled { color: var(--color-text-muted); cursor: default; }
-@media (max-width: 1023px) {
-  .site-header { flex-wrap: wrap; height: auto; gap: 24px; }
-  .site-nav { order: 3; width: 100%; justify-content: center; }
+.site-account-chevron { color: var(--color-neutral-400); flex-shrink: 0; }
+.site-account-popover { background: var(--color-elevated); border-radius: var(--radius-lg); box-shadow: 0 0 0 1px var(--color-border), 0 16px 40px -12px #00000029; padding: 6px; position: absolute; right: 0; text-align: left; top: calc(100% + 8px); width: 240px; z-index: 20; }
+.site-account-identity { border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 6px; overflow-wrap: anywhere; padding: 8px 10px 10px; }
+.site-account-identity strong { color: var(--color-foreground); display: block; font-weight: var(--font-weight-medium); }
+.site-account-identity p { color: var(--color-foreground-muted); font-size: var(--text-xs); line-height: var(--leading-2xs); margin: 0; }
+.site-account-popover a, .site-account-popover button { background: none; border: 0; border-radius: var(--radius-sm); color: var(--color-foreground); cursor: pointer; display: flex; font: inherit; height: 32px; align-items: center; padding: 0 10px; text-align: left; width: 100%; }
+.site-account-popover a:hover, .site-account-popover button:hover { background: var(--color-fill); }
+.site-account-popover button:disabled { color: var(--color-foreground-muted); cursor: default; }
+@media (max-width: 900px) {
+  .site-header { flex-wrap: wrap; gap: 4px 24px; height: auto; padding-block: 12px 8px; }
+  .site-nav { flex-wrap: wrap; justify-content: center; order: 3; width: 100%; }
 }
-@media (max-width: 600px) {
-  .site-header { padding-inline: 20px; gap: 28px 12px; }
-  .nav-actions { gap: 12px; }
-  .site-header-start-free { padding-inline: 12px; }
-  .site-nav { gap: 20px; flex-wrap: wrap; }
-  .site-nav a { font-size: 14px; }
-  .brand-name { font-size: 18px; }
+@media (max-width: 480px) {
+  .site-header { padding-inline: 16px; }
+  .site-nav a { padding-inline: 8px; }
+  .site-account-name { max-width: 96px; }
 }

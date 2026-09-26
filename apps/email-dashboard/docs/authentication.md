@@ -48,7 +48,7 @@ Pick the smallest set that does the job. An agent that reads support mail and dr
 ## Creating and rotating account keys
 
 1. Sign in at [goshenemail.com/app](https://goshenemail.com/app) and open **API keys**.
-2. **Create API key.** Name it, select scopes, choose an expiration.
+2. Choose **New key**. Name it, select scopes, and choose an expiration.
 3. Copy the key. It is displayed once; Goshen Email keeps only its SHA-256 hash, so it cannot be shown again.
 4. **Revoke** stops a key immediately. Revocation cannot be undone.
 

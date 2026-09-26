@@ -269,12 +269,15 @@ const apiPages = operations.map((operation) => ({
 // Layout shared by every page.
 const header = `<header class="site-header">
   <a href="/" aria-label="${site.name} home" class="brand">
-    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon"><path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path><circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle><circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle></svg>
+    <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon"><path d="M10 2.2c-4.4 0-8 3.1-8 7 0 2.1 1.1 4 2.8 5.3L4 17.8l4-2c.6.1 1.3.2 2 .2 4.4 0 8-3.1 8-7s-3.6-6.8-8-6.8z" fill="#191919"/><circle cx="6.8" cy="9.2" r="1.1" fill="#FFFFFF"/><circle cx="10" cy="9.2" r="1.1" fill="#FFFFFF"/><circle cx="13.2" cy="9.2" r="1.1" fill="#FFFFFF"/></svg>
     <span class="brand-name">${site.name}</span>
   </a>
   <nav aria-label="Main navigation" class="site-nav">
-    <a href="/docs" class="site-header-product" aria-current="page">Docs</a>
-    <a href="/docs/api" class="site-header-product">API reference</a>
+    <a href="/#product">Product</a>
+    <a href="/#developers">Developers</a>
+    <a href="/#security">Security</a>
+    <a href="/#pricing">Pricing</a>
+    <a href="/docs" aria-current="page">Docs</a>
   </nav>
   <div class="nav-actions">
     <a href="/app" class="site-header-log-in">Log in</a>
@@ -305,6 +308,7 @@ function pageHtml(page, content, headings) {
   <title>${escape(page.title)} | ${site.name} docs</title>
   <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
   <link rel="alternate" type="text/markdown" href="${page.path}.md">
+  <link rel="preload" href="/fonts/GeistVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/site-header.css">
@@ -380,7 +384,7 @@ for (const [file, html] of output) {
   if (!file.endsWith('.html')) continue
   for (const match of html.matchAll(/href="(\/[^"#]*)/g)) {
     const href = match[1]
-    if (!served.has(href) && !['/', '/app', '/#product', '/images/solenne.svg', '/tokens.css', '/site-header.css', '/fonts/InterVariable.woff2'].includes(href) && !href.startsWith('/#')) throw new Error(`${file} links to ${href}, which is not served`)
+    if (!served.has(href) && !['/', '/app', '/#product', '/images/solenne.svg', '/tokens.css', '/site-header.css', '/fonts/GeistVariable.woff2', '/fonts/InterVariable.woff2'].includes(href) && !href.startsWith('/#')) throw new Error(`${file} links to ${href}, which is not served`)
   }
 }
 

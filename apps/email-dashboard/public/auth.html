@@ -3,50 +3,69 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F8F8F8">
   <title>{{page-title}} — Goshen Email</title>
+  <link rel="icon" href="/images/solenne.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/GeistVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/GeistMonoVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/auth.css">
-  <link rel="stylesheet" href="/site-header.css">
   <script src="/auth.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
-  <header class="site-header">
-    <a href="/" aria-label="Goshen Email home" class="brand">
-      <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="brand-icon">
-        <path d="M14 2C7.4 2 2 6.7 2 12.5c0 3.2 1.6 6 4.2 7.9L5 26l6.1-3.1c.9.2 1.9.3 2.9.3 6.6 0 12-4.7 12-10.5S20.6 2 14 2z" fill="var(--color-ink)"></path>
-        <circle cx="9.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle>
-        <circle cx="14" cy="12.5" r="1.8" fill="#FFFFFF"></circle>
-        <circle cx="18.5" cy="12.5" r="1.8" fill="#FFFFFF"></circle>
-      </svg>
-      <span class="brand-name">Goshen Email</span>
-    </a>
-    <div class="nav-actions">
-      <a href="/" class="site-header-log-in">Back to home</a>
+  <div class="auth-shell">
+    <div class="auth-column">
+      <header class="site-header">
+        <a href="/" aria-label="Goshen Email home" class="brand">
+          <svg width="22" height="22" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M10 2.2c-4.4 0-8 3.1-8 7 0 2.1 1.1 4 2.8 5.3L4 17.8l4-2c.6.1 1.3.2 2 .2 4.4 0 8-3.1 8-7s-3.6-6.8-8-6.8z" fill="#000000"/><circle cx="6.8" cy="9.2" r="1.1" fill="#FFFFFF"/><circle cx="10" cy="9.2" r="1.1" fill="#FFFFFF"/><circle cx="13.2" cy="9.2" r="1.1" fill="#FFFFFF"/></svg>
+          <span>Goshen Email</span>
+        </a>
+      </header>
+      <main id="main">
+        <div class="heading">
+          <h1 id="title">{{title}}</h1>
+          <p class="heading-2 for-sign-in">Sign in to Goshen Email.</p>
+          <p class="heading-2 for-sign-up">Start with a free account.</p>
+        </div>
+        <p id="description" class="description">{{description}}</p>
+        <form id="auth-form">
+          <fieldset id="method-field" {{method-hidden}}><legend class="visually-hidden">How would you like to sign in?</legend><div class="methods">
+            <label><input type="radio" name="method" value="link" checked> Sign-in link</label>
+            <label><input type="radio" name="method" value="code"> Six-digit code</label>
+          </div></fieldset>
+          <div id="name-field" {{name-hidden}}><label for="name">Name</label><input id="name" name="name" autocomplete="name" maxlength="200" {{name-required}}></div>
+          <div id="email-field" {{email-hidden}}><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" {{email-required}}><p class="hint">Codes and links expire after ten minutes and work once.</p></div>
+          <div id="code-field" hidden><label for="code">Six-digit code</label><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="code-hint"><p id="code-hint" class="hint">Use the latest code from your email. It expires in 10 minutes.</p></div>
+          <button id="submit" type="submit" {{submit-disabled}}>{{submit-label}} <span aria-hidden="true">↗</span></button>
+          <p id="error" class="error" role="alert">{{error}}</p>
+        </form>
+        <div id="message" class="message" role="status" hidden></div>
+        <button id="resend" class="secondary" type="button" hidden>Send another email</button>
+        <button id="change-email" class="text-button" type="button" hidden>Use a different email or method</button>
+        <nav class="rows" aria-label="Other pages">
+          <p id="alternate" class="alternate">{{alternate-copy}}<a href="{{alternate-href}}">{{alternate-label}}</a></p>
+          <p class="alternate"><a href="/">Back to the home page</a></p>
+        </nav>
+      </main>
     </div>
-  </header>
-  <main id="main">
-    <div class="eyebrow">EMAIL INBOXES FOR AI AGENTS</div>
-    <h1 id="title">{{title}}</h1>
-    <p id="description" class="description">{{description}}</p>
-    <form id="auth-form">
-      <div id="name-field" {{name-hidden}}><label for="name">Name</label><input id="name" name="name" autocomplete="name" maxlength="200" {{name-required}}></div>
-      <div id="email-field" {{email-hidden}}><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" {{email-required}}></div>
-      <fieldset id="method-field" {{method-hidden}}><legend>How would you like to sign in?</legend><div class="methods">
-        <label><input type="radio" name="method" value="link" checked> Magic link</label>
-        <label><input type="radio" name="method" value="code"> Email code</label>
-      </div></fieldset>
-      <div id="code-field" hidden><label for="code">Six-digit code</label><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="code-hint"><p id="code-hint" class="hint">Use the latest code from your email. It expires in 10 minutes.</p></div>
-      <p id="error" class="error" role="alert">{{error}}</p>
-      <button id="submit" type="submit" {{submit-disabled}}>{{submit-label}} <span aria-hidden="true">↗</span></button>
-    </form>
-    <div id="message" class="message" role="status" hidden></div>
-    <button id="resend" class="secondary" type="button" hidden>Send another email</button>
-    <button id="change-email" class="text-button" type="button" hidden>Use a different email or method</button>
-    <p id="alternate" class="alternate">{{alternate-copy}}<a href="{{alternate-href}}">{{alternate-label}}</a></p>
-    <p class="footnote">Sign in to manage your agents' inboxes, keys, and domains.</p>
-  </main>
-  <footer><span>© Goshen Email</span><span>Email inboxes for AI agents.</span></footer>
+    <div class="auth-art" aria-hidden="true">
+      <img src="/images/landing/dunes.webp" width="1200" height="896" alt="" class="art-photo art-dunes">
+      <img src="/images/landing/road.webp" width="1200" height="896" alt="" class="art-photo art-road">
+      <div class="code-card">
+        <div class="code-card-head">
+          <div class="code-card-title"><span class="code-card-icon"><svg width="15" height="15" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2.2c-4.4 0-8 3.1-8 7 0 2.1 1.1 4 2.8 5.3L4 17.8l4-2c.6.1 1.3.2 2 .2 4.4 0 8-3.1 8-7s-3.6-6.8-8-6.8z" fill="#FFFFFF"/></svg></span>Your sign-in code</div>
+          <span class="code-card-time"><span></span>Just now</span>
+        </div>
+        <div class="code-card-rows">
+          <div class="code-card-row"><span>From</span><span class="mono">accounts@agents.goshenemail.com</span></div>
+          <div class="code-card-row"><span>Code</span><span>482 913</span></div>
+          <div class="code-card-row"><span>Works</span><span class="mono">Once</span></div>
+          <div class="code-card-row"><span>Expires</span><span>In 10 minutes</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

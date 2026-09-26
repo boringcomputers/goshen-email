@@ -121,7 +121,7 @@ test('the plan page shows usage, blocks past the allowance, upgrades through che
   const visitor = await browser.newContext({ viewport: { width: 1440, height: 1200 } }), visitorPage = await visitor.newPage()
   visitorPage.on('pageerror', error => errors.push(error.message))
   await visitorPage.goto(base + '/')
-  await visitorPage.getByRole('link', { name: 'Start on Developer' }).click()
+  await visitorPage.getByRole('link', { name: 'Start Developer' }).click()
   await visitorPage.waitForURL(base + '/sign-in#/billing')
   const visitorEmail = `visitor-${crypto.randomUUID().slice(0, 8)}@example.net`
   await visitorPage.locator('#email').fill(visitorEmail)
