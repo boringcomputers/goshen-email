@@ -68,15 +68,20 @@ function deliverySummary(delivery) {
   const recipients = delivery.recipients, title = (value) => value.charAt(0).toUpperCase() + value.slice(1)
   // A complaint can follow a delivery, so a problem outranks the delivered flag.
   const problem = (recipient) => /bounce|fail|reject|complain/i.test(recipient.status)
-  const failed = recipients.filter(problem), pending = recipients.filter((recipient) => !recipient.delivered && !problem(recipient))
-  const summary = node('div', undefined, 'delivery-summary')
-  // Each status names its recipients when it doesn't cover all of them.
-  for (const [group, tone] of [[failed, 'danger'], [pending, 'neutral']]) {
-    if (!group.length) continue
-    summary.append(shell.pill(title(group[0].status || 'sent'), tone))
-    if (group.length < recipients.length) summary.append(node('span', group.map((recipient) => recipient.recipient).join(', ')))
+  const groups = new Map()
+  for (const recipient of recipients) {
+    if (recipient.delivered && !problem(recipient)) continue
+    const status = recipient.status || 'sent'
+    if (!groups.has(status)) groups.set(status, { tone: problem(recipient) ? 'danger' : 'neutral', addresses: [] })
+    groups.get(status).addresses.push(recipient.recipient)
   }
-  if (!failed.length && !pending.length) summary.append(shell.pill('Delivered', 'success'))
+  const summary = node('div', undefined, 'delivery-summary')
+  // Problems first, then each pending status, each naming its recipients when it doesn't cover all of them.
+  for (const [status, { tone, addresses }] of [...groups].sort(([, a], [, b]) => (a.tone === 'danger' ? 0 : 1) - (b.tone === 'danger' ? 0 : 1))) {
+    summary.append(shell.pill(title(status), tone))
+    if (addresses.length < recipients.length) summary.append(node('span', addresses.join(', ')))
+  }
+  if (!groups.size) summary.append(shell.pill('Delivered', 'success'))
   const reasons = recipients.filter((recipient) => recipient.reason)
   if (!reasons.length) return summary
   const details = node('details', undefined, 'message-details')
