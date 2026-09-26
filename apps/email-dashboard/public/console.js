@@ -78,9 +78,13 @@ export function createDashboardConsole({ state, rpc, notify, selectInbox, loadIn
       inventoryFailed: Boolean($('#inboxes-error').textContent) && !state.inboxes.length })
     pageNumber = painted.pageNumber
     wireRows()
+    shell.paintSidebarInboxes({ session: state.session, inboxes: state.inboxes })
   }
   async function copyAddress(address) { await navigator.clipboard.writeText(address); notify('Email address copied') }
-  function syncSelection() { shell.paintMailbox({ inboxes: state.inboxes, inbox: state.inbox }) }
+  function syncSelection() {
+    shell.paintMailbox({ inboxes: state.inboxes, inbox: state.inbox })
+    shell.paintSidebarInboxes({ session: state.session, inboxes: state.inboxes })
+  }
   function confirmDeletion(inbox, trigger) {
     if (!inbox || deletion?.pending) return
     closeMenus()

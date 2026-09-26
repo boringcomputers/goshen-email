@@ -8,7 +8,7 @@ export const formatAmount = (feature, value) => feature === 'storage_mb' ? (valu
 export const staleBillingMessage = 'The email API is running an older version without plans. Deploy the latest API Worker, then try again.'
 const errorMessage = error => error?.status === 404 && error.message === 'Unknown dashboard operation' ? staleBillingMessage : error?.message || 'Usage request failed'
 
-export function createBillingPanel({ rpc, notify, getCustomer }) {
+export function createBillingPanel({ rpc, notify, getCustomer, onUsage }) {
   const $ = selector => document.querySelector(selector)
   const node = (tag, attributes = {}, text) => {
     const element = document.createElement(tag)
@@ -24,23 +24,30 @@ export function createBillingPanel({ rpc, notify, getCustomer }) {
   function meter(feature) {
     const [label, cadence] = featureLabels[feature.feature] ?? [feature.feature, 'standing']
     const item = node('li', { class: 'billing-meter' })
-    const heading = node('div', { class: 'billing-meter-heading' })
-    heading.append(node('strong', {}, cadence === 'monthly' ? `${label} this month` : label))
-    const amount = feature.unlimited ? `${formatAmount(feature.feature, feature.used)} used, no limit`
-      : `${formatAmount(feature.feature, feature.used)} of ${formatAmount(feature.feature, feature.granted ?? 0)}`
-    heading.append(node('span', { class: 'billing-meter-amount' }, amount))
-    item.append(heading)
+    item.append(node('span', { class: 'billing-meter-label' }, cadence === 'monthly' ? `${label} this month` : label))
+    const amount = node('p', { class: 'billing-meter-amount' })
+    amount.append(node('strong', {}, formatAmount(feature.feature, feature.used)),
+      feature.unlimited ? ' used, no limit' : ` of ${formatAmount(feature.feature, feature.granted ?? 0)}`)
+    item.append(amount)
+    let share = 0
     if (!feature.unlimited && feature.granted) {
       // A progress element takes its width from attributes, so it needs no inline style under the dashboard's CSP.
-      const share = Math.min(100, Math.round(feature.used / feature.granted * 100))
+      share = Math.min(100, Math.round(feature.used / feature.granted * 100))
       const bar = node('progress', { class: 'billing-bar', max: String(feature.granted), value: String(Math.min(feature.used, feature.granted)), 'aria-label': label })
       bar.dataset.level = share >= 100 ? 'spent' : share >= 80 ? 'high' : 'ok'
       item.append(bar)
     }
     const notes = []
-    if (!feature.unlimited && (feature.remaining ?? 0) <= 0 && feature.granted != null) notes.push('Allowance spent.')
+    const spent = !feature.unlimited && (feature.remaining ?? 0) <= 0 && feature.granted != null
+    if (spent) notes.push('Allowance spent.')
+    else if (share >= 80) notes.push(`${share}% used.`)
     if (feature.resetsAt && cadence === 'monthly') notes.push(`Resets ${date(feature.resetsAt)}.`)
-    if (notes.length) item.append(node('p', { class: 'settings-hint' }, notes.join(' ')))
+    if (cadence === 'standing' && feature.feature === 'inboxes' && feature.granted) notes.push('Doesn’t reset. Delete an inbox to free a slot.')
+    if (notes.length) {
+      const note = node('p', { class: 'settings-hint' }, notes.join(' '))
+      if (spent || share >= 80) note.dataset.level = spent ? 'spent' : 'high'
+      item.append(note)
+    }
     return item
   }
   function planCard(plan, current) {
@@ -48,7 +55,7 @@ export function createBillingPanel({ rpc, notify, getCustomer }) {
     if (plan.planId === current) card.dataset.current = ''
     const heading = node('div', { class: 'billing-plan-card-heading' })
     heading.append(node('h3', { id: `plan-${plan.planId}` }, plan.name))
-    if (plan.planId === current) heading.append(node('span', { class: 'badge', 'data-status': 'active' }, 'Current plan'))
+    if (plan.planId === current) heading.append(node('span', { class: 'badge', 'data-status': 'current' }, 'Current'))
     card.append(heading)
     const price = node('p', { class: 'billing-price' })
     price.append(node('strong', {}, `$${plan.price}`), node('span', {}, plan.price ? ' per month' : ' forever'))
@@ -108,7 +115,7 @@ export function createBillingPanel({ rpc, notify, getCustomer }) {
     try {
       const result = await rpc('getUsage')
       if (version !== requestVersion) return
-      usage = result; render()
+      usage = result; render(); onUsage?.(result)
     } catch (error) {
       if (version !== requestVersion) return
       $('#billing-error').textContent = errorMessage(error)

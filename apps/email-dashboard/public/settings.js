@@ -28,7 +28,7 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode, getCustomer })
     pending = false
     $('#settings-error').textContent = ''
     $('#settings-retry').hidden = true
-    for (const form of forms) { form.querySelector('footer [role=status]').textContent = ''; form.querySelector('button[type=submit]').textContent = 'Save changes' }
+    for (const form of forms) { form.querySelector('footer [role=status]').textContent = ''; form.querySelector('button[type=submit]').textContent = 'Save' }
     // The session already carries this customer, so the page paints at once. A pending save is the
     // one case where the server holds newer values, so wait for it before showing anything.
     const known = saveTask ? null : getCustomer?.()
@@ -68,7 +68,7 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode, getCustomer })
         if (version === requestVersion) $('#settings-error').textContent = settingsErrorMessage(error)
       } finally {
         if (saveTask === task) saveTask = null
-        if (version === requestVersion) { pending = false; sync(); button.textContent = 'Save changes' }
+        if (version === requestVersion) { pending = false; sync(); button.textContent = 'Save' }
       }
     })
   }
@@ -83,7 +83,7 @@ export function createSettingsPanel({ rpc, onChange, getAuthMode, getCustomer })
     load,
     reset() {
       version++; customer = null; pending = false; saveTask = null
-      for (const form of forms) { form.reset(); form.querySelector('button[type=submit]').textContent = 'Save changes'; form.querySelector('footer [role=status]').textContent = '' }
+      for (const form of forms) { form.reset(); form.querySelector('button[type=submit]').textContent = 'Save'; form.querySelector('footer [role=status]').textContent = '' }
       $('#settings-error').textContent = ''; $('#settings-content').hidden = true
       $('#settings-loading').hidden = true; $('#settings-retry').hidden = true
       sync()

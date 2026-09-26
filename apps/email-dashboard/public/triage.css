@@ -1,15 +1,19 @@
-.triage-filters { margin: 0; padding: 14px 16px; border: 0; border-bottom: 1px solid var(--color-border); min-width: 0; }
-.triage-filter-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.triage-filter-heading p { margin: 0; font-size: var(--text-xs); color: var(--color-text-secondary); }
-.triage-filter-heading button { border: 0; padding: 2px 4px; font-size: var(--text-xs); min-height: 28px; }
+.triage-filters { min-width: 0; margin: 0 0 10px; padding: 12px; border: 0; border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--color-border-subtle) 0 0 0 1px; }
+.triage-filter-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.triage-filter-heading p { margin: 0; color: var(--color-foreground-muted); font-size: var(--text-xs); font-weight: var(--font-weight-medium); }
+.triage-filter-heading button { min-height: 24px; padding: 0 6px; border: 0; background: none; font-size: var(--text-xs); }
 .triage-filter-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.triage-filter-fields label { min-width: 0; margin: 0; gap: 5px; font-size: 11px; color: var(--color-text-secondary); }
-.triage-filter-fields select { width: 100%; min-width: 0; padding: 7px 4px; font-size: 11px; }
-.triage-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.triage-filter-fields label { gap: 4px; min-width: 0; margin: 0; font-size: var(--text-2xs); color: var(--color-foreground-muted); }
+.triage-filter-fields select { height: 30px; padding-left: 8px; font-size: var(--text-xs); }
+.triage-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .triage-badges:empty { display: none; }
-.triage-badge { display: inline-flex; align-items: center; border-radius: var(--radius-sm); background: var(--color-surface-subtle); color: var(--color-text-secondary); padding: 3px 6px; font-size: 10px; font-weight: var(--font-weight-medium); line-height: 15px; }
-.triage-reply { color: var(--color-info); background: var(--color-info-soft); }
-.triage-high { color: var(--color-warning); background: var(--color-warning-soft); }
-.triage-critical { color: var(--color-danger); background: var(--color-danger-soft); }
-.message > .triage-badges { margin: 14px 0; }
-.triage-details p { font-size: var(--text-xs); line-height: 1.6; margin-top: 8px; overflow-wrap: anywhere; }
+.triage-badge { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: var(--radius-full); background: var(--color-fill); color: var(--color-foreground-muted); font-size: var(--text-2xs); line-height: 14px; font-weight: var(--font-weight-normal); white-space: nowrap; }
+.triage-reply { background: var(--color-blue-50); color: var(--color-blue-700); font-weight: var(--font-weight-medium); }
+.triage-high { background: var(--color-orange-50); color: var(--color-orange-700); }
+.triage-critical { background: var(--color-red-50); color: var(--color-danger); font-weight: var(--font-weight-medium); }
+.triage-held { background: var(--color-orange-50); color: var(--color-orange-700); font-weight: var(--font-weight-medium); }
+.triage-details p { margin-top: 6px; font-size: var(--text-xs); line-height: var(--leading-2xs); overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  .triage-filter-fields select { height: 40px; }
+  .triage-filter-heading button { min-height: 40px; }
+}
