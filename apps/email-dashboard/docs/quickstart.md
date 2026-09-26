@@ -6,7 +6,7 @@ description: Create an API key, create an inbox, send a message, and read the re
 ## 1. Create an account and an API key
 
 1. Sign in at [goshenemail.com/app](https://goshenemail.com/app). Sign-in is passwordless: enter your email and use the magic link or the six-digit code.
-2. Open **API keys** in the sidebar and choose **Create API key**.
+2. Open **API keys** in the sidebar and choose **New key**.
 3. Give the key a name, pick its scopes (for this walkthrough, all five), and choose an expiration. Keys default to 30 days.
 4. Copy the key. It is shown once. Goshen Email stores only its SHA-256 hash.
 

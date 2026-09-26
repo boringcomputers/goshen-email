@@ -69,6 +69,7 @@ export function createInboxSetup({ state, rpc, createInbox, loadInboxes, openCre
     $('#get-started').hidden = !available
     const domain = state.session?.defaultDomain
     shell.paintSetupDomain(domain)
+    paintPreview()
     if (!initialChecked && enabled) {
       initialChecked = true
       if (!wasDismissed() && available && state.inboxes.length === 0 && !location.hash) setOpen(true)
@@ -96,10 +97,14 @@ export function createInboxSetup({ state, rpc, createInbox, loadInboxes, openCre
     try { await rpc('finishInboxSetup', { inboxId: state.inbox }) }
     finally { await loadInboxes() }
   })
-  $('#setup-username').addEventListener('input', (event) => {
-    const name = event.target.value.trim().toLowerCase()
-    $('#setup-address-preview').textContent = name && state.session?.defaultDomain ? `${name}@${state.session.defaultDomain}` : ''
-  })
+  // The preview card beside the form shows the address as it is typed.
+  function paintPreview() {
+    const form = $('#setup-form'), name = form.elements.username.value.trim().toLowerCase(), domain = state.session?.defaultDomain
+    $('#setup-address-preview').textContent = name && domain ? `Your address will be ${name}@${domain}.` : ''
+    $('#setup-preview-address').textContent = domain ? `${name || 'name'}@${domain}` : 'Addresses are not available yet'
+    $('#setup-preview-name').textContent = form.elements.displayName.value.trim() || name || 'Your inbox'
+  }
+  $('#setup-form').addEventListener('input', paintPreview)
   $('#setup-form').addEventListener('submit', async (event) => {
     event.preventDefault()
     const form = event.currentTarget, button = $('#setup-create')
@@ -107,7 +112,7 @@ export function createInboxSetup({ state, rpc, createInbox, loadInboxes, openCre
     try {
       await createInbox({ username: form.elements.username.value.trim().toLowerCase(),
         ...(form.elements.displayName.value.trim() ? { displayName: form.elements.displayName.value.trim() } : {}) })
-      form.reset(); $('#setup-address-preview').textContent = ''
+      form.reset(); paintPreview()
     } catch (error) { $('#setup-error').textContent = error.message }
     finally { button.disabled = !state.session?.defaultDomain; button.firstChild.textContent = 'Create inbox ' }
   })
@@ -116,6 +121,6 @@ export function createInboxSetup({ state, rpc, createInbox, loadInboxes, openCre
     sync,
     refresh: async () => { if (open) await refresh() },
     close: () => setOpen(false),
-    reset() { version++; status = null; initialChecked = false; setOpen(false); $('#setup-form').reset(); $('#setup-address-preview').textContent = ''; $('#setup-error').textContent = ''; $('#setup-inbox-name').textContent = ''; $('#setup-address').textContent = '' },
+    reset() { version++; status = null; initialChecked = false; setOpen(false); $('#setup-form').reset(); paintPreview(); $('#setup-error').textContent = ''; $('#setup-inbox-name').textContent = ''; $('#setup-address').textContent = '' },
   }
 }

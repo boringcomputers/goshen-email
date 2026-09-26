@@ -6,6 +6,7 @@ import { accountDashboardHandler } from '../src/account-handler.mjs'
 
 const origin = 'https://dashboard.example'
 const fontPath = '/fonts/InterVariable.woff2'
+const fontPaths = [fontPath, '/fonts/GeistVariable.woff2', '/fonts/GeistMonoVariable.woff2']
 const password = 'cache-test-dashboard-password-'.repeat(2)
 const configurations = [
   { name: 'password', create: (asset) => dashboardHandler({ publicUrl: origin, password, asset }),
@@ -31,20 +32,22 @@ function request(handle, path, { body, base = origin } = {}) {
 }
 
 for (const configuration of configurations) {
-  test(`${configuration.name} caches only the public font and keeps private responses out of caches`, async () => {
+  test(`${configuration.name} caches only the public fonts and keeps private responses out of caches`, async () => {
     const handle = configuration.create(async (file) => file)
-    const font = await request(handle, fontPath)
-    assert.equal(font.status, 200)
-    assert.equal(font.headers.get('cache-control'), 'public, max-age=3600')
-    assert.equal(font.headers.get('content-type'), 'font/woff2')
-    assert.equal(font.headers.get('x-content-type-options'), 'nosniff')
-    assert.match(font.headers.get('content-security-policy'), /font-src 'self';/)
-    assert.equal(font.headers.get('set-cookie'), null)
-    assert.equal(font.headers.get('authorization'), null)
-    assert.equal(await font.text(), 'fonts/InterVariable.woff2')
+    for (const path of fontPaths) {
+      const font = await request(handle, path)
+      assert.equal(font.status, 200, path)
+      assert.equal(font.headers.get('cache-control'), 'public, max-age=3600', path)
+      assert.equal(font.headers.get('content-type'), 'font/woff2')
+      assert.equal(font.headers.get('x-content-type-options'), 'nosniff')
+      assert.match(font.headers.get('content-security-policy'), /font-src 'self';/)
+      assert.equal(font.headers.get('set-cookie'), null)
+      assert.equal(font.headers.get('authorization'), null)
+      assert.equal(await font.text(), path.slice(1))
+    }
 
     const privatePaths = [...assets.keys(), ...(configuration.pages ?? []), '/api/session', '/healthz']
-    for (const path of privatePaths.filter((path) => path !== fontPath)) {
+    for (const path of privatePaths.filter((path) => !fontPaths.includes(path))) {
       const response = await request(handle, path)
       assert.equal(response.status, 200, path)
       assert.equal(response.headers.get('cache-control'), 'no-store', path)

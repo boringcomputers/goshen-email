@@ -21,6 +21,74 @@ function emptyState(title, description, buttonText, onClick) {
   if (buttonText) action(wrap.querySelector('button'), onClick)
   return wrap
 }
+// "Name <address>" splits into both parts; a bare address stays the name.
+function parseAddress(value = '') {
+  const match = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(value)
+  return match ? { name: match[1] || match[2], address: match[1] ? match[2] : '' } : { name: value, address: '' }
+}
+const listOf = (items) => items.length < 3 ? items.join(' and ') : `${items.slice(0, -1).join(', ')}, and ${items.at(-1)}`
+const heldReasons = (reasons = []) => listOf(reasons.map((reason) => ({
+  authentication_failed: 'failed sender authentication', spam: 'scored above the spam threshold',
+  malware: 'matched a malware signature', scan_incomplete: 'could not be fully scanned',
+})[reason] ?? reason.replaceAll('_', ' ')))
+const authNotes = {
+  SPF: { pass: 'Sender authorized', fail: 'Sender not authorized', none: 'No SPF record' },
+  DKIM: { pass: 'Signature valid', fail: 'Signature invalid', none: 'No signature' },
+  DMARC: { pass: 'Passed the domain policy', fail: 'Failed the domain policy', none: 'No DMARC policy' },
+}
+const authOther = { temperror: 'Temporary lookup error', permerror: 'Record could not be read', unavailable: 'Not checked' }
+function protectionChecks(protection) {
+  const table = node('div', undefined, 'protection-checks'), heading = node('div', undefined, 'protection-heading')
+  heading.append(node('strong', 'Protection checks'))
+  if (protection.scannedAt) heading.append(node('span', `Scanned ${new Date(protection.scannedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`))
+  table.append(heading)
+  const row = (name, detail, text, tone) => {
+    const item = node('div', undefined, 'protection-row')
+    item.append(node('span', name, 'protection-name'), node('span', detail, 'protection-detail'), shell.pill(text, tone))
+    table.append(item)
+  }
+  const auth = protection.authentication ?? {}
+  for (const name of ['SPF', 'DKIM', 'DMARC']) {
+    const result = auth[name.toLowerCase()] ?? 'unavailable'
+    const detail = name === 'DKIM' && result === 'pass' && auth.signingDomains?.length ? `Signed by ${auth.signingDomains.join(', ')}` : authNotes[name][result] ?? authOther[result] ?? result
+    row(name, detail, result === 'pass' ? 'Pass' : ['fail', 'permerror'].includes(result) ? 'Fail' : result === 'none' ? 'None' : 'Unknown',
+      result === 'pass' ? 'success' : ['fail', 'permerror'].includes(result) ? 'danger' : 'neutral')
+  }
+  if (protection.spam) {
+    const spam = protection.spam.score >= protection.spam.threshold
+    row('Spam score', `${protection.spam.score}, threshold ${protection.spam.threshold}`, spam ? 'Spam' : 'Not spam', spam ? 'warning' : 'success')
+  }
+  const antivirus = protection.antivirus?.status
+  if (antivirus) row('Antivirus', antivirus === 'infected' ? protection.antivirus.signatures.join(', ') || 'Threat found' : antivirus === 'clean' ? 'No signatures found' : 'Could not be scanned',
+    antivirus === 'clean' ? 'Clean' : antivirus === 'infected' ? 'Infected' : 'Unscanned', antivirus === 'clean' ? 'success' : antivirus === 'infected' ? 'danger' : 'warning')
+  if (protection.releasedAt) table.append(node('p', `Released ${new Date(protection.releasedAt).toLocaleString()}`, 'protection-note'))
+  return table
+}
+function deliverySummary(delivery) {
+  const recipients = delivery.recipients, title = (value) => value.charAt(0).toUpperCase() + value.slice(1)
+  // A complaint can follow a delivery, so a problem outranks the delivered flag.
+  const problem = (recipient) => /bounce|fail|reject|complain/i.test(recipient.status)
+  const groups = new Map()
+  for (const recipient of recipients) {
+    if (recipient.delivered && !problem(recipient)) continue
+    const status = recipient.status || 'sent'
+    if (!groups.has(status)) groups.set(status, { tone: problem(recipient) ? 'danger' : 'neutral', addresses: [] })
+    groups.get(status).addresses.push(recipient.recipient)
+  }
+  const summary = node('div', undefined, 'delivery-summary')
+  // Problems first, then each pending status, each naming its recipients when it doesn't cover all of them.
+  for (const [status, { tone, addresses }] of [...groups].sort(([, a], [, b]) => (a.tone === 'danger' ? 0 : 1) - (b.tone === 'danger' ? 0 : 1))) {
+    summary.append(shell.pill(title(status), tone))
+    if (addresses.length < recipients.length) summary.append(node('span', addresses.join(', ')))
+  }
+  if (!groups.size) summary.append(shell.pill('Delivered', 'success'))
+  const reasons = recipients.filter((recipient) => recipient.reason)
+  if (!reasons.length) return summary
+  const details = node('details', undefined, 'message-details')
+  details.append(node('summary', 'Delivery details'), node('pre', recipients.map((recipient) => `${recipient.recipient}: ${recipient.status}${recipient.reason ? ` · ${recipient.reason}` : ''}`).join('\n')))
+  const wrap = node('div'); wrap.append(summary, details)
+  return wrap
+}
 const mobileViewport = matchMedia('(max-width: 767px)')
 const compactViewport = matchMedia('(max-width: 1023px)')
 function setMenu(open, restoreFocus = true) {
@@ -133,7 +201,22 @@ const settings = createSettingsPanel({ rpc, getAuthMode: () => state.authMode, g
   state.session.customer = customer
   updateAccount(); rememberSession()
 } })
-const billing = createBillingPanel({ rpc, notify, getCustomer: () => state.session?.customer })
+const billing = createBillingPanel({ rpc, notify, getCustomer: () => state.session?.customer, onUsage: rememberUsage })
+// The sidebar card shows sends this month from the plan meters, saved with the workspace for the next load.
+function rememberUsage(usage) {
+  const metered = usage?.billing === 'metered', sends = metered ? usage.features.find((feature) => feature.feature === 'sends') : null
+  const inboxLimit = (metered ? usage.features.find((feature) => feature.feature === 'inboxes')?.granted : usage?.inboxes?.limit) ?? null
+  const summary = sends || inboxLimit ? { ...(sends ? { used: sends.used, granted: sends.granted, unlimited: sends.unlimited } : {}), inboxLimit } : null
+  shell.paintUsage(summary)
+  snapshot.update({ usage: summary })
+}
+async function loadUsage() {
+  const epoch = state.epoch
+  try {
+    const usage = await rpc('getUsage')
+    if (epoch === state.epoch) rememberUsage(usage)
+  } catch {}
+}
 const dashboard = createDashboardConsole({ state, rpc, notify, selectInbox, loadInboxes,
   closeSetup: () => setup.close(), openSetup: () => setup.open(), closeNavigation: () => setMenu(false, false),
   loadPage: async page => {
@@ -162,6 +245,7 @@ async function startWorkspace() {
     if (epoch !== state.epoch || $('#app').hidden) return
     developers.configure()
     await dashboard.start()
+    if (epoch === state.epoch && !$('#billing').hidden && dashboard.page !== 'billing') void loadUsage()
   } finally {
     if (epoch === state.epoch && !$('#app').hidden) {
       setWorkspaceLoading(false)
@@ -184,6 +268,7 @@ function showLogin(mode = state.authMode, reason = '', keepRoute = true) {
   $('#account-menu-name').textContent = 'Your workspace'; $('#account-menu-detail').textContent = ''
   $('#workspace-breadcrumb').textContent = 'Your workspace'; $('#workspace-breadcrumb').removeAttribute('title')
   $('#account').textContent = ''; $('#query').value = ''; $('#compose-from').textContent = ''
+  shell.paintUsage(null); renderComposeFiles()
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close()
   setWorkspaceLoading(false)
   if (mode === 'account') {
@@ -303,8 +388,6 @@ async function readThread(threadId) {
   const back = node('button', undefined, 'icon-button reader-back')
   back.setAttribute('aria-label', 'Back to conversations'); back.append(icon('arrow-left'))
   action(back, () => { emptyReader(); $('#threads .selected')?.focus() })
-  heading.append(back, node('span', `${thread.messageCount} message${thread.messageCount === 1 ? '' : 's'}`, 'eyebrow'))
-  header.append(heading, node('h2', thread.subject || '(No subject)'))
   const controls = node('div', undefined, 'reader-tools')
   for (const [label, changes] of [['Archive', { removeLabels: ['received'] }], ['Move to trash', { addLabels: ['trash'] }], ['Move to inbox', { addLabels: ['received'], removeLabels: ['trash'] }]]) {
     const button = node('button', label)
@@ -316,32 +399,59 @@ async function readThread(threadId) {
     })
     controls.append(button)
   }
-  header.append(controls)
+  heading.append(back, node('h2', thread.subject || '(No subject)'), controls)
+  const held = thread.messages.some((message) => message.protection?.status === 'quarantined')
+  const people = [...new Set(thread.messages.filter((message) => !message.labels?.includes('sent')).map((message) => parseAddress(message.from).address || message.from))]
+  const meta = node('div', undefined, 'reader-meta')
+  if (held) meta.append(node('span', 'Quarantined', 'triage-badge triage-held'))
+  if (thread.triage) meta.append(triageBadges(thread.triage))
+  meta.append(node('span', `${thread.messageCount} message${thread.messageCount === 1 ? '' : 's'}${people.length ? ` · ${held ? 'from' : 'with'} ${people.join(', ')}` : ''}`, 'eyebrow'))
+  header.append(heading, meta)
   container.append(header)
   for (const message of thread.messages) {
-    const article = node('article', undefined, 'message')
+    const sent = message.labels?.includes('sent') && !message.labels?.includes('received')
+    const article = node('article', undefined, `message${sent ? ' message-sent' : ''}`)
+    const from = parseAddress(message.from)
+    const mark = sent ? node('span', undefined, 'avatar avatar-agent') : avatar(from.name || message.from)
+    if (sent) { mark.setAttribute('aria-hidden', 'true'); mark.append(icon('bubble')) }
+    const body = node('div', undefined, 'message-content')
     const head = node('div', undefined, 'message-head'), sender = node('div', undefined, 'message-sender')
-    sender.append(node('strong', message.from), node('p', `To: ${message.to.join(', ')}${message.cc?.length ? ` · Cc: ${message.cc.join(', ')}` : ''}`))
-    head.append(avatar(message.from), sender, node('time', new Date(message.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })))
-    article.append(head)
-    if (message.triage) article.append(triageBadges(message.triage), triageDetails(message.triage))
-    if (message.protection?.status === 'quarantined') {
-      article.append(node('p', 'This message is quarantined. Review its checks before releasing it.', 'warning'))
-      if (message.protection.antivirus?.status === 'clean') {
-        const release = node('button', 'Release message')
+    sender.append(node('strong', from.name || message.from))
+    if (from.address) sender.append(node('span', from.address, 'message-address'))
+    head.append(sender, node('time', new Date(message.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })))
+    body.append(head)
+    // Recipients show unless the mail went to this inbox alone.
+    const onlyThisInbox = message.to.length === 1 && message.to[0] === inboxId && !message.cc?.length && !message.bcc?.length
+    if (!onlyThisInbox) body.append(node('p', [['To', message.to], ['Cc', message.cc], ['Bcc', message.bcc]].filter(([, list]) => list?.length).map(([role, list]) => `${role}: ${list.join(', ')}`).join(' · '), 'message-recipients'))
+    const quarantined = message.protection?.status === 'quarantined'
+    if (quarantined) {
+      const banner = node('div', undefined, 'quarantine-banner'), copy = node('div', undefined, 'quarantine-copy')
+      const reasons = heldReasons(message.protection.reasons)
+      const canRelease = message.protection.antivirus?.status === 'clean'
+      copy.append(node('strong', 'Held before it reached your agent'),
+        node('p', `${reasons ? `This message ${reasons}. ` : ''}No API key can release it.${canRelease ? ' Release it only if you trust the sender.' : ''}`))
+      banner.append(icon('shield'), copy)
+      if (canRelease) {
+        const release = node('button', 'Release message', 'primary')
         action(release, async () => {
           await rpc('releaseQuarantine', { inboxId, messageId: message.messageId })
           notify('Message released')
           if (state.inbox === inboxId) { await loadThreads(); await readThread(threadId) }
         })
-        article.append(release)
+        banner.append(release)
       }
-    }
-    article.append(node('div', message.text ?? 'Message body is held for owner review.', 'message-text'))
-    if (message.attachments?.length && message.protection?.status !== 'quarantined') {
+      body.append(banner, protectionChecks(message.protection))
+      const label = node('div', undefined, 'message-text-label')
+      label.append(node('span', 'Message text'), node('span', 'Links are shown as plain text'))
+      body.append(label, node('div', message.text ?? 'Message body is held for owner review.', 'message-text message-text-held'))
+    } else body.append(node('div', message.text ?? 'Message body is held for owner review.', 'message-text'))
+    if (message.attachments?.length && !quarantined) {
       const attachments = node('div', undefined, 'attachments')
       for (const attachment of message.attachments) {
-        const button = node('button', `↓ ${attachment.filename} · ${Math.ceil(attachment.size / 1024)} KB`)
+        const size = `${Math.ceil(attachment.size / 1024)} KB`
+        const button = node('button', undefined, 'file-chip')
+        button.append(icon('file'), node('span', attachment.filename), node('span', size, 'file-size'))
+        button.setAttribute('aria-label', `Download ${attachment.filename}, ${size}`)
         action(button, async () => {
           const result = await rpc('getAttachment', { inboxId, messageId: message.messageId, attachmentId: attachment.attachmentId })
           const url = new URL(result.downloadUrl)
@@ -351,25 +461,31 @@ async function readThread(threadId) {
         })
         attachments.append(button)
       }
-      article.append(attachments)
+      body.append(attachments)
     }
-    for (const [label, value] of [['Delivery details', message.delivery], ['Protection checks', message.protection]]) {
-      if (!value) continue
+    if (message.delivery?.recipients?.length) body.append(deliverySummary(message.delivery))
+    if (message.triage) body.append(triageDetails(message.triage))
+    if (message.protection && !quarantined) {
       const details = node('details', undefined, 'message-details')
-      const lines = label === 'Delivery details'
-        ? value.recipients.map((recipient) => `${recipient.recipient}: ${recipient.status}${recipient.reason ? ` · ${recipient.reason}` : ''}`)
-        : [`Attachment scan: ${value.antivirus.status}`, `SPF: ${value.authentication.spf} · DKIM: ${value.authentication.dkim} · DMARC: ${value.authentication.dmarc}`, `Spam score: ${value.spam.score} / ${value.spam.threshold}`, ...value.reasons.map((reason) => reason.replaceAll('_', ' ')), ...(value.releasedAt ? [`Released: ${new Date(value.releasedAt).toLocaleString()}`] : [])]
-      details.append(node('summary', label), node('pre', lines.join('\n')))
-      article.append(details)
+      details.append(node('summary', 'Protection checks'), protectionChecks(message.protection))
+      body.append(details)
     }
+    article.append(mark, body)
     container.append(article)
   }
   const replyTarget = thread.messages.findLast((message) => message.labels?.includes('received')) ?? thread.messages.at(-1)
   if (replyTarget && replyTarget.protection?.status !== 'quarantined') {
-    const reply = node('button', 'Reply', 'reply-button')
-    reply.prepend(icon('reply'))
+    const counterpart = parseAddress(replyTarget.labels?.includes('received') ? replyTarget.from : replyTarget.to?.[0] ?? replyTarget.from)
+    const name = !counterpart.name || counterpart.name.includes('@') ? counterpart.address || counterpart.name : counterpart.name.split(' ')[0]
+    const reply = node('button', undefined, 'reply-button'), footer = node('span', undefined, 'reply-footer'), hint = node('span', undefined, 'reply-hint')
+    reply.setAttribute('aria-label', 'Reply')
+    hint.append(icon('paperclip'), node('span', 'Up to 10 files, 2 MiB total'))
+    footer.append(hint, node('span', 'Reply', 'reply-send'))
+    reply.append(node('span', `Reply to ${name} as ${inboxId}`, 'reply-prompt'), footer)
     action(reply, () => openCompose({ inboxId, message: replyTarget }))
-    container.append(reply)
+    const dock = node('div', undefined, 'reply-dock')
+    dock.append(reply)
+    container.append(dock)
   }
   if (compactViewport.matches) $('.reader').focus()
   if (thread.labels.includes('unread')) {
@@ -388,9 +504,9 @@ function openCompose(reply) {
     form.reset()
     for (const field of form.querySelectorAll('input, textarea')) field.disabled = false
     $('#compose-error').textContent = ''
-    form.querySelector('[type=submit]').textContent = 'Send message'
+    form.querySelector('[type=submit]').textContent = 'Send'
     $('#compose-title').textContent = reply ? 'Reply' : 'New message'
-    $('#compose-from').textContent = `From: ${state.draft.inboxId}`
+    $('#compose-from').textContent = `Sent from ${state.draft.inboxId}`
     $('#to-label').hidden = Boolean(reply)
     $('#subject-label').hidden = Boolean(reply)
     form.elements.to.required = !reply
@@ -427,6 +543,7 @@ $('#compose-form').addEventListener('submit', async (event) => {
     $('#compose-dialog').close()
     state.draft = null
     notify('Message accepted for sending')
+    if (!$('#billing').hidden) void loadUsage()
     await loadThreads()
   } catch (error) {
     $('#compose-error').textContent = error.message
@@ -460,6 +577,27 @@ for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListene
   if (mobileViewport.matches && (document.activeElement === document.body || $('#sidebar').contains(document.activeElement))) $('#open-menu').focus()
 })
 action($('#compose'), () => openCompose())
+action($('#sidebar-compose'), () => openCompose())
+$('#sidebar-new-inbox').addEventListener('click', () => $('#new-inbox').click())
+// Copy buttons name their source with data-copy (a selector) or carry the text in data-copy-value.
+document.addEventListener('click', (event) => {
+  const button = event.target.closest?.('[data-copy], [data-copy-value]')
+  if (!button || button.disabled) return
+  const value = button.dataset.copyValue ?? document.querySelector(button.dataset.copy)?.textContent ?? ''
+  if (value) navigator.clipboard.writeText(value).then(() => notify('Copied'), () => notify('Could not copy. Select the text to copy it manually.'))
+})
+// Chosen attachments show as chips; the file input itself stays the source of truth.
+function renderComposeFiles() {
+  const files = [...($('#compose-form').elements.attachments.files ?? [])]
+  $('#compose-files').replaceChildren(...files.map((file) => {
+    const chip = node('li', undefined, 'file-chip')
+    chip.append(icon('file'), node('span', file.name), node('span', `${Math.ceil(file.size / 1024)} KB`, 'file-size'))
+    return chip
+  }))
+  $('#compose-files').hidden = !files.length
+}
+$('#compose-form').elements.attachments.addEventListener('change', renderComposeFiles)
+$('#compose-form').addEventListener('reset', () => setTimeout(renderComposeFiles))
 $('#toggle-triage').addEventListener('click', () => {
   const open = $('#toggle-triage').getAttribute('aria-expanded') !== 'true'
   $('#toggle-triage').setAttribute('aria-expanded', String(open)); $('#triage-filters').hidden = !open

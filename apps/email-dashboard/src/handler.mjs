@@ -38,6 +38,11 @@ export const assets = new Map([
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/tokens.css', ['tokens.css', 'text/css; charset=utf-8']],
   ['/fonts/InterVariable.woff2', ['fonts/InterVariable.woff2', 'font/woff2']],
+  ['/fonts/GeistVariable.woff2', ['fonts/GeistVariable.woff2', 'font/woff2']],
+  ['/fonts/GeistMonoVariable.woff2', ['fonts/GeistMonoVariable.woff2', 'font/woff2']],
+  ['/images/landing/sea.webp', ['images/landing/sea.webp', 'image/webp']],
+  ['/images/landing/dunes.webp', ['images/landing/dunes.webp', 'image/webp']],
+  ['/images/landing/road.webp', ['images/landing/road.webp', 'image/webp']],
 ])
 const equal = (a, b) => {
   const left = Buffer.from(a), right = Buffer.from(b)
@@ -194,7 +199,7 @@ export function responseHeaders() {
 export function assetResponse(body, [file, contentType]) {
   const headers = responseHeaders()
   headers.set('content-type', contentType)
-  if (file === 'fonts/InterVariable.woff2' && contentType === 'font/woff2')
+  if (file.startsWith('fonts/') && contentType === 'font/woff2')
     headers.set('cache-control', 'public, max-age=3600')
   return new Response(body, { headers })
 }

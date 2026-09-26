@@ -49,8 +49,8 @@ Shows your plan, how many inboxes you have, and how many sends and triage analys
 
 Change the organization name (shown in the breadcrumb) and your profile name (shown in the account menu), and turn on notifications for new mail in your inboxes:
 
-- **Desktop notifications** show a browser alert while the dashboard is open. The browser asks for permission when you turn it on.
-- **Email notifications** send a short "New mail in Goshen Email" message to your sign-in address. The notification names the inbox and never includes message contents.
+- **Desktop alerts** show a browser alert while the dashboard is open. The browser asks for permission when you turn it on.
+- **Email me about new mail** sends a short "New mail in Goshen Email" message to your sign-in address. The notification names the inbox and never includes message contents.
 
 Both are off by default and skip quarantined, spam, and trashed mail. Your sign-in email is read-only.
 

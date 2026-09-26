@@ -1,13 +1,12 @@
 /* Documentation pages. Shares tokens.css and site-header.css with the homepage. */
-@font-face { font-family: Inter; src: url('/fonts/InterVariable.woff2') format('woff2'); font-style: normal; font-weight: 100 900; font-display: optional; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 24px; }
-body { margin: 0; background: var(--color-surface); color: var(--color-text); font-family: var(--font-sans), sans-serif; -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--color-surface); color: var(--color-text); font-family: var(--font-ui), sans-serif; -webkit-font-smoothing: antialiased; }
 a { color: inherit; }
 .skip-link { position: fixed; top: 16px; left: 24px; z-index: 2; padding: 12px 20px; border-radius: var(--radius-full); background: var(--color-ink); color: #fff; text-decoration: none; transform: translateY(calc(-100% - 32px)); }
 .skip-link:focus { transform: translateY(0); }
 
-.docs-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr) 220px; gap: 48px; max-width: var(--container-landing); margin: 0 auto; padding: 32px clamp(20px, 4.45vw, 64px) 96px; }
+.docs-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr) 220px; gap: 48px; max-width: var(--container-page); margin: 0 auto; padding: 32px 20px 96px; }
 
 /* Left navigation */
 .docs-nav { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow-y: auto; font-size: var(--text-sm); }

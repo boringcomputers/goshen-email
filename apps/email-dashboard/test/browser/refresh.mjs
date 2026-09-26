@@ -110,7 +110,7 @@ test('public pages keep their first layout when fonts and sign-in JavaScript arr
         : ['.site-header', '#main', '#title', '#description', '#auth-form']
       let previousDocument
       for (const phase of ['cold', 'reload']) {
-        const font = await gate(page, '**/fonts/InterVariable.woff2')
+        const font = await gate(page, '**/fonts/*.woff2')
         const script = path === '/' ? null : await gate(page, '**/auth.js')
         try {
           if (phase === 'cold') await page.goto(base + path, { waitUntil: 'commit' })
