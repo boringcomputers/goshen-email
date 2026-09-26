@@ -24,8 +24,9 @@ analyses per month. Monthly balances reset on the billing date. Inbox and
 domain counts do not reset. The rolling 24-hour send limit per inbox stays in
 place on every plan as an abuse backstop.
 
-Self-hosting is free under the AGPL and needs no Autumn account. Support
-contracts for self-hosted installs are sold separately and not through Autumn.
+Self-hosting is free under the Functional Source License and needs no Autumn
+account. Support contracts for self-hosted installs are sold separately and not
+through Autumn.
 
 ## Why these numbers
 

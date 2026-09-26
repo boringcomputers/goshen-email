@@ -69,6 +69,7 @@
     "ops/email/rspamd/worker-proxy.inc": "af3212988dde00f93e7f8a8ba2ead819cb5a8aa687513cae529202395f723cc2"
   },
   "modified": [
+    "apps/email-gateway/package.json",
     "apps/email/.dev.vars.example",
     "apps/email/README.md",
     "apps/email/package.json",

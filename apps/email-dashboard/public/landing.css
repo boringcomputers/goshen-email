@@ -224,7 +224,7 @@ a.app-button-dark:hover { background: var(--color-neutral-800); }
 .link-row svg { flex-shrink: 0; margin-top: 4px; }
 .link-row:hover .link-row-text { color: var(--color-foreground); }
 
-/* Security and open source */
+/* Security and source */
 .split { flex-direction: row; gap: 32px; }
 .split-main { display: flex; flex-direction: column; flex-shrink: 0; gap: 40px; width: 607px; }
 .detail-card { background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: 14px; display: flex; flex-direction: column; font: 400 var(--text-ui) / var(--leading-ui) var(--font-ui), sans-serif; max-width: 480px; overflow-wrap: normal; width: 100%; }

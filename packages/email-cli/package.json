@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Command-line client for the Goshen Email API",
   "type": "module",
-  "license": "AGPL-3.0-only",
+  "license": "FSL-1.1-ALv2",
   "homepage": "https://goshenemail.com/docs/cli",
   "repository": {
     "type": "git",

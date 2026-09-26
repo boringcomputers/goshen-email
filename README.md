@@ -243,5 +243,12 @@ a public issue. Everyone taking part follows the
 
 ## License
 
-[AGPL-3.0-only](LICENSE). If you run a modified version as a network service,
-you must offer its users the source code of your version.
+Goshen Email uses the
+[Functional Source License 1.1 with an Apache 2.0 future license](LICENSE),
+FSL-1.1-ALv2. You can use, modify, and self-host it for any purpose, including
+inside a business. You can't offer it, or a service built from it, as a
+commercial product that competes with Goshen Email. Each release becomes
+available under Apache 2.0 two years after we publish it.
+
+We published earlier commits under AGPL-3.0-only, and copies taken from them
+keep that license.

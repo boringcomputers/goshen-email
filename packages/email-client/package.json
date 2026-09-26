@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "license": "AGPL-3.0-only",
+  "license": "FSL-1.1-ALv2",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

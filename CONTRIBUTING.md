@@ -87,4 +87,4 @@ this repository should.
 ## License
 
 By contributing, you agree to license your work under the project's
-[AGPL-3.0-only license](LICENSE).
+[FSL-1.1-ALv2 license](LICENSE).
