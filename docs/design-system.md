@@ -39,9 +39,10 @@ them.
 | Type sizes | 11, 12, 13, 14, 16, 20, 32, 40, and 64px |
 | Radii | 4, 6, 8, 12, 16, and 20px, plus full |
 
-Two-tone headings set a muted first line over an ink second line. The first
-line uses `--color-foreground-subtle`, which measures about 2.5:1 against the
-canvas.
+Two-tone headings set a muted first line over an ink second line. Paper
+draws that first line in `--color-foreground-subtle`, which measures about
+2.5:1 against the canvas. The code uses `--color-foreground-muted` instead,
+about 4:1, to clear the 3:1 minimum for large text.
 
 ## Fonts
 

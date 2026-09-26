@@ -65,12 +65,14 @@ function protectionChecks(protection) {
   return table
 }
 function deliverySummary(delivery) {
-  const recipients = delivery.recipients, failed = recipients.find((recipient) => /bounce|fail|reject|complain/i.test(recipient.status))
-  const pending = recipients.find((recipient) => !recipient.delivered), title = (value) => value.charAt(0).toUpperCase() + value.slice(1)
+  const recipients = delivery.recipients, title = (value) => value.charAt(0).toUpperCase() + value.slice(1)
+  // A complaint can follow a delivery, so a problem outranks the delivered flag.
+  const failed = recipients.filter((recipient) => /bounce|fail|reject|complain/i.test(recipient.status))
+  const group = failed.length ? failed : recipients.filter((recipient) => !recipient.delivered)
   const summary = node('div', undefined, 'delivery-summary')
-  summary.append(recipients.every((recipient) => recipient.delivered) ? shell.pill('Delivered', 'success')
-    : failed ? shell.pill(title(failed.status), 'danger') : shell.pill(title(pending?.status ?? 'sent'), 'neutral'),
-  node('span', `to ${recipients.map((recipient) => recipient.recipient).join(', ')}`))
+  summary.append(failed.length ? shell.pill(title(failed[0].status), 'danger') : group.length ? shell.pill(title(group[0].status || 'sent'), 'neutral') : shell.pill('Delivered', 'success'))
+  // Name the recipients a status covers when it doesn't cover all of them.
+  if (group.length && group.length < recipients.length) summary.append(node('span', group.map((recipient) => recipient.recipient).join(', ')))
   const reasons = recipients.filter((recipient) => recipient.reason)
   if (!reasons.length) return summary
   const details = node('details', undefined, 'message-details')
@@ -409,9 +411,9 @@ async function readThread(threadId) {
     if (from.address) sender.append(node('span', from.address, 'message-address'))
     head.append(sender, node('time', new Date(message.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })))
     body.append(head)
-    // Recipients show when they add something: mail to more than this inbox, or a send without delivery details.
-    const onlyThisInbox = message.to.length === 1 && message.to[0] === inboxId && !message.cc?.length
-    if (!onlyThisInbox && !(sent && message.delivery?.recipients?.length)) body.append(node('p', `To: ${message.to.join(', ')}${message.cc?.length ? ` · Cc: ${message.cc.join(', ')}` : ''}`, 'message-recipients'))
+    // Recipients show unless the mail went to this inbox alone.
+    const onlyThisInbox = message.to.length === 1 && message.to[0] === inboxId && !message.cc?.length && !message.bcc?.length
+    if (!onlyThisInbox) body.append(node('p', [['To', message.to], ['Cc', message.cc], ['Bcc', message.bcc]].filter(([, list]) => list?.length).map(([role, list]) => `${role}: ${list.join(', ')}`).join(' · '), 'message-recipients'))
     const quarantined = message.protection?.status === 'quarantined'
     if (quarantined) {
       const banner = node('div', undefined, 'quarantine-banner'), copy = node('div', undefined, 'quarantine-copy')

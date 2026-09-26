@@ -4,7 +4,7 @@
 .setup-intro { display: flex; flex-direction: column; gap: 16px; }
 .setup-intro .section-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .setup-intro h2 { color: var(--color-primary); font-size: var(--text-3xl); line-height: var(--leading-3xl); letter-spacing: var(--tracking-display); outline: none; }
-.setup-title-lead { display: block; color: var(--color-foreground-subtle); }
+.setup-title-lead { display: block; color: var(--color-foreground-muted); }
 .setup-intro > p { color: var(--color-foreground-muted); font-family: var(--font-sans), system-ui, sans-serif; font-size: var(--text-base); line-height: var(--leading-base); }
 .setup-steps { display: none; }
 .setup-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; }

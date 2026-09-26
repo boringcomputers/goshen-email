@@ -151,7 +151,7 @@ a.app-button-dark:hover { background: var(--color-neutral-800); }
 .step-media-first .step-media { order: -1; }
 .step-copy { display: flex; flex-direction: column; min-width: 0; padding: 0 40px 8px; }
 .step-number, .step-title { font-size: var(--text-2xl); letter-spacing: var(--tracking-title); line-height: var(--leading-2xl); }
-.step-number { color: var(--color-foreground-subtle); padding-bottom: 2px; }
+.step-number { color: var(--color-foreground-muted); padding-bottom: 2px; }
 .step-title { color: var(--color-primary); }
 .step-text { color: var(--color-foreground-muted); padding-top: 8px; }
 .step-link { align-items: center; align-self: flex-start; color: var(--color-accent); display: inline-flex; gap: 4px; margin-top: 11px; }
@@ -283,7 +283,7 @@ a.app-button-dark:hover { background: var(--color-neutral-800); }
 .footer-bottom p { color: var(--color-foreground-subtle); font: 400 var(--text-xs) / var(--leading-2xs) var(--font-mono), monospace; letter-spacing: var(--tracking-caps); text-transform: uppercase; }
 
 /* Color helpers, last so they win over component colors. */
-.subtle { color: var(--color-foreground-subtle); }
+.subtle { color: var(--color-foreground-muted); }
 .accent { color: var(--color-accent); }
 .success { color: var(--color-success); }
 .warning { color: var(--color-warning); }

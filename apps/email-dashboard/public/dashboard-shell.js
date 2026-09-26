@@ -417,7 +417,7 @@
           const row = node('tr'), type = node('td'), value = node('td', undefined, 'record-value'), state = node('td')
           const text = `${record.priority === undefined ? '' : `${record.priority} `}${record.value}`
           type.append(node('span', record.type, 'record-type'))
-          const copy = node('button', undefined, 'icon-button copy-value'); copy.type = 'button'; copy.dataset.copyValue = text
+          const copy = node('button', undefined, 'icon-button copy-value'); copy.type = 'button'; copy.dataset.copyValue = record.value
           copy.setAttribute('aria-label', `Copy ${record.type} value for ${record.name}`); copy.title = 'Copy value'; copy.append(icon('copy'))
           value.append(node('span', text, 'mono'), copy)
           state.append(pill(record.status === 'verified' ? 'Found' : 'Pending', record.status === 'verified' ? 'success' : 'warning'))

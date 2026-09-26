@@ -17,7 +17,7 @@ a { color: inherit; text-underline-offset: 3px; }
 .brand svg { flex-shrink: 0; }
 main { display: flex; flex-direction: column; }
 .heading { font: 400 var(--text-3xl) / var(--leading-3xl) var(--font-sans), sans-serif; letter-spacing: var(--tracking-display); }
-h1 { color: var(--color-foreground-subtle); font: inherit; }
+h1 { color: var(--color-foreground-muted); font: inherit; }
 .heading-2 { color: var(--color-primary); display: none; }
 main:has(#name-field[hidden]):has(#email-field:not([hidden])) .for-sign-in, main:has(#name-field:not([hidden])) .for-sign-up { display: block; }
 main:has(#email-field[hidden]) h1 { color: var(--color-primary); }
