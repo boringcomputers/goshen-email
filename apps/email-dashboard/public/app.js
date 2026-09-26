@@ -67,12 +67,16 @@ function protectionChecks(protection) {
 function deliverySummary(delivery) {
   const recipients = delivery.recipients, title = (value) => value.charAt(0).toUpperCase() + value.slice(1)
   // A complaint can follow a delivery, so a problem outranks the delivered flag.
-  const failed = recipients.filter((recipient) => /bounce|fail|reject|complain/i.test(recipient.status))
-  const group = failed.length ? failed : recipients.filter((recipient) => !recipient.delivered)
+  const problem = (recipient) => /bounce|fail|reject|complain/i.test(recipient.status)
+  const failed = recipients.filter(problem), pending = recipients.filter((recipient) => !recipient.delivered && !problem(recipient))
   const summary = node('div', undefined, 'delivery-summary')
-  summary.append(failed.length ? shell.pill(title(failed[0].status), 'danger') : group.length ? shell.pill(title(group[0].status || 'sent'), 'neutral') : shell.pill('Delivered', 'success'))
-  // Name the recipients a status covers when it doesn't cover all of them.
-  if (group.length && group.length < recipients.length) summary.append(node('span', group.map((recipient) => recipient.recipient).join(', ')))
+  // Each status names its recipients when it doesn't cover all of them.
+  for (const [group, tone] of [[failed, 'danger'], [pending, 'neutral']]) {
+    if (!group.length) continue
+    summary.append(shell.pill(title(group[0].status || 'sent'), tone))
+    if (group.length < recipients.length) summary.append(node('span', group.map((recipient) => recipient.recipient).join(', ')))
+  }
+  if (!failed.length && !pending.length) summary.append(shell.pill('Delivered', 'success'))
   const reasons = recipients.filter((recipient) => recipient.reason)
   if (!reasons.length) return summary
   const details = node('details', undefined, 'message-details')
