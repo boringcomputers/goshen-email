@@ -34,7 +34,7 @@
     "@types/pg": "8.23.1",
     "kysely-pglite": "0.6.1",
     "tsx": "^4.20.0",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10",
     "wrangler": "4.129.0",
     "openapi-typescript": "7.13.0",
