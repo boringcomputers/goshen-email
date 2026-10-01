@@ -9,6 +9,6 @@
     "env": "atmn env"
   },
   "devDependencies": {
-    "atmn": "^2.0.8"
+    "atmn": "^2.0.45"
   }
 }
