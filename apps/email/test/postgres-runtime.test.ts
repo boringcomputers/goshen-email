@@ -6,7 +6,7 @@ import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { unstable_dev, type Unstable_DevWorker } from "wrangler"
-import { migrate, postgresDatabase } from "../src/database.js"
+import { ensureSchema, migrate, postgresDatabase } from "../src/database.js"
 import { postgresFixture } from "./database.js"
 import { config, rawMail } from "./support.js"
 
@@ -34,6 +34,7 @@ it("the migration command preserves postgres ownership and application grants fo
       env: { ...process.env, DATABASE_URL: connection.href }, timeout: 20_000
     })
     expect(result.stdout).toContain("Email schema is ready")
+    expect(await ensureSchema(database.db)).toBe("current")
     const tables = await database.db.query<{ owner: string; readable: boolean; writable: boolean }>(
       `select pg_get_userbyid(c.relowner) as owner,
         has_table_privilege($1,c.oid,'SELECT') as readable,
@@ -171,5 +172,62 @@ describe("Hyperdrive in the Workers runtime with PostgreSQL", () => {
     expect(await rpc("getMessage", { inboxId: "runtime@example.com", messageId: "<incoming@example.net>" }))
       .toMatchObject({ subject: "Invoice question", text: expect.stringContaining("invoice number 42") })
     expect((await worker.fetch("http://localhost/__test/scheduled")).status).toBe(200)
+  })
+})
+
+describe("automatic migrations through Hyperdrive in the Workers runtime", () => {
+  let database: Awaited<ReturnType<typeof postgresFixture>>
+  let worker: Unstable_DevWorker
+  let directory: string
+  const owner = `owner_${randomUUID().replaceAll("-", "")}`
+  beforeAll(async () => {
+    database = await postgresFixture()
+    // The Hyperdrive user owns the database but cannot become postgres, as on Neon or Supabase.
+    const password = randomUUID()
+    const connection = new URL(database.connectionString)
+    await database.db.query(`create role ${owner} login password '${password}'`)
+    await database.db.query(`alter database ${connection.pathname.slice(1)} owner to ${owner}`)
+    connection.username = owner
+    connection.password = password
+    directory = await mkdtemp(join(tmpdir(), "bezalel-auto-migrate-"))
+    const configuration = join(directory, "wrangler.json")
+    await writeFile(configuration, JSON.stringify({
+      name: "auto-migrate-runtime-test",
+      main: resolve("test/fixtures/postgres-worker.ts"),
+      compatibility_date: "2026-09-06", compatibility_flags: ["nodejs_compat"],
+      hyperdrive: [{ binding: "HYPERDRIVE", id: "0".repeat(32), localConnectionString: connection.href }],
+      r2_buckets: [{ binding: "MAIL_OBJECTS", bucket_name: "auto-migrate-runtime-test" }],
+      vars: {
+        MAIL_AUTO_MIGRATE_ENABLED: "true",
+        MAIL_API_TOKEN: config.apiToken, MAIL_WEBHOOK_SECRET: config.webhookSecret,
+        CLOUDFLARE_API_TOKEN: "test-token", CLOUDFLARE_ACCOUNT_ID: config.accountId,
+        EMAIL_DOMAINS: JSON.stringify(config.domains), DEFAULT_EMAIL_DOMAIN: config.defaultDomain,
+        PUBLIC_EMAIL_URL: config.publicUrl, WORKER_NAME: "auto-migrate-runtime-test",
+      }
+    }), { mode: 0o600 })
+    worker = await unstable_dev("test/fixtures/postgres-worker.ts", {
+      config: configuration, local: true, ip: "127.0.0.1", port: 0, inspectorPort: 0,
+      logLevel: "error", experimental: { disableExperimentalWarning: true, disableDevRegistry: true },
+    })
+  })
+  afterAll(async () => {
+    await worker?.stop()
+    await database?.pg.close()
+    await postgresDatabase(process.env.TEST_DATABASE_URL!).query(`drop role if exists ${owner}`)
+    if (directory) await rm(directory, { recursive: true, force: true })
+  })
+  it("migrates an empty database once while concurrent cold requests wait for it", async () => {
+    expect((await worker.fetch("http://localhost/healthz")).status).toBe(200)
+    expect(await database.db.query("select to_regclass('mail.schema_migrations') as marker")).toEqual([{ marker: null }])
+    const responses = await Promise.all(Array.from({ length: 8 }, () => worker.fetch("http://localhost/rpc/listInboxes", {
+      method: "POST", headers: { authorization: `Bearer ${config.apiToken}` }, body: "{}"
+    })))
+    for (const response of responses) expect(response.status, await response.clone().text()).toBe(200)
+    const markers = await database.db.query<{ id: string }>("select id from mail.schema_migrations order by id")
+    expect(markers.map((row) => row.id)).toEqual(["bounded-search-v1", expect.stringMatching(/^schema-[a-f0-9]{16}$/)])
+    const owners = await database.db.query<{ owner: string }>(`select distinct pg_get_userbyid(c.relowner) as owner
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'mail'`)
+    expect(owners).toEqual([{ owner }])
+    expect(await ensureSchema(database.db)).toBe("current")
   })
 })

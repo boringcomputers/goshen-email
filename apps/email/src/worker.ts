@@ -19,7 +19,7 @@ import {
   type MailConfig,
   type Operation
 } from "./contracts.js"
-import { postgresDatabase } from "./database.js"
+import { ensureSchema, postgresDatabase, type Database } from "./database.js"
 import { MailService } from "./mail-service.js"
 import { MailboxStore } from "./mailbox-store.js"
 import { CustomDomains, type GatewayConfig } from "./custom-domains.js"
@@ -55,6 +55,7 @@ export interface Env {
   MAIL_DOMAIN_ENCRYPTION_KEY?: string
   MAIL_INBOUND_SCAN_ENABLED?: string
   MAIL_FEEDBACK_SIGNERS?: string
+  MAIL_AUTO_MIGRATE_ENABLED?: string
   AUTH_PUBLIC_URL?: string
   AUTH_SECRET?: string
   AUTH_PROXY_SECRET?: string
@@ -75,7 +76,8 @@ const configuration = z.object({
   PUBLIC_EMAIL_URL: z.url(),
   MAIL_EVENTS_URL: z.url().optional(),
   BEZALEL_EVENTS_URL: z.url().optional(),
-  WORKER_NAME: z.string().min(1)
+  WORKER_NAME: z.string().min(1),
+  MAIL_AUTO_MIGRATE_ENABLED: z.enum(["true", "false"]).optional()
 })
 
 export const serviceFor = (env: Env): MailService => {
@@ -149,6 +151,23 @@ export const serviceFor = (env: Env): MailService => {
     customDomains,
     ...(env.MAIL_INBOUND_SCAN_ENABLED === "true" && gateway ? { scanner: gatewayScanner(gateway) } : {})
   })
+}
+
+let schema: Promise<unknown> | undefined
+
+// With MAIL_AUTO_MIGRATE_ENABLED=true, each isolate brings the schema up to date once, before the
+// first event that uses the database. A failure clears the promise so the next event retries.
+const schemaReady = (env: Env, db: Database, ctx?: ExecutionContext): Promise<unknown> => {
+  if (env.MAIL_AUTO_MIGRATE_ENABLED !== "true") return Promise.resolve()
+  if (!schema) {
+    schema = ensureSchema(db).catch((error: unknown) => {
+      schema = undefined
+      throw error
+    })
+    // Finish the migration even if the event that started it ends first.
+    ctx?.waitUntil(schema.catch(() => {}))
+  }
+  return schema
 }
 
 const json = (data: unknown, status = 200): Response =>
@@ -296,10 +315,15 @@ export async function consumeDeliveryBatch(
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     try {
       const service = serviceFor(env)
       const path = new URL(request.url).pathname
+      // Health checks stay off the database.
+      if (path !== "/healthz") {
+        try { await schemaReady(env, service.store.db, ctx) }
+        catch { return json({ error: { message: "Email operation failed", code: "internal_error", transient: true } }, 500) }
+      }
       if (path.startsWith("/api/auth/") || path.startsWith("/account-rpc/")) {
         const config = accountConfig(env)
         const accounts = postgresAccountAuth(config, env.HYPERDRIVE.connectionString, service)
@@ -327,6 +351,7 @@ export default {
   ): Promise<void> {
     const service = serviceFor(env)
     try {
+      await schemaReady(env, service.store.db, ctx)
       const raw = await readBytes(message.raw, 25 * 1024 * 1024)
       await service.acceptIncoming(message.to, raw, message.from)
       ctx.waitUntil(service.processIncoming().then(() => service.processTriage()))
@@ -342,6 +367,9 @@ export default {
   },
   async queue(batch: MessageBatch<unknown>, env: Env, ctx: ExecutionContext): Promise<void> {
     const service = serviceFor(env)
+    // Like a database error, a schema that is not ready retries the batch after a minute.
+    try { await schemaReady(env, service.store.db, ctx) }
+    catch { batch.retryAll({ delaySeconds: 60 }); return }
     await consumeDeliveryBatch(batch, service.store, service.config)
     ctx.waitUntil(service.flushEvents())
   },
@@ -351,6 +379,7 @@ export default {
     ctx: ExecutionContext
   ): Promise<void> {
     const service = serviceFor(env)
+    await schemaReady(env, service.store.db, ctx)
     ctx.waitUntil(service.processIncoming().then(() => service.flushEvents()))
     ctx.waitUntil(service.processTriage())
     if (env.AUTH_PUBLIC_URL && env.AUTH_FROM) ctx.waitUntil(sendNotifications(service.store.db, service.transport, env.AUTH_FROM, env.AUTH_PUBLIC_URL))

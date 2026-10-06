@@ -75,7 +75,11 @@ it("upgrades the deployed native schema without changing saved mail, credentials
 
     await migrate(f.db)
     await migrate(f.db)
-    expect(await snapshot(f.db, columns)).toEqual(before)
+    const after = await snapshot(f.db, columns)
+    // The only new row is the schema marker that migrate() records.
+    expect(after.schema_migrations).toEqual([...before.schema_migrations!,
+      { row: { id: expect.stringMatching(/^schema-[a-f0-9]{16}$/), applied_at: expect.any(String) } }])
+    expect({ ...after, schema_migrations: before.schema_migrations }).toEqual(before)
     expect(await f.db.query("select * from mail.customer_inboxes")).toEqual([])
     expect(await f.db.query("select * from mail.messages where triage is not null")).toEqual([])
     expect((await f.service.execute("listInboxes", {}) as any).inboxes).toHaveLength(2)

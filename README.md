@@ -118,7 +118,11 @@ lists the API Worker's settings. In the dashboard's file:
 2. Create the database and connect Hyperdrive with the
    [database guide](docs/planetscale.md). Put a direct connection string in
    `apps/email/.env` as `DATABASE_URL` and run `pnpm migrate`. It applies the
-   full schema and is safe to rerun on upgrades.
+   full schema and is safe to rerun on upgrades. To skip this step on install
+   and on every upgrade, set `MAIL_AUTO_MIGRATE_ENABLED` to `true` in the API
+   Worker's `vars`, and the Worker applies the schema itself. It is off by
+   default, and the Hyperdrive user then needs the right to create the schema.
+   The [Worker guide](apps/email/README.md#set-up-cloudflare) has the details.
 3. Pick a dashboard. The Cloudflare Worker dashboard supports public
    passwordless accounts; follow the [account guide](docs/accounts.md). The
    Node dashboard below uses one shared owner password and can see every inbox,

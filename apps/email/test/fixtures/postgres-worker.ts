@@ -40,6 +40,6 @@ export default {
       await worker.scheduled({} as ScheduledController, env, ctx)
       return Response.json({ scheduled: true })
     }
-    return worker.fetch(request, env)
+    return worker.fetch(request, env, ctx)
   }
 } satisfies ExportedHandler<Env>

@@ -61,15 +61,35 @@ flowchart LR
    Create a dedicated PlanetScale Postgres database, connect its primary to
    Hyperdrive with query caching disabled, and replace the `HYPERDRIVE` ID in
    `wrangler.jsonc`. Run migrations with a direct PostgreSQL `DATABASE_URL`
-   from `apps/email/.env`. The Worker uses the binding and needs no database URL secret.
+   from `apps/email/.env`, or let the Worker apply them as described below.
+   The Worker uses the binding and needs no database URL secret.
 9. Deploy with `pnpm --filter @bezalel/email run deploy`. In Cloudflare Email
    Routing, send the domain's catch-all to this Worker. Remove any specific
    address rules that would override this route for agent addresses.
 
 Run `migrate` before deploying an upgrade too. Applied schema changes are recorded
-in `mail.schema_migrations`. The search-index upgrade replaces the old generated
-column and its index in one transaction, preserves messages, and can be rerun.
-It takes a table lock while rebuilding the index; schedule it during a quiet period.
+in `mail.schema_migrations`, with a marker for the current schema. The
+search-index upgrade replaces the old generated column and its index in one
+transaction, preserves messages, and can be rerun. It takes a table lock while
+rebuilding the index; schedule it during a quiet period.
+
+To skip the manual step, set `MAIL_AUTO_MIGRATE_ENABLED` to `true` in `vars`.
+It is off by default. Each Worker isolate then checks the marker once, before
+the first request, email, queue batch, or cron run that uses the database. If
+the marker is missing, the isolate runs the migrations through Hyperdrive in one
+transaction under an advisory lock, so isolates that start together migrate
+once. A failed migration rolls back and fails the event, and the next event
+tries again. `/healthz` skips the check. An upgrade's migrations run on the
+first event after the deploy. The Hyperdrive user needs the right to create the
+`mail` schema and its objects, for example as the database owner, and must own
+any `mail` objects that already exist, directly or as a member of their owning
+role. The Worker never switches to the `postgres` role the way `pnpm migrate`
+does, so objects that `pnpm migrate` created belong to `postgres`, and an
+upgrade's `alter table` fails on them. The event returns an error until the
+ownership is fixed or someone runs `pnpm migrate`. For an existing database,
+make the Hyperdrive user the owner of the `mail` schema and every object in it
+first, or keep the setting off and run `pnpm migrate`. The hosted service leaves
+this off and applies reviewed SQL by hand.
 
 The Worker checks sending and receiving before creating an inbox. The default
 mode requires a catch-all targeting this Worker. For a subdomain sharing a zone
