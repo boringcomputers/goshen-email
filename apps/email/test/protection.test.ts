@@ -147,6 +147,39 @@ describe("incoming protection", () => {
     expect(await f.db.query("select * from mail.outbox")).toHaveLength(1)
   })
 
+  it("tells agents whether each received sender was checked in reads, lists, threads, and events", async () => {
+    const f = await setup()
+    const input = { inboxId: f.inbox.inboxId }
+    const noPolicy = { ...cleanProtection(), authentication: { spf: "unavailable" as const, dkim: "pass" as const,
+      dmarc: "none" as const, signingDomains: ["mailer.example"] } }
+    const forged = { ...held(), authentication: { spf: "fail" as const, dkim: "none" as const, dmarc: "fail" as const,
+      signingDomains: [] }, reasons: ["authentication_failed" as const] }
+    const expected = new Map([
+      [(await f.service.receive(f.inbox.inboxId, rawMail({ id: "<unchecked@example.net>" }))).messageId, "unchecked"],
+      [(await f.service.receive(f.inbox.inboxId, rawMail({ id: "<signed@example.net>" }), cleanProtection())).messageId, "authenticated"],
+      [(await f.service.receive(f.inbox.inboxId, rawMail({ id: "<no-policy@example.net>" }), noPolicy)).messageId, "unauthenticated"],
+    ])
+    const released = await f.service.receive(f.inbox.inboxId, rawMail({ id: "<forged@example.net>" }), forged)
+    await f.service.execute("releaseQuarantine", { ...input, messageId: released.messageId, reviewedBy: "owner-a" })
+    expected.set(released.messageId, "unauthenticated")
+
+    const listed = await f.service.execute("listMessages", input) as { messages: { messageId: string; senderAuthentication?: string }[] }
+    expect(new Map(listed.messages.map((message) => [message.messageId, message.senderAuthentication]))).toEqual(expected)
+    const events = await f.db.query<{ payload: { type: string; message: { messageId: string; senderAuthentication?: string } } }>(
+      "select payload from mail.outbox")
+    expect(new Map(events.map(({ payload }) => [payload.message.messageId, payload.message.senderAuthentication]))).toEqual(expected)
+    for (const [messageId, value] of expected)
+      expect(await f.service.execute("getMessage", { ...input, messageId }), messageId).toMatchObject({ senderAuthentication: value })
+
+    const original = await f.service.store.message(f.stored.id, "<unchecked@example.net>")
+    await f.service.execute("reply", { ...input, messageId: original.wire_id, text: "Thanks", idempotencyKey: "sender-check" })
+    const thread = await f.service.execute("getThread", { ...input, threadId: original.thread_id, includeBodies: true }) as {
+      messages: { messageId: string; senderAuthentication?: string; labels: string[] }[] }
+    expect(thread.messages).toHaveLength(2)
+    expect(thread.messages.find((message) => message.messageId === original.wire_id)).toMatchObject({ senderAuthentication: "unchecked" })
+    expect(thread.messages.find((message) => message.labels.includes("sent"))).not.toHaveProperty("senderAuthentication")
+  })
+
   it("retries managed incoming jobs after scanner failure with the original trusted envelope", async () => {
     const f = await setup()
     const scanner = vi.fn().mockRejectedValueOnce(new Error("scanner offline")).mockResolvedValue(cleanProtection())

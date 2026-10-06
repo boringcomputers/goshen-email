@@ -15,6 +15,7 @@ A message is one email, sent or received. Read, list, search, and label messages
 | `labels` | System and custom labels. See [Labels](/docs/labels). |
 | `attachments` | `attachmentId`, `filename`, `contentType`, and `size` for each file. See [Attachments](/docs/attachments). |
 | `text`, `html` | Bodies. `text` is included on reads; `html` is returned on `getMessage` when you ask for it. |
+| `senderAuthentication` | Incoming mail only. Whether a DMARC check confirmed the domain in `from`: `authenticated`, `unauthenticated`, or `unchecked`. See [Untrusted content](#untrusted-content). |
 | `protection` | Scanner results for incoming mail: SPF, DKIM, DMARC, spam score, antivirus, and quarantine status. See [Quarantine](/docs/quarantine). |
 | `triage` | Optional classification of incoming mail. See [Triage](/docs/triage). |
 | `delivery` | For sent mail, per-recipient delivery outcomes. See below. |
@@ -72,3 +73,13 @@ curl "https://api.goshenemail.com/v1/inboxes/research%40agents.goshenemail.com/m
 ## Untrusted content
 
 Everything inside a message was written by someone else: the subject, the sender's display name, the body, and every attachment. Passing a message body to a model without framing it as data is how prompt injection happens. See [Building agents on email](/docs/agents).
+
+The `From` header is whatever the sender typed, so `from` alone proves nothing. `senderAuthentication` tells you whether anything checked it and what the check found.
+
+| Value | Meaning |
+| --- | --- |
+| `authenticated` | The scanner checked the message and the From domain passed DMARC. |
+| `unauthenticated` | The scanner checked the message and DMARC did not pass. Domains without a DMARC policy land here, and so do forged messages a person released from quarantine. |
+| `unchecked` | The deployment does not scan incoming mail, so nothing checked the sender. Anyone could have written this `from`. |
+
+The hosted service doesn't scan incoming mail yet, so its messages are `unchecked`. Even `authenticated` proves only the domain. A lookalike domain or a compromised mailbox passes DMARC too. Sent messages don't carry the field.

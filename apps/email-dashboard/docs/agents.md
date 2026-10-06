@@ -12,6 +12,8 @@ Rules that hold up:
 - **Frame mail as data.** When a message body goes into a prompt, label it as content the agent is reading, not instructions it is receiving. Put it in a delimited block and say so.
 - **Never execute from mail.** No URLs opened blindly, no commands run, no attachments executed. If the agent must follow a link, treat the destination as hostile too.
 - **Do not send on a stranger's say-so.** A message that asks the agent to email someone, share data, or change a setting is a request to evaluate, not an instruction to obey.
+- **Check the sender in code.** Anyone can type any `From` address. Read `senderAuthentication` before trusting `from`. Only `authenticated` means the From domain passed DMARC, and `unchecked` means nothing checked it. A forged invoice that uses your vendor's real address never arrives as `authenticated`. Quarantine holds it, or it arrives as `unchecked` or `unauthenticated`. Even `authenticated` mail can come from a lookalike domain, so keep payment and data-sharing decisions with a person or a policy in code. See [Messages](/docs/messages#untrusted-content).
+- **Treat triage as a sorting hint.** A `billing` category or `critical` urgency is the model's reading of what the message says about itself, and the sender wrote that message. Use [triage](/docs/triage) to order the queue, never to decide that an action is allowed.
 - **Keep credentials out of the model.** The agent's API key lives in the process environment or in the [MCP server](/docs/mcp). The model never sees it, so it cannot leak it.
 
 The API descriptions repeat this on every read operation for a reason. The MCP server carries the same instruction to any client that connects.

@@ -34,7 +34,7 @@ For inboxes that have a webhook, Goshen Email posts JSON events:
 
 | Type | When | Payload |
 | --- | --- | --- |
-| `email.received` | A message arrived and was not quarantined | `inboxId`, `occurredAt`, and `message` with the message summary, `text` up to 64 KiB (`bodyTruncated` marks a cut), attachments, labels, and `triage` when enabled |
+| `email.received` | A message arrived and was not quarantined | `inboxId`, `occurredAt`, and `message` with the message summary, `senderAuthentication`, `text` up to 64 KiB (`bodyTruncated` marks a cut), attachments, labels, and `triage` when enabled |
 | `email.delivery_updated` | A recipient's server answered for a sent message | `inboxId`, `occurredAt`, `message` (`messageId`, `threadId`, `inboxId`), and the `delivery` block |
 | `email.bounced` | A sent message bounced | Bounce details for the affected recipient |
 
@@ -69,4 +69,4 @@ Respond with a 2xx only after you have durably accepted the event. Goshen Email 
 
 ## Treat payloads as untrusted
 
-Everything under `message` came from an outside sender. Verify the signature to know the event came from Goshen Email; that says nothing about the honesty of the email inside it. See [Building agents on email](/docs/agents).
+Everything under `message` came from an outside sender. Verify the signature to know the event came from Goshen Email; that says nothing about the honesty of the email inside it. `message.from` is the sender's claim unless `message.senderAuthentication` is `authenticated`. See [Building agents on email](/docs/agents).
