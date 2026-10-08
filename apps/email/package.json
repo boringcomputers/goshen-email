@@ -30,7 +30,7 @@
     "@cloudflare/workers-types": "5.20260906.1",
     "@electric-sql/pglite": "^0.4.0",
     "@types/html-to-text": "9.0.4",
-    "@types/node": "^24.10.9",
+    "@types/node": "^26.6.4",
     "@types/pg": "8.23.1",
     "kysely-pglite": "0.6.1",
     "tsx": "^4.20.0",
