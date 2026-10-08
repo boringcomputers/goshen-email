@@ -15,7 +15,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "mailauth": "^5.0.3",
+    "mailauth": "^7.1.1",
     "smtp-server": "^3.19.9"
   }
 }
