@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "typescript": "^6.0.3",
-    "@types/node": "^24.10.9"
+    "@types/node": "^26.6.4"
   },
   "bin": {
     "goshenemail": "dist/main.js"
