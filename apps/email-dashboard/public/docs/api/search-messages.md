@@ -66,6 +66,7 @@ Requires scope `messages:read`. MCP tool `search_messages`. CLI `goshenemail mes
 |     `reasons` | `"malware" \| "spam" \| "authentication_failed" \| "scan_incomplete"[]` | Yes | up to 4 items |
 |     `releasedAt` | `string (ISO 8601)` |  |  |
 |     `releasedBy` | `string` |  | 1–200 characters |
+|   `senderAuthentication` | `"authenticated" \| "unauthenticated" \| "unchecked"` |  | Incoming mail only. authenticated: the From domain passed DMARC. unauthenticated: a scan ran and DMARC did not pass. unchecked: nothing checked the sender, so from can be forged. |
 |   `text` | `string` |  |  |
 |   `html` | `string` |  |  |
 |   `cc` | `string[]` |  |  |

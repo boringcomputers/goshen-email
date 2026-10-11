@@ -65,6 +65,10 @@ const htmlToText = compile({
 })
 const plainText = (text?: string, html?: string): string =>
   clean(text?.trim() ? text : html ? htmlToText(html) : "")
+// Only DMARC ties the From header to the authenticated domain. SPF or DKIM alone can pass for another domain.
+const senderAuthentication = (protection: MessageProtection | null | undefined) =>
+  !protection ? "unchecked" as const
+    : protection.authentication.dmarc === "pass" ? "authenticated" as const : "unauthenticated" as const
 const summary = (row: MessageRow, inboxId: string) => ({
   ...(row.protection ? { protection: row.protection } : {}),
   ...(row.triage && row.protection?.status !== "quarantined" ? { triage: row.triage } : {}),
@@ -72,6 +76,7 @@ const summary = (row: MessageRow, inboxId: string) => ({
   threadId: row.thread_id,
   inboxId,
   from: row.data.from,
+  ...(row.direction === "received" ? { senderAuthentication: senderAuthentication(row.protection) } : {}),
   to: row.data.to,
   subject: row.data.subject,
   preview: row.protection?.status === "quarantined" ? "" : short(row.data.text ?? "", 200),

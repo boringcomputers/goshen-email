@@ -62,7 +62,7 @@ for (const message of messages) {
 </ul>
 <h2 id="events">Events</h2>
 <p>For inboxes that have a webhook, Goshen Email posts JSON events:</p>
-<div class="table-scroll"><table><thead><tr><th>Type</th><th>When</th><th>Payload</th></tr></thead><tbody><tr><td><code>email.received</code></td><td>A message arrived and was not quarantined</td><td><code>inboxId</code>, <code>occurredAt</code>, and <code>message</code> with the message summary, <code>text</code> up to 64 KiB (<code>bodyTruncated</code> marks a cut), attachments, labels, and <code>triage</code> when enabled</td></tr><tr><td><code>email.delivery_updated</code></td><td>A recipient&#39;s server answered for a sent message</td><td><code>inboxId</code>, <code>occurredAt</code>, <code>message</code> (<code>messageId</code>, <code>threadId</code>, <code>inboxId</code>), and the <code>delivery</code> block</td></tr><tr><td><code>email.bounced</code></td><td>A sent message bounced</td><td>Bounce details for the affected recipient</td></tr></tbody></table></div>
+<div class="table-scroll"><table><thead><tr><th>Type</th><th>When</th><th>Payload</th></tr></thead><tbody><tr><td><code>email.received</code></td><td>A message arrived and was not quarantined</td><td><code>inboxId</code>, <code>occurredAt</code>, and <code>message</code> with the message summary, <code>senderAuthentication</code>, <code>text</code> up to 64 KiB (<code>bodyTruncated</code> marks a cut), attachments, labels, and <code>triage</code> when enabled</td></tr><tr><td><code>email.delivery_updated</code></td><td>A recipient&#39;s server answered for a sent message</td><td><code>inboxId</code>, <code>occurredAt</code>, <code>message</code> (<code>messageId</code>, <code>threadId</code>, <code>inboxId</code>), and the <code>delivery</code> block</td></tr><tr><td><code>email.bounced</code></td><td>A sent message bounced</td><td>Bounce details for the affected recipient</td></tr></tbody></table></div>
 <p>Quarantined messages do not produce <code>email.received</code>. If a person releases one, the message appears in lists but no delayed event is sent. <code>email.received</code> can carry <code>triage.status: &quot;pending&quot;</code>; read the message again for the completed result.</p>
 <h2 id="verifying-signatures">Verifying signatures</h2>
 <p>Each delivery carries <code>svix-id</code>, <code>svix-timestamp</code>, and <code>svix-signature</code> headers, following the Standard Webhooks format. To verify:</p>
@@ -87,7 +87,7 @@ export function verify(headers: Headers, rawBody: string, secret: string) {
 }</code></pre>
 <p>Respond with a 2xx only after you have durably accepted the event. Goshen Email retries failures and does not follow redirects.</p>
 <h2 id="treat-payloads-as-untrusted">Treat payloads as untrusted</h2>
-<p>Everything under <code>message</code> came from an outside sender. Verify the signature to know the event came from Goshen Email; that says nothing about the honesty of the email inside it. See <a href="/docs/agents">Building agents on email</a>.</p>
+<p>Everything under <code>message</code> came from an outside sender. Verify the signature to know the event came from Goshen Email; that says nothing about the honesty of the email inside it. <code>message.from</code> is the sender&#39;s claim unless <code>message.senderAuthentication</code> is <code>authenticated</code>. See <a href="/docs/agents">Building agents on email</a>.</p>
 
       <nav class="docs-pager" aria-label="Previous and next">
         <a href="/docs/pagination" rel="prev"><span>Previous</span>Pagination</a>

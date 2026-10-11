@@ -54,7 +54,7 @@
 }</code></pre>
 <p>A message is quarantined when any of these apply:</p>
 <div class="table-scroll"><table><thead><tr><th>Reason</th><th>Rule</th></tr></thead><tbody><tr><td><code>malware</code></td><td>The antivirus scan found a signature.</td></tr><tr><td><code>scan_incomplete</code></td><td>The antivirus scan could not examine the message, for example an encrypted archive.</td></tr><tr><td><code>spam</code></td><td>The spam score reached the threshold (6), or the spam filter&#39;s own verdict was reject, quarantine, discard, or rewrite.</td></tr><tr><td><code>authentication_failed</code></td><td>DMARC failed, or SPF failed with neither DKIM nor DMARC passing.</td></tr></tbody></table></div>
-<p>A message with no <code>protection</code> block arrived on a deployment without scanning enabled and was not checked. The hosted service doesn&#39;t scan incoming mail yet, so its messages have no <code>protection</code> block and nothing is quarantined there.</p>
+<p>A message with no <code>protection</code> block arrived on a deployment without scanning enabled and was not checked. It carries <code>senderAuthentication: &quot;unchecked&quot;</code> so an agent can tell. The hosted service doesn&#39;t scan incoming mail yet, so its messages have no <code>protection</code> block and nothing is quarantined there. See <a href="/docs/messages#untrusted-content">Messages</a> for what each <code>senderAuthentication</code> value means.</p>
 <h2 id="what-happens-to-a-quarantined-message">What happens to a quarantined message</h2>
 <ul>
 <li>It carries the <code>quarantined</code> label instead of <code>received</code> and <code>unread</code>.</li>

@@ -205,7 +205,10 @@ that ClamAV cannot inspect go to Quarantine. The normal inbox, search, and
 `protection`: computed SPF/DKIM/DMARC, verified signing domains, spam score,
 attachment scan, reasons, and review state. Treat the email body as untrusted even
 when these checks pass. Authentication-Results headers in the message do not set
-these fields.
+these fields. Every received message in message reads, lists, thread reads, and
+`email.received` events also carries `senderAuthentication`: `authenticated`
+only when DMARC passed, `unauthenticated` when the scan ran without a DMARC
+pass, and `unchecked` when no scan ran.
 
 Ordinary message and thread reads omit held text, HTML, and body previews, even
 when an agent requests the quarantine label or asks for bodies. The standalone dashboard reads held bodies through the privileged `reviewThread`
@@ -225,7 +228,8 @@ while Cloudflare keeps receiving SMTP and R2 keeps storing raw mail. The origina
 SMTP IP is unavailable on this path, so SPF is reported as `unavailable`; DKIM and
 DMARC are computed from the message and DNS. Scanner outages retain incoming jobs
 for retry rather than sending unchecked mail to agents. The flag defaults off for
-staged deployment and does not rescan historical messages.
+staged deployment and does not rescan historical messages. While it is off,
+managed-domain mail reaches agents as `senderAuthentication: "unchecked"`.
 
 See the [gateway runbook](../../ops/email/README.md) for resource requirements,
 upgrade order, scanner health, durable reports, and deployment canaries.

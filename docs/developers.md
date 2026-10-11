@@ -152,7 +152,10 @@ MCP protocol messages to stdout.
 
 Email text, subjects, names, and attachments are untrusted input. Tools describe
 this boundary and annotate read-only and destructive operations. The server
-does not run commands from messages or automatically send mail.
+does not run commands from messages or automatically send mail. Incoming
+messages carry `senderAuthentication`: `authenticated` only when the From
+domain passed DMARC, `unauthenticated` when the scanner ran and DMARC did not
+pass, and `unchecked` when the deployment does not scan incoming mail.
 
 ## Rollout and verification
 
